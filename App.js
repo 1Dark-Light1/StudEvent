@@ -7,6 +7,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text>Hello World!</Text>
+      <Text>StudEvent - Mobile app from student!</Text>
       <StatusBar style="auto" />
     </View>
   );
