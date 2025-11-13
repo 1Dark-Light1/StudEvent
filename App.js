@@ -7,11 +7,11 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('./assets/logo.png')} // замените logo.png на имя вашего файла
+        source={require('./assets/logo.png')}
         style={styles.logo}
       />
-      <Text>StudEvent!</Text>
-      <Text>Organizuj. Dolączaj. Komunikuj się!</Text>
+      <Text style={styles.title}>StudEvent!</Text>
+      <Text style={styles.subtitle}>Organizuj. Dolączaj. Komunikuj się!</Text>
       <StatusBar style="auto" />
     </View>
   );
@@ -20,8 +20,19 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#accc7cff',
+    backgroundColor: '#ffffffff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logo: {
+    width: 180,
+    height: 180,
+    marginVertical: 10,
+  },
+  title: {
+    fontSize: 30,
+  },
+  subtitle: {
+    fontSize: 20,
   },
 });
