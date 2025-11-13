@@ -7,7 +7,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text>Hello World!</Text>
-      <Text>StudEvent - Mobile app from student!</Text>
+      <Text>StudEvent !</Text>
       <StatusBar style="auto" />
     </View>
   );
@@ -16,7 +16,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#8c4747ff',
     alignItems: 'center',
     justifyContent: 'center',
   },
