@@ -1,17 +1,25 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, View, Text, Image, Button, Alert } from 'react-native';
 
 
 
 export default function App() {
+
+  const handleTextPress = () => console.log('Text Press');
+  const handleButtonPress = () => Alert.alert("StudEvent", "Button Press", [ 
+    {text: "Yes", onPress: () => console.log('Yes')},
+    {text: "No", onPress: () => console.log('No')},
+ ]);
+
   return (
     <View style={styles.container}>
       <Image
         source={require('./assets/logo.png')}
         style={styles.logo}
       />
-      <Text style={styles.title}>StudEvent!</Text>
+      <Text style={styles.title} numberOfLines={1} onPress={handleTextPress}  >StudEvent!</Text>
       <Text style={styles.subtitle}>Organizuj. Dolączaj. Komunikuj się!</Text>
+      <Button  title='Start' onPress={handleButtonPress}  />
       <StatusBar style="auto" />
     </View>
   );
@@ -31,8 +39,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 30,
+    color:'#33b6b3ff',
   },
   subtitle: {
     fontSize: 20,
+    color: '#095d61ff', 
   },
 });
