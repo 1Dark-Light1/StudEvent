@@ -4,9 +4,11 @@ import { StyleSheet, View, Text, Image, Button, Alert } from 'react-native';
 
 
 export default function App() {
-
+  //При нажаті на текст в терміналі виводить що текст був нажатий 
   const handleTextPress = () => console.log('Text Press');
+  //Дадає висвітлення повідомлення при нажаті кнопки
   const handleButtonPress = () => Alert.alert("StudEvent", "Button Press", [ 
+    //Виводить в тепмінал що було нажати
     {text: "Yes", onPress: () => console.log('Yes')},
     {text: "No", onPress: () => console.log('No')},
  ]);
@@ -19,7 +21,9 @@ export default function App() {
       />
       <Text style={styles.title} numberOfLines={1} onPress={handleTextPress}  >StudEvent!</Text>
       <Text style={styles.subtitle}>Organizuj. Dolączaj. Komunikuj się!</Text>
+
       <Button  title='Start' onPress={handleButtonPress}  />
+      
       <StatusBar style="auto" />
     </View>
   );
