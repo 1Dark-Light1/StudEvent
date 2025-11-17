@@ -22,8 +22,8 @@ export default function Home({ navigation }) {
         style={GlobalStyle.logo}
       />
       <Text style={GlobalStyle.title} numberOfLines={1} onPress={handleTextPress}  >StudEvent!</Text>
-      <Text style={GlobalStyle.subtitle}>Organizuj. Dolączaj. Komunikuj się!</Text>
-
+      <Text style={GlobalStyle.subtitle} numberOfLines={1}>Organizuj. Dolączaj. Komunikuj się! {'\n'}   </Text>
+      <Text></Text>
       <Button title='Start' onPress= {handleButtonPress}   />
 
       <StatusBar style="auto" />
