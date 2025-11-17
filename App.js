@@ -1,52 +1,64 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, Image, Button, Alert } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Main from "./components/main"
+import Home from "./components/Home"
 
-
+const Stack = createNativeStackNavigator();
 
 export default function App() {
-  //При нажаті на текст в терміналі виводить що текст був нажатий 
-  const handleTextPress = () => console.log('Text Press');
-  //Дoдає висвітлення повідомлення при нажаті кнопки
-  const handleButtonPress = () => Alert.alert("StudEvent", "Button Press", [ 
-    //Виводить в тепмінал що було нажати
-    {text: "Yes", onPress: () => console.log('Yes')},
-    {text: "No", onPress: () => console.log('No')},
- ]);
-
-  return (
-    <View style={styles.container}>
-      <Image
-        source={require('./assets/logo.png')}
-        style={styles.logo}
-      />
-      <Text style={styles.title} numberOfLines={1} onPress={handleTextPress}  >StudEvent!</Text>
-      <Text style={styles.subtitle}>Organizuj. Dolączaj. Komunikuj się!</Text>
-
-      <Button  title='Start' onPress={handleButtonPress}  />
-
+  return(
+    <NavigationContainer>
       <StatusBar style="auto" />
-    </View>
+      <Stack.Navigator initialRouteName='Home'>
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Main" component={Main} />
+      </Stack.Navigator>
+    </NavigationContainer>
+
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 180,
-    height: 180,
-    marginVertical: 10,
-  },
-  title: {
-    fontSize: 30,
-    color:'#33b6b3ff',
-  },
-  subtitle: {
-    fontSize: 20,
-    color: '#0113daff', 
-  },
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//  //При нажаті на текст в терміналі виводить що текст був нажатий 
+//  const handleTextPress = () => console.log('Text Press');
+  //Дoдає висвітлення повідомлення при нажаті кнопки
+//  const handleButtonPress = () => Alert.alert("StudEvent", "Button Press", [ 
+    //Виводить в тепмінал що було нажати
+//    {text: "Yes", onPress: () => console.log('Yes')},
+//    {text: "No", onPress: () => console.log('No')},
+// ]);
+
+// return (
+//    <View style={GlobalStyle.container}>
+//      <Image
+//        source={require('./assets/logo.png')}
+//        style={GlobalStyle.logo}
+//      />
+//      <Text style={GlobalStyle.title} numberOfLines={1} onPress={handleTextPress}  >StudEvent!</Text>
+//      <Text style={GlobalStyle.subtitle}>Organizuj. Dolączaj. Komunikuj się!</Text>
+//
+//      <Button  title='Start' onPress={handleButtonPress}  />
+
+//      <StatusBar style="auto" />
+//    </View>
+//  );
+
+
+//const styles = StyleSheet.create({
+
+// });
