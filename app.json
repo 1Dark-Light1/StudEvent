@@ -6,7 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    // Disabled new architecture while resolving type mismatch issues; can re-enable after dependency alignment
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
