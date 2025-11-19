@@ -1,17 +1,23 @@
-import React, { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Minimal App to isolate runtime boolean/string error.
+import Login from './components/login';
+import Register from './components/register';
+import Main from './components/main';
+
+const Stack = createNativeStackNavigator();
+
 export default function App() {
-  useEffect(() => {
-    console.log('[App] Mounted minimal baseline');
-  }, []);
-
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#222', fontSize: 18 }}>Baseline Render OK + StatusBar</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <StatusBar style="dark" />
+      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="Main" component={Main} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }

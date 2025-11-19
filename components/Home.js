@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, Image, Button, Alert } from 'react-native';
 import { GlobalStyle } from '../styles/style'; 
+import Header from './Header';
 
 
 
@@ -17,12 +18,8 @@ export default function Home({ navigation }) {
 
   return (
     <View style={GlobalStyle.container}>
-      <Image
-        source={require('../assets/logo.png')}
-        style={GlobalStyle.logo}
-      />
-      <Text style={GlobalStyle.title} numberOfLines={1} onPress={handleTextPress}  >StudEvent!</Text>
-      <Text style={GlobalStyle.subtitle} numberOfLines={1}>Organizuj. Dolączaj. Komunikuj się! {'\n'}  </Text>
+      <Header />
+      <Text> </Text>
       <Text> </Text>
       <Button title='Start' onPress= {handleButtonPress}   />
 
