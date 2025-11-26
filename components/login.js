@@ -1,17 +1,34 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import Header from './Header';
+import { auth } from '../FireBaseConfig';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function Login({ navigation }) {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [remember, setRemember] = useState(true);
 
-	const handleLogin = () => {
-		// Placeholder action; navigate forward for now
-		navigation.navigate('Main');
+	const handleLogin = async () => {
+		if (!email || !password) {
+			Alert.alert('Вхід', 'Введи email і пароль.');
+			return;
+		}
+
+		try {
+			await signInWithEmailAndPassword(auth, email.trim(), password);
+			Alert.alert('Успіх', 'Вхід виконано успішно!', [
+				{
+					text: 'OK',
+					onPress: () => navigation.navigate('Main'),
+				},
+			]);
+		} catch (error) {
+			console.log('Login error:', error);
+			Alert.alert('Помилка входу', error.message || 'Невірний email або пароль.');
+		}
 	};
 
 	return (
@@ -57,13 +74,13 @@ export default function Login({ navigation }) {
 			</View>
 
 			<View style={styles.socialRow}>
-				<SocialIcon bg="#FFFFFF" onPress={() => {}}>
+				<SocialIcon bg="#FFFFFF" onPress={() => { }}>
 					<FontAwesome name="google" size={22} color="#DB4437" />
 				</SocialIcon>
-				<SocialIcon bg="#FFFFFF" onPress={() => {}}>
+				<SocialIcon bg="#FFFFFF" onPress={() => { }}>
 					<FontAwesome name="facebook" size={22} color="#1877F2" />
 				</SocialIcon>
-				<SocialIcon bg="#FFFFFF" onPress={() => {}}>
+				<SocialIcon bg="#FFFFFF" onPress={() => { }}>
 					<FontAwesome name="apple" size={24} color="#111" />
 				</SocialIcon>
 			</View>

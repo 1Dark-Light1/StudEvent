@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import Header from './Header';
+import { auth } from '../FireBaseConfig';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 export default function Register({ navigation }) {
 	const [firstName, setFirstName] = useState('');
@@ -12,9 +14,49 @@ export default function Register({ navigation }) {
 	const [confirm, setConfirm] = useState('');
 	const [accept, setAccept] = useState(true);
 
-	const handleRegister = () => {
-		// Placeholder: on success navigate to Main or Login
-		navigation.navigate('Main');
+	const handleRegister = async () => {
+		// перевірка прийняття умов
+		if (!accept) {
+			Alert.alert('Реєстрація', 'Потрібно прийняти умови користування.');
+			return;
+		}
+
+		// базова валідація полів
+		if (!email || !password || !confirm) {
+			Alert.alert('Реєстрація', 'Заповни email і пароль.');
+			return;
+		}
+
+		if (password !== confirm) {
+			Alert.alert('Реєстрація', 'Паролі не співпадають.');
+			return;
+		}
+
+		try {
+			// створення користувача в Firebase Auth
+			const userCredential = await createUserWithEmailAndPassword(
+				auth,
+				email.trim(),
+				password
+			);
+
+			// збереження імені / прізвища в displayName
+			const fullName = `${firstName} ${lastName}`.trim();
+			if (fullName) {
+				await updateProfile(userCredential.user, { displayName: fullName });
+			}
+
+			// повідомлення + перехід на екран логіну
+			Alert.alert('Успіх', 'Ти успішно зареєструвався! Тепер увійди в свій акаунт.', [
+				{
+					text: 'OK',
+					onPress: () => navigation.navigate('Login'),
+				},
+			]);
+		} catch (error) {
+			console.log('Register error:', error);
+			Alert.alert('Помилка реєстрації', error.message || 'Щось пішло не так.');
+		}
 	};
 
 	return (
@@ -74,13 +116,13 @@ export default function Register({ navigation }) {
 			</View>
 
 			<View style={styles.socialRow}>
-				<SocialIcon bg="#FFFFFF" onPress={() => {}}>
+				<SocialIcon bg="#FFFFFF" onPress={() => { }}>
 					<FontAwesome name="google" size={22} color="#DB4437" />
 				</SocialIcon>
-				<SocialIcon bg="#FFFFFF" onPress={() => {}}>
+				<SocialIcon bg="#FFFFFF" onPress={() => { }}>
 					<FontAwesome name="facebook" size={22} color="#1877F2" />
 				</SocialIcon>
-				<SocialIcon bg="#FFFFFF" onPress={() => {}}>
+				<SocialIcon bg="#FFFFFF" onPress={() => { }}>
 					<FontAwesome name="apple" size={24} color="#111" />
 				</SocialIcon>
 			</View>
