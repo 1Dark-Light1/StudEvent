@@ -1,3 +1,8 @@
+/**
+ * LoginScreen renders the authentication form that lets students access the app.
+ * The component keeps the UX lightweight (gradient background + card) while handling
+ * input validation, Firebase Auth login and feedback banners.
+ */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +16,10 @@ export default function Login({ navigation }) {
 	const [password, setPassword] = useState('');
 	const [remember, setRemember] = useState(true);
 
+	/**
+	 * Attempts to authenticate the user with Firebase using the provided credentials.
+	 * Shows early validation errors and gives contextual alerts after Firebase resolves.
+	 */
 	const handleLogin = async () => {
 		if (!email || !password) {
 			Alert.alert('Вхід', 'Введи email і пароль.');
@@ -88,6 +97,7 @@ export default function Login({ navigation }) {
 	);
 }
 
+/** Lightweight wrapper that pairs a left-aligned icon with a text input. */
 function IconInput({ icon, style, ...props }) {
 	return (
 		<View style={[styles.inputWrap, style]}>
@@ -97,6 +107,7 @@ function IconInput({ icon, style, ...props }) {
 	);
 }
 
+/** Checkbox line used for remember-me like toggles. */
 function CheckboxRow({ checked, onToggle, label }) {
 	return (
 		<Pressable style={styles.checkboxRow} onPress={onToggle} hitSlop={8}>
@@ -108,6 +119,7 @@ function CheckboxRow({ checked, onToggle, label }) {
 	);
 }
 
+/** Circular icon button for potential federated login providers. */
 function SocialIcon({ children, bg = '#fff', onPress }) {
 	return (
 		<Pressable style={({ pressed }) => [styles.socialBtn, { backgroundColor: bg }, pressed && { opacity: 0.9 }]} onPress={onPress}>
@@ -220,6 +232,7 @@ const styles = StyleSheet.create({
 	},
 });
 
+/** Normalizes platform shadows so the UI feels consistent on iOS and Android. */
 function shadow(elev = 8) {
 	return Platform.select({
 		ios: {

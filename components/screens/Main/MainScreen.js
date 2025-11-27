@@ -1,3 +1,7 @@
+/**
+ * MainScreen hosts the calendar-centric home hub. It combines a hero header, a stylised
+ * month grid and an agenda list so students can scan their day quickly.
+ */
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -5,6 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomNav from './BottomNav';
 import FloatingActionButton from './FloatingActionButton';
 
+/**
+ * Builds a 7-column grid that includes leading/trailing muted days so layout never shifts.
+ */
 function buildCalendar({ daysInMonth, startOffset, prevMonthDays, highlightDays = {}, outlineDays = {} }) {
    const grid = [];
    for (let i = startOffset; i > 0; i -= 1) {
@@ -28,6 +35,7 @@ function buildCalendar({ daysInMonth, startOffset, prevMonthDays, highlightDays 
    return grid;
 }
 
+/** Hard-coded sample data that mimics a backend payload. */
 const months = [
    {
       name: 'October',
@@ -124,6 +132,7 @@ export default function Main({ navigation, route }) {
    const activeMonth = months[monthIndex];
    const activeRoute = route?.name ?? 'Main';
 
+   /** Moves the selection within the months array while keeping the index in range. */
    const shiftMonth = (step) => {
       setMonthIndex((prev) => {
          const next = (prev + step + months.length) % months.length;

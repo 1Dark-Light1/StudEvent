@@ -1,3 +1,8 @@
+/**
+ * AlertsScreen gives the user a quick read on outstanding notifications.
+ * For now it is a placeholder with empty state copy but still renders the shared
+ * shell so the UX feels cohesive with other tabs.
+ */
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import BottomNav from './BottomNav';

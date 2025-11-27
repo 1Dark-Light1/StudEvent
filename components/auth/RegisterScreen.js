@@ -1,3 +1,8 @@
+/**
+ * RegisterScreen collects the minimum onboarding data required to create a Firebase user.
+ * It mirrors LoginScreen's look so users feel they are in the same flow, and centralises
+ * validation, consent gating and profile enrichment (display name) in one place.
+ */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +19,10 @@ export default function Register({ navigation }) {
 	const [confirm, setConfirm] = useState('');
 	const [accept, setAccept] = useState(true);
 
+	/**
+	 * Performs basic validation, creates a Firebase user and stores the combined
+	 * first/last name in displayName so the rest of the UI can greet the student.
+	 */
 	const handleRegister = async () => {
 		// перевірка прийняття умов
 		if (!accept) {
@@ -130,6 +139,7 @@ export default function Register({ navigation }) {
 	);
 }
 
+/** Shared icon + input field used throughout the auth stack. */
 function IconInput({ icon, style, ...props }) {
 	return (
 		<View style={[styles.inputWrap, style]}>
@@ -139,6 +149,7 @@ function IconInput({ icon, style, ...props }) {
 	);
 }
 
+/** Soft checkbox row for regulatory confirmations (terms, marketing, etc.). */
 function CheckboxRow({ checked, onToggle, label }) {
 	return (
 		<Pressable style={styles.checkboxRow} onPress={onToggle} hitSlop={8}>
@@ -150,6 +161,10 @@ function CheckboxRow({ checked, onToggle, label }) {
 	);
 }
 
+/**
+ * Placeholder for future single-sign-on providers. Keeps layout predictable today
+ * and makes adding Google/Facebook flows trivial later.
+ */
 function SocialIcon({ children, bg = '#fff', onPress }) {
 	return (
 		<Pressable style={({ pressed }) => [styles.socialBtn, { backgroundColor: bg }, pressed && { opacity: 0.9 }]} onPress={onPress}>
@@ -262,6 +277,7 @@ const styles = StyleSheet.create({
 	},
 });
 
+/** Platform shadow helper to keep cards consistent across OS versions. */
 function shadow(elev = 8) {
 	return Platform.select({
 		ios: {

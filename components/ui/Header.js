@@ -1,3 +1,7 @@
+/**
+ * AuthHeader provides a branded hero (logo + copy) reused across the entry flows.
+ * Keeping it isolated avoids duplicating marketing copy and ensures spacing stays aligned.
+ */
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 

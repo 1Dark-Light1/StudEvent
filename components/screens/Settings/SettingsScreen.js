@@ -1,3 +1,8 @@
+/**
+ * SettingsScreen centralizes account level preferences and acts as a design reference
+ * for list-driven layouts (icon + label + chevron). It intentionally mirrors iOS system
+ * cards to make the experience familiar.
+ */
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -5,11 +10,13 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomNav from './BottomNav';
 import FloatingActionButton from './FloatingActionButton';
 
+/** Higher priority actions shown at the top of the page. */
 const primaryOptions = [
    { icon: 'person-circle', label: 'Personal information' },
    { icon: 'settings', label: 'Settings' },
 ];
 
+/** Secondary preferences that still need quick access. */
 const secondaryOptions = [
    { icon: 'notifications', label: 'Notifications' },
    { icon: 'language', label: 'Language' },

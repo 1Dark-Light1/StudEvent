@@ -1,3 +1,8 @@
+/**
+ * BottomNav renders the persistent navigation pill used across screens.
+ * It keeps the surface responsive (pressable icons + labels) and highlights
+ * the active route so users always know where they are inside the app shell.
+ */
 import React from 'react';
 import { View, StyleSheet, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +11,7 @@ import { bottomNavItems } from './navItems';
 const NAV_HEIGHT = 68;
 
 export default function BottomNav({ navigation, activeRoute, style }) {
+   // Map config to UI to keep navigation copy and routing centralized.
    return (
       <View style={[styles.navBar, style]}>
          {bottomNavItems.map((item) => {

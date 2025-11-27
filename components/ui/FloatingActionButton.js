@@ -1,3 +1,7 @@
+/**
+ * FloatingActionButton provides a single obvious affordance for quick actions.
+ * It is rendered once per screen so any tab can surface creation flows consistently.
+ */
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

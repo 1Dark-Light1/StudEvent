@@ -1,9 +1,18 @@
+/**
+ * UserCalendarScreen focuses on the daily timeline experience.
+ * It mixes a day-strip selector with a vertical schedule so users can
+ * jump between days and immediately see context-rich events.
+ */
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from './BottomNav';
 import FloatingActionButton from './FloatingActionButton';
 
+/**
+ * Days shown in the pill selector. Weekday labels make the strip readable at a glance
+ * even when the user only remembers the label ("Wed") instead of the date.
+ */
 const stripDays = [
    { label: 'Mon', date: '17' },
    { label: 'Tue', date: '18' },
@@ -14,6 +23,10 @@ const stripDays = [
    { label: 'Sun', date: '23' },
 ];
 
+/**
+ * Mock schedule data keyed by date to simulate the API contract for the timeline.
+ * Each entry captures semantic hints (tone) so the UI can highlight the urgent items.
+ */
 const daySchedules = {
    '17': [
       { id: 'yoga', time: '6:30 AM', title: 'Morning yoga', subtitle: '15 min stretch', tone: 'frost' },
