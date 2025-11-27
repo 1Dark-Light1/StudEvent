@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import BottomNav from './BottomNav';
+import FloatingActionButton from './FloatingActionButton';
 
 function buildCalendar({ daysInMonth, startOffset, prevMonthDays, highlightDays = {}, outlineDays = {} }) {
    const grid = [];
@@ -117,16 +119,10 @@ const months = [
    },
 ];
 
-const navItems = [
-   { icon: 'home', label: 'Home', active: true },
-   { icon: 'calendar', label: 'Calendar' },
-   { icon: 'notifications', label: 'Alerts' },
-   { icon: 'settings', label: 'Settings' },
-];
-
-export default function Main() {
+export default function Main({ navigation, route }) {
    const [monthIndex, setMonthIndex] = useState(0);
    const activeMonth = months[monthIndex];
+   const activeRoute = route?.name ?? 'Main';
 
    const shiftMonth = (step) => {
       setMonthIndex((prev) => {
@@ -232,24 +228,9 @@ export default function Main() {
             </View>
          </ScrollView>
 
-         <View style={styles.bottomNav}>
-            {navItems.map((item) => (
-               <Pressable key={item.label} style={styles.navItem}>
-                  <View style={[styles.navIconWrap, item.icon === 'notifications' && styles.navRing]}>
-                     <Ionicons
-                        name={`${item.icon}${item.active ? '' : '-outline'}`}
-                        size={20}
-                        color={item.active ? '#2f6bff' : '#9aa8c2'}
-                     />
-                  </View>
-                  <Text style={[styles.navLabel, item.active && styles.navLabelActive]}>{item.label}</Text>
-               </Pressable>
-            ))}
-         </View>
+         <BottomNav navigation={navigation} activeRoute={activeRoute} />
 
-         <Pressable style={styles.fab}>
-            <Ionicons name="add" size={28} color="#fff" />
-         </Pressable>
+         <FloatingActionButton onPress={() => {}} />
       </View>
    );
 }
@@ -466,62 +447,5 @@ const styles = StyleSheet.create({
    agendaSubtitle: {
       color: '#99a7c3',
       fontSize: 12,
-   },
-   bottomNav: {
-      position: 'absolute',
-      bottom: 22,
-      left: 20,
-      right: 20,
-      height: 66,
-      backgroundColor: '#fff',
-      borderRadius: 28,
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      paddingHorizontal: 18,
-      elevation: 10,
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-   },
-   navItem: {
-      alignItems: 'center',
-      justifyContent: 'center',
-   },
-   navLabel: {
-      fontSize: 10,
-      color: '#9aa8c2',
-      marginTop: 4,
-   },
-   navLabelActive: {
-      color: '#2f6bff',
-   },
-   fab: {
-      position: 'absolute',
-      bottom: 60,
-      alignSelf: 'center',
-      width: 64,
-      height: 64,
-      borderRadius: 18,
-      backgroundColor: '#2f7bff',
-      alignItems: 'center',
-      justifyContent: 'center',
-      elevation: 16,
-      shadowColor: '#000',
-      shadowOpacity: 0.18,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 6 },
-   },
-   navIconWrap: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center',
-      justifyContent: 'center',
-   },
-   navRing: {
-      borderWidth: 1,
-      borderColor: '#d7def0',
    },
 });
