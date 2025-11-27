@@ -6,8 +6,8 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNav from './BottomNav';
-import FloatingActionButton from './FloatingActionButton';
+import BottomNav from '../../navigation/BottomNav';
+import FloatingActionButton from '../../ui/FloatingActionButton';
 
 /**
  * Builds a 7-column grid that includes leading/trailing muted days so layout never shifts.

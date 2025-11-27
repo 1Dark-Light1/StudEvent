@@ -7,8 +7,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
-import Header from './Header';
-import { auth } from '../FireBaseConfig';
+import Header from '../ui/Header';
+import { auth } from '../../FireBaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function Login({ navigation }) {

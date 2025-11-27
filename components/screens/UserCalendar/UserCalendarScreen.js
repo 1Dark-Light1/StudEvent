@@ -6,8 +6,8 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNav from './BottomNav';
-import FloatingActionButton from './FloatingActionButton';
+import BottomNav from '../../navigation/BottomNav';
+import FloatingActionButton from '../../ui/FloatingActionButton';
 
 /**
  * Days shown in the pill selector. Weekday labels make the strip readable at a glance

@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import BottomNav from './BottomNav';
+import BottomNav from '../../navigation/BottomNav';
 
 export default function Alerts({ navigation, route }) {
    const activeRoute = route?.name ?? 'Alerts';

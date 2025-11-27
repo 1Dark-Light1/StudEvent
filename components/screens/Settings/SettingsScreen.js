@@ -7,8 +7,8 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNav from './BottomNav';
-import FloatingActionButton from './FloatingActionButton';
+import BottomNav from '../../navigation/BottomNav';
+import FloatingActionButton from '../../ui/FloatingActionButton';
 
 /** Higher priority actions shown at the top of the page. */
 const primaryOptions = [

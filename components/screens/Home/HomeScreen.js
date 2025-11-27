@@ -4,8 +4,8 @@
  */
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, Image, Button, Alert } from 'react-native';
-import { GlobalStyle } from '../styles/style'; 
-import Header from './Header';
+import { GlobalStyle } from '../../../styles/style'; 
+import Header from '../../ui/Header';
 
 export default function Home({ navigation }) {
   // Helpful for instrumentation / verifying press areas while the UI is simple.
