@@ -22,13 +22,13 @@ export default function Login({ navigation }) {
 	 */
 	const handleLogin = async () => {
 		if (!email || !password) {
-			Alert.alert('Вхід', 'Введи email і пароль.');
+			Alert.alert('Login', 'Enter your email and password.');
 			return;
 		}
 
 		try {
 			await signInWithEmailAndPassword(auth, email.trim(), password);
-			Alert.alert('Успіх', 'Вхід виконано успішно!', [
+			Alert.alert('Success', 'Login successful!', [
 				{
 					text: 'OK',
 					onPress: () => navigation.navigate('Main'),
@@ -36,7 +36,7 @@ export default function Login({ navigation }) {
 			]);
 		} catch (error) {
 			console.log('Login error:', error);
-			Alert.alert('Помилка входу', error.message || 'Невірний email або пароль.');
+			Alert.alert('Login error', error.message || 'Incorrect email or password.');
 		}
 	};
 
@@ -45,11 +45,11 @@ export default function Login({ navigation }) {
 			<Header />
 
 			<View style={styles.card}>
-				<Text style={styles.cardTitle}>Zaloguj się na konto</Text>
+				<Text style={styles.cardTitle}>Log in to your account</Text>
 
 				<IconInput
 					icon={<MaterialIcons name="email" size={20} color="#7A8BA3" />}
-					placeholder="Email uczelniany"
+					placeholder="Email"
 					keyboardType="email-address"
 					value={email}
 					onChangeText={setEmail}
@@ -58,7 +58,7 @@ export default function Login({ navigation }) {
 
 				<IconInput
 					icon={<Ionicons name="lock-closed" size={20} color="#7A8BA3" />}
-					placeholder="Hasło"
+					placeholder="Password"
 					secureTextEntry
 					value={password}
 					onChangeText={setPassword}
@@ -67,17 +67,17 @@ export default function Login({ navigation }) {
 				<CheckboxRow
 					checked={remember}
 					onToggle={() => setRemember((v) => !v)}
-					label="Pamiętaj o koncie"
+					label="Remember your account"
 				/>
 
 				<Pressable style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.9 }]} onPress={handleLogin}>
-					<Text style={styles.primaryText}>Zaloguj się</Text>
+					<Text style={styles.primaryText}>Log in</Text>
 				</Pressable>
 
 				<Text style={styles.miniText}>
-					Nie masz konta?{' '}
+					Don't have an account?{' '}
 					<Text style={styles.link} onPress={() => navigation.navigate('Register')}>
-						Zarejestruj się
+						Sign up
 					</Text>
 				</Text>
 			</View>

@@ -10,7 +10,7 @@ export default function Header() {
     <View style={styles.header}>
       <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
       <Text style={styles.brand}>StudEvent</Text>
-      <Text style={styles.subtitle}>Dołącz do StudEvent</Text>
+      <Text style={styles.subtitle}>Join to us</Text>
     </View>
   );
 }

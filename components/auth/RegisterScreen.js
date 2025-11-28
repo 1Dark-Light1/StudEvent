@@ -24,39 +24,39 @@ export default function Register({ navigation }) {
 	 * first/last name in displayName so the rest of the UI can greet the student.
 	 */
 	const handleRegister = async () => {
-		// перевірка прийняття умов
+		// verification of acceptance of terms and conditions
 		if (!accept) {
-			Alert.alert('Реєстрація', 'Потрібно прийняти умови користування.');
+			Alert.alert('Registration', 'You must accept the terms of use.');
 			return;
 		}
 
-		// базова валідація полів
+		// basic field validation
 		if (!email || !password || !confirm) {
-			Alert.alert('Реєстрація', 'Заповни email і пароль.');
+			Alert.alert('Registration', 'Enter your email and password.');
 			return;
 		}
 
 		if (password !== confirm) {
-			Alert.alert('Реєстрація', 'Паролі не співпадають.');
+			Alert.alert('Registration', 'Passwords do not match.');
 			return;
 		}
 
 		try {
-			// створення користувача в Firebase Auth
+			// Create a user in Firebase Auth
 			const userCredential = await createUserWithEmailAndPassword(
 				auth,
 				email.trim(),
 				password
 			);
 
-			// збереження імені / прізвища в displayName
+			// saving the first name/last name in displayName
 			const fullName = `${firstName} ${lastName}`.trim();
 			if (fullName) {
 				await updateProfile(userCredential.user, { displayName: fullName });
 			}
 
-			// повідомлення + перехід на екран логіну
-			Alert.alert('Успіх', 'Ти успішно зареєструвався! Тепер увійди в свій акаунт.', [
+			// message + transition to login screen
+			Alert.alert('Success', 'You have successfully registered! Now log in to your account', [
 				{
 					text: 'OK',
 					onPress: () => navigation.navigate('Login'),
@@ -64,7 +64,7 @@ export default function Register({ navigation }) {
 			]);
 		} catch (error) {
 			console.log('Register error:', error);
-			Alert.alert('Помилка реєстрації', error.message || 'Щось пішло не так.');
+			Alert.alert('Registration error', error.message || 'Something went wrong.');
 		}
 	};
 
@@ -73,23 +73,23 @@ export default function Register({ navigation }) {
 			<Header />
 
 			<View style={styles.card}>
-				<Text style={styles.cardTitle}>Utwórz nowe konto</Text>
+				<Text style={styles.cardTitle}>Create a new account</Text>
 
 				<IconInput
 					icon={<Ionicons name="person-outline" size={20} color="#7A8BA3" />}
-					placeholder="Imię"
+					placeholder="First name"
 					value={firstName}
 					onChangeText={setFirstName}
 				/>
 				<IconInput
 					icon={<Ionicons name="person-outline" size={20} color="#7A8BA3" />}
-					placeholder="Nazwisko"
+					placeholder="Last name"
 					value={lastName}
 					onChangeText={setLastName}
 				/>
 				<IconInput
 					icon={<MaterialIcons name="email" size={20} color="#7A8BA3" />}
-					placeholder="Email uczelniany"
+					placeholder="Email"
 					keyboardType="email-address"
 					value={email}
 					onChangeText={setEmail}
@@ -97,29 +97,29 @@ export default function Register({ navigation }) {
 				/>
 				<IconInput
 					icon={<Ionicons name="lock-closed" size={20} color="#7A8BA3" />}
-					placeholder="Hasło"
+					placeholder="Password"
 					secureTextEntry
 					value={password}
 					onChangeText={setPassword}
 				/>
 				<IconInput
 					icon={<Ionicons name="lock-closed" size={20} color="#7A8BA3" />}
-					placeholder="Potwierdź hasło"
+					placeholder="Confirm password"
 					secureTextEntry
 					value={confirm}
 					onChangeText={setConfirm}
 				/>
 
-				<CheckboxRow checked={accept} onToggle={() => setAccept((v) => !v)} label="Akceptuję regulamin" />
+				<CheckboxRow checked={accept} onToggle={() => setAccept((v) => !v)} label="I accept the terms and conditions" />
 
 				<Pressable style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.9 }]} onPress={handleRegister}>
-					<Text style={styles.primaryText}>Zarejestruj się</Text>
+					<Text style={styles.primaryText}>Sign up</Text>
 				</Pressable>
 
 				<Text style={styles.miniText}>
-					Masz już konto?{' '}
+					Do you already have an account?{' '}
 					<Text style={styles.link} onPress={() => navigation.navigate('Login')}>
-						Zaloguj się
+						Log in
 					</Text>
 				</Text>
 			</View>
