@@ -4,7 +4,7 @@
  * jump between days and immediately see context-rich events.
  */
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
@@ -81,9 +81,16 @@ export default function UserCalendar({ navigation, route }) {
                   <Text style={styles.dateOverline}>{`October ${activeDate}, 2025`}</Text>
                   <Text style={styles.title}>{headerLabel}</Text>
                </View>
+
                <View style={styles.avatar}>
-                  <Ionicons name="person" size={24} color="#262c3b" />
+                  <Pressable     
+                     onPress={() => navigation.navigate('Settings')}
+                     style={({ pressed }) => ({opacity: pressed ? 0.5 : 1, })}
+                  >
+                     <Ionicons name="person" size={24} color="#262c3b" />
+                  </Pressable>
                </View>
+
             </View>
 
             <View style={styles.dayStrip}>

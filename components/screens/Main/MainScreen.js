@@ -2,8 +2,8 @@
  * MainScreen hosts the calendar-centric home hub. It combines a hero header, a stylised
  * month grid and an agenda list so students can scan their day quickly.
  */
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import React, { use, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, Animated, Easing} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
@@ -139,15 +139,58 @@ export default function Main({ navigation, route }) {
          return next;
       });
    };
+   /** 
+    *Starts the refresh button rotation animation 
+    
+    *And returns the calendar to the initial month.
+   */
+   const rotateAnim = useState(new Animated.Value(0))[0];
+   const[isRefreshing, setIsRefreshing] = useState(false);
+
+   const refreshCalendar = () => {
+      if ( isRefreshing ) return;
+
+      setIsRefreshing(true);
+
+      //Start Animation
+      rotateAnim.setValue(0);
+      Animated.timing(rotateAnim, {
+         toValue: 1,
+         duration: 600,
+         easing: Easing.linear,
+         useNativeDriver: true
+      }).start(() => {
+      
+         setMonthIndex(0);
+
+         setTimeout(() =>{
+            setIsRefreshing(false);
+         }, 200)
+      })
+   };
+
+const spin = rotateAnim.interpolate({
+   inputRange: [0, 1],
+   outputRange: ['0deg', '360deg']
+});
+
+
 
    return (
       <View style={styles.screen}>
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <LinearGradient colors={["#3b85ff", "#8fc5ff"]} style={styles.hero}>
                <View style={styles.headerRow}>
+
                   <View style={styles.avatar}>
+                     <Pressable     
+                         onPress={() => navigation.navigate('Settings')}
+                         style={({ pressed }) => ({opacity: pressed ? 0.5 : 1, })}
+                        >
                      <Ionicons name="person" size={22} color="#1d3f72" />
+                     </Pressable>
                   </View>
+
                   <View style={styles.monthBlock}>
                      <View style={styles.monthSwitcher}>
                         <Pressable style={styles.monthBtn} onPress={() => shiftMonth(-1)} hitSlop={8}>
@@ -161,11 +204,16 @@ export default function Main({ navigation, route }) {
                         </Pressable>
                      </View>
                      <Text style={styles.yearText}>{activeMonth.year}</Text>
+
+                  {/*Animation-Imitation Refresh*/}
                   </View>
-                  <Pressable style={styles.refreshBtn} onPress={() => { }}>
-                     <Ionicons name="refresh" size={18} color="#1f3d68" />
+                  <Pressable style={styles.refreshBtn} onPress={refreshCalendar}>
+                     <Animated.View style={{ transform: [{ rotate: spin}] }}>
+                        <Ionicons name="refresh" size={18} color="#1f3d68" />
+                     </Animated.View>
                   </Pressable>
                </View>
+
             </LinearGradient>
 
             <View style={styles.body}>
