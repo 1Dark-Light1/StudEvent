@@ -145,9 +145,16 @@ export default function Main({ navigation, route }) {
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <LinearGradient colors={["#3b85ff", "#8fc5ff"]} style={styles.hero}>
                <View style={styles.headerRow}>
+
                   <View style={styles.avatar}>
+                     <Pressable     
+                         onPress={() => navigation.navigate('Settings')}
+                         style={({ pressed }) => ({opacity: pressed ? 0.5 : 1, })}
+                        >
                      <Ionicons name="person" size={22} color="#1d3f72" />
+                     </Pressable>
                   </View>
+
                   <View style={styles.monthBlock}>
                      <View style={styles.monthSwitcher}>
                         <Pressable style={styles.monthBtn} onPress={() => shiftMonth(-1)} hitSlop={8}>
