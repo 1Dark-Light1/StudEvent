@@ -13,7 +13,7 @@ export default function FloatingActionButton({ onPress, icon = 'add', style }) {
          onPress={onPress}
          hitSlop={10}
       >
-         <Ionicons name={icon} size={28} color="#fff" />
+         <Ionicons name={icon} size={30} color="#fff" />
       </Pressable>
    );
 }

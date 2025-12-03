@@ -161,7 +161,7 @@ export default function UserCalendar({ navigation, route }) {
 
          <BottomNav navigation={navigation} activeRoute={activeRoute} />
 
-         <FloatingActionButton onPress={() => {}} />
+         <FloatingActionButton onPress={() => navigation.navigate('AddTask')} />
       </View>
    );
 }

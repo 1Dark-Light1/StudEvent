@@ -9,6 +9,7 @@ import Main from './components/screens/Main/MainScreen';
 import UserCalendar from './components/screens/UserCalendar/UserCalendarScreen';
 import Alerts from './components/screens/Alerts/AlertsScreen';
 import Settings from './components/screens/Settings/SettingsScreen';
+import AddTask from './components/screens/AddTask/AddTaskScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,7 @@ export default function App() {
         <Stack.Screen name="UserCalendar" component={UserCalendar} />
         <Stack.Screen name="Alerts" component={Alerts} />
         <Stack.Screen name="Settings" component={Settings} />
+        <Stack.Screen name="AddTask" component={AddTask} />
       </Stack.Navigator>
     </NavigationContainer>
   );

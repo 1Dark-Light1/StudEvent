@@ -79,7 +79,7 @@ export default function Settings({ navigation, route }) {
 
          <BottomNav navigation={navigation} activeRoute={activeRoute} />
 
-         <FloatingActionButton onPress={() => {}} />
+         <FloatingActionButton onPress={() => navigation.navigate('AddTask')} />
       </View>
    );
 }
