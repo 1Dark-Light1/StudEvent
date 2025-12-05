@@ -135,10 +135,10 @@ export default function AddTaskScreen({ navigation, route }) {
    const formatTime = (text) => {
       // Видаляємо всі символи, крім цифр
       const numbers = text.replace(/\D/g, '');
-      
+
       // Обмежуємо до 4 цифр
       const limited = numbers.slice(0, 4);
-      
+
       // Додаємо двокрапку після другої цифри
       if (limited.length <= 2) {
          return limited;
@@ -231,12 +231,12 @@ export default function AddTaskScreen({ navigation, route }) {
                      Choose a time and date <Text style={styles.required}>*</Text>
                   </Text>
                   <View style={styles.row}>
-                     <View 
+                     <View
                         style={[
-                           styles.inputContainer, 
+                           styles.inputContainer,
                            styles.halfWidth,
                            timeDilation && styles.inputContainerDisabled
-                        ]} 
+                        ]}
                         pointerEvents={timeDilation ? "none" : "box-none"}
                      >
                         <TextInput
@@ -250,11 +250,11 @@ export default function AddTaskScreen({ navigation, route }) {
                            keyboardType="numeric"
                            maxLength={5}
                         />
-                        <Ionicons 
-                           name="time-outline" 
-                           size={20} 
-                           color={timeDilation ? "#B0B8C4" : "#6B7A8F"} 
-                           style={styles.inputIcon} 
+                        <Ionicons
+                           name="time-outline"
+                           size={20}
+                           color={timeDilation ? "#B0B8C4" : "#6B7A8F"}
+                           style={styles.inputIcon}
                         />
                      </View>
                      <View style={[styles.inputContainer, styles.halfWidth]} pointerEvents="box-none">

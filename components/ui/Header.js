@@ -18,21 +18,21 @@ export default function Header() {
 const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
+    marginTop: -20,
   },
   logo: {
-    width: 84,
-    height: 84,
-    marginBottom: 6,
+    width: 100,
+    height: 100,
   },
   brand: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
-    color: '#2B63F1',
+    color: '#06276C',
     letterSpacing: 0.2,
   },
   subtitle: {
-    marginTop: 2,
-    fontSize: 14,
-    color: '#3556A8',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#06276C',
   },
 });
