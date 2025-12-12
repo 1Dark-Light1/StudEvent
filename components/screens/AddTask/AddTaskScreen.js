@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    View,
    Text,
@@ -14,6 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import BottomNav from '../../navigation/BottomNav';
+import { auth } from '../../../FireBaseConfig';
+import { addTask } from '../../../services/tasksService';
 
 export default function AddTaskScreen({ navigation, route }) {
    const [mode, setMode] = useState('build'); // 'build' or 'change'
@@ -30,8 +32,24 @@ export default function AddTaskScreen({ navigation, route }) {
    const [tagText, setTagText] = useState('');
    const [showColorPicker, setShowColorPicker] = useState(false);
    const [frequency, setFrequency] = useState('once'); // 'once', 'weekly', 'custom'
+   const [customDates, setCustomDates] = useState([]); // Массив дат для Custom frequency
+   const [customDateInput, setCustomDateInput] = useState(''); // Временный ввод даты
+   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
 
    const activeRoute = route?.name ?? 'AddTask';
+
+   // Проверка авторизации при монтировании компонента
+   useEffect(() => {
+      if (!auth.currentUser) {
+         Alert.alert('Authentication Required', 'Please log in to add tasks.', [
+            {
+               text: 'OK',
+               onPress: () => navigation.navigate('Login'),
+            },
+         ]);
+      }
+   }, [navigation]);
 
    // Палітра кольорів
    const colorPalette = [
@@ -58,9 +76,22 @@ export default function AddTaskScreen({ navigation, route }) {
       setToTime('');
       setTagText('');
       setFrequency('once');
+      setCustomDates([]);
+      setCustomDateInput('');
    };
 
-   const handleAdd = () => {
+   const handleAdd = async () => {
+      // Проверка авторизации
+      if (!auth.currentUser) {
+         Alert.alert('Authentication Required', 'Please log in to add tasks.', [
+            {
+               text: 'OK',
+               onPress: () => navigation.navigate('Login'),
+            },
+         ]);
+         return;
+      }
+
       // Валідація обов'язкових полів
       if (!name.trim()) {
          Alert.alert('Error', 'The "Name" field is required.');
@@ -92,15 +123,45 @@ export default function AddTaskScreen({ navigation, route }) {
          return;
       }
 
-      // TODO: Implement task creation logic
-      console.log('Adding task:', { name, description, taskTime, taskDate, frequency, tagText, taskColor });
-      // After adding, navigate back or show success
-      Alert.alert('Success', 'Task added successfully!', [
-         {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-         },
-      ]);
+      if (frequency === 'custom' && customDates.length === 0) {
+         Alert.alert('Error', 'Please add at least one date for Custom frequency.');
+         return;
+      }
+
+      setIsLoading(true);
+
+      try {
+         const taskData = {
+            name: name.trim(),
+            description: description.trim(),
+            date: taskDate,
+            time: timeDilation ? null : taskTime.trim(),
+            timeDilation: timeDilation,
+            fromTime: timeDilation ? fromTime.trim() : null,
+            toTime: timeDilation ? toTime.trim() : null,
+            tagText: tagText.trim(),
+            taskColor: taskColor,
+            frequency: frequency,
+            customDates: frequency === 'custom' ? customDates : undefined,
+         };
+
+         await addTask(taskData);
+         
+         Alert.alert('Success', 'Task added successfully!', [
+            {
+               text: 'OK',
+               onPress: () => {
+                  handleClear();
+                  navigation.goBack();
+               },
+            },
+         ]);
+      } catch (error) {
+         console.error('Error adding task:', error);
+         Alert.alert('Error', error.message || 'Failed to add task. Please try again.');
+      } finally {
+         setIsLoading(false);
+      }
    };
 
    const formatDate = (date) => {
@@ -385,6 +446,67 @@ export default function AddTaskScreen({ navigation, route }) {
                         </Text>
                      </Pressable>
                   </View>
+                  
+                  {/* Custom dates input */}
+                  {frequency === 'custom' && (
+                     <View style={styles.customDatesSection}>
+                        <Text style={styles.label}>Add dates</Text>
+                        <View style={styles.customDateInputRow}>
+                           <View style={[styles.inputContainer, styles.flex1]} pointerEvents="box-none">
+                              <TextInput
+                                 style={styles.input}
+                                 placeholder="DD.MM.YYYY"
+                                 placeholderTextColor="#6B7A8F"
+                                 value={customDateInput}
+                                 onChangeText={setCustomDateInput}
+                                 editable={true}
+                                 autoCorrect={false}
+                              />
+                              <Pressable 
+                                 onPress={() => {
+                                    const date = new Date();
+                                    setSelectedDate(date);
+                                    setShowCustomDatePicker(true);
+                                 }} 
+                                 style={styles.iconButton}
+                              >
+                                 <Ionicons name="calendar-outline" size={20} color="#6B7A8F" />
+                              </Pressable>
+                           </View>
+                           <Pressable
+                              style={styles.addDateBtn}
+                              onPress={() => {
+                                 const dateToAdd = customDateInput.trim() || formatDate(selectedDate);
+                                 if (dateToAdd && !customDates.includes(dateToAdd)) {
+                                    setCustomDates([...customDates, dateToAdd].sort());
+                                    setCustomDateInput('');
+                                 }
+                              }}
+                           >
+                              <Ionicons name="add" size={20} color="#2F7BFF" />
+                           </Pressable>
+                        </View>
+                        
+                        {/* Список добавленных дат */}
+                        {customDates.length > 0 && (
+                           <View style={styles.customDatesList}>
+                              {customDates.map((date, index) => (
+                                 <View key={index} style={styles.customDateTag}>
+                                    <Text style={styles.customDateText}>{date}</Text>
+                                    <Pressable
+                                       onPress={() => {
+                                          setCustomDates(customDates.filter((_, i) => i !== index));
+                                       }}
+                                       style={styles.removeDateBtn}
+                                    >
+                                       <Ionicons name="close" size={16} color="#6B7A8F" />
+                                    </Pressable>
+                                 </View>
+                              ))}
+                           </View>
+                        )}
+                     </View>
+                  )}
                </View>
             </View>
          </ScrollView>
@@ -394,8 +516,12 @@ export default function AddTaskScreen({ navigation, route }) {
             <Pressable style={styles.clearBtn} onPress={handleClear}>
                <Text style={styles.clearText}>Clear</Text>
             </Pressable>
-            <Pressable style={styles.addBtn} onPress={handleAdd}>
-               <Text style={styles.addText}>Add</Text>
+            <Pressable 
+               style={[styles.addBtn, isLoading && styles.addBtnDisabled]} 
+               onPress={handleAdd}
+               disabled={isLoading}
+            >
+               <Text style={styles.addText}>{isLoading ? 'Adding...' : 'Add'}</Text>
             </Pressable>
          </View>
 
@@ -444,6 +570,68 @@ export default function AddTaskScreen({ navigation, route }) {
                mode="date"
                display="default"
                onChange={onDateChange}
+            />
+         )}
+
+         {/* Custom Date Picker Modal for iOS */}
+         {Platform.OS === 'ios' && showCustomDatePicker && (
+            <Modal
+               visible={showCustomDatePicker}
+               transparent={true}
+               animationType="slide"
+               onRequestClose={() => setShowCustomDatePicker(false)}
+            >
+               <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                     <View style={styles.modalHeader}>
+                        <Pressable onPress={() => setShowCustomDatePicker(false)}>
+                           <Text style={styles.modalCancel}>Cancel</Text>
+                        </Pressable>
+                        <Text style={styles.modalTitle}>Select Date</Text>
+                        <Pressable
+                           onPress={() => {
+                              setCustomDateInput(formatDate(selectedDate));
+                              setShowCustomDatePicker(false);
+                           }}
+                        >
+                           <Text style={styles.modalDone}>Done</Text>
+                        </Pressable>
+                     </View>
+                     <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display="spinner"
+                        onChange={(event, date) => {
+                           if (Platform.OS === 'android') {
+                              setShowCustomDatePicker(false);
+                           }
+                           if (date) {
+                              setSelectedDate(date);
+                              if (Platform.OS === 'android') {
+                                 setCustomDateInput(formatDate(date));
+                              }
+                           }
+                        }}
+                        style={styles.datePicker}
+                     />
+                  </View>
+               </View>
+            </Modal>
+         )}
+
+         {/* Custom Date Picker for Android */}
+         {Platform.OS === 'android' && showCustomDatePicker && (
+            <DateTimePicker
+               value={selectedDate}
+               mode="date"
+               display="default"
+               onChange={(event, date) => {
+                  setShowCustomDatePicker(false);
+                  if (date) {
+                     setSelectedDate(date);
+                     setCustomDateInput(formatDate(date));
+                  }
+               }}
             />
          )}
 
@@ -696,6 +884,9 @@ const styles = StyleSheet.create({
       color: '#fff',
       fontWeight: '700',
    },
+   addBtnDisabled: {
+      opacity: 0.6,
+   },
    iconButton: {
       padding: 4,
    },
@@ -778,6 +969,48 @@ const styles = StyleSheet.create({
    colorOptionSelected: {
       borderColor: '#2F7BFF',
       borderWidth: 3,
+   },
+   customDatesSection: {
+      marginTop: 16,
+   },
+   customDateInputRow: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+   },
+   flex1: {
+      flex: 1,
+   },
+   addDateBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#F0F4F8',
+      alignItems: 'center',
+      justifyContent: 'center',
+   },
+   customDatesList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 12,
+   },
+   customDateTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#E3E8F4',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      gap: 8,
+   },
+   customDateText: {
+      fontSize: 14,
+      color: '#3D4C66',
+      fontWeight: '600',
+   },
+   removeDateBtn: {
+      padding: 2,
    },
 });
 

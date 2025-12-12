@@ -3,82 +3,154 @@
  * It mixes a day-strip selector with a vertical schedule so users can
  * jump between days and immediately see context-rich events.
  */
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
+import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive } from '../../../services/tasksService';
+import { auth } from '../../../FireBaseConfig';
 
 /**
- * Days shown in the pill selector. Weekday labels make the strip readable at a glance
- * even when the user only remembers the label ("Wed") instead of the date.
+ * Генерирует массив дней недели начиная с понедельника текущей недели
  */
-const stripDays = [
-   { label: 'Mon', date: '17' },
-   { label: 'Tue', date: '18' },
-   { label: 'Wed', date: '19' },
-   { label: 'Thu', date: '20' },
-   { label: 'Fri', date: '21' },
-   { label: 'Sat', date: '22' },
-   { label: 'Sun', date: '23' },
-];
+function generateWeekDays() {
+   const today = new Date();
+   const currentDay = today.getDay();
+   // Понедельник = 1, воскресенье = 0
+   const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+   const monday = new Date(today);
+   monday.setDate(today.getDate() + mondayOffset);
+
+   const days = [];
+   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+   
+   for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      
+      const day = date.getDate();
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      const dateString = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
+      
+      days.push({
+         label: dayLabels[i],
+         date: String(day),
+         dateString: dateString,
+         fullDate: date,
+      });
+   }
+   
+   return days;
+}
 
 /**
- * Mock schedule data keyed by date to simulate the API contract for the timeline.
- * Each entry captures semantic hints (tone) so the UI can highlight the urgent items.
+ * Форматирует дату для отображения
  */
-const daySchedules = {
-   '17': [
-      { id: 'yoga', time: '6:30 AM', title: 'Morning yoga', subtitle: '15 min stretch', tone: 'frost' },
-      { id: 'lecture', time: '9:00 AM', title: 'AI lecture', subtitle: 'Hall C3', tone: 'highlight' },
-   ],
-   '18': [
-      { id: 'coffee', time: '8:00 AM', title: 'Coffee with mentor', subtitle: 'Campus cafe', tone: 'frost' },
-      { id: 'designsync', time: '11:00 AM', title: 'Design sync', subtitle: 'UI polish', tone: 'frost' },
-      { id: 'gym', time: '5:30 PM', title: 'Gym session', subtitle: 'Leg day', tone: 'highlight' },
-   ],
-   '19': [
-      { id: 'wakeup', time: '7:00 AM', title: 'Wakeup', subtitle: 'Early wakeup from bed', tone: 'frost' },
-      { id: 'exercise', time: '8:00 AM', title: 'Morning Exercise', subtitle: '4 exercise', tone: 'frost' },
-      {
-         id: 'lab',
-         time: '9:05-10:00 AM',
-         title: 'Laboratory class..',
-         subtitle: 'Programming in room P1-102',
-         tone: 'highlight',
-      },
-      {
-         id: 'breakfast',
-         time: '10:00 AM',
-         title: 'Breakfast',
-         subtitle: 'Morning breakfast with sandwich, banana',
-         tone: 'frost',
-      },
-   ],
-   '20': [
-      { id: 'labprep', time: '7:30 AM', title: 'Lab prep', subtitle: 'Review notes', tone: 'frost' },
-      { id: 'meetup', time: '1:00 PM', title: 'Team meetup', subtitle: 'Room D4', tone: 'highlight' },
-   ],
-   '21': [
-      { id: 'wfh', time: '9:00 AM', title: 'Remote work', subtitle: 'Code cleanup', tone: 'frost' },
-      { id: 'review', time: '3:00 PM', title: 'Sprint review', subtitle: 'Show progress', tone: 'highlight' },
-   ],
-};
+function formatDateForDisplay(dateString) {
+   const [day, month, year] = dateString.split('.');
+   const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+   ];
+   return `${monthNames[parseInt(month) - 1]} ${day}, ${year}`;
+}
+
+/**
+ * Форматирует время для отображения (добавляет AM/PM)
+ */
+function formatTimeForDisplay(timeString) {
+   if (!timeString) return '';
+   if (timeString.includes('-')) {
+      // Диапазон времени
+      const [from, to] = timeString.split('-');
+      return `${formatSingleTime(from)}-${formatSingleTime(to)}`;
+   }
+   return formatSingleTime(timeString);
+}
+
+function formatSingleTime(timeString) {
+   const [hours, minutes] = timeString.split(':');
+   const hour = parseInt(hours, 10);
+   const ampm = hour >= 12 ? 'PM' : 'AM';
+   const displayHour = hour % 12 || 12;
+   return `${displayHour}:${minutes} ${ampm}`;
+}
 
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
-   const defaultDate = stripDays.find((day) => day.date === '19')?.date ?? stripDays[0].date;
-   const [activeDate, setActiveDate] = useState(defaultDate);
-   const activeDay = stripDays.find((day) => day.date === activeDate);
-   const activeEvents = daySchedules[activeDate] ?? [];
-   const headerLabel = activeDay?.label === 'Wed' && activeDate === '19' ? 'Today' : activeDay?.label ?? 'Today';
+   const stripDays = generateWeekDays();
+   const today = new Date();
+   const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
+   
+   const defaultDay = stripDays.find(day => day.dateString === todayDateString) || stripDays[0];
+   const [activeDate, setActiveDate] = useState(defaultDay.dateString);
+   const [tasks, setTasks] = useState([]);
+   const [rawTasks, setRawTasks] = useState([]); // Сохраняем оригинальные данные задач
+   const [isLoading, setIsLoading] = useState(true);
+
+   const activeDay = stripDays.find((day) => day.dateString === activeDate) || stripDays[0];
+   const isToday = activeDay.dateString === todayDateString;
+   const headerLabel = isToday ? 'Today' : activeDay.label;
+
+   // Подписка на задачи для выбранной даты
+   useEffect(() => {
+      if (!auth.currentUser) {
+         setIsLoading(false);
+         return;
+      }
+
+      setIsLoading(true);
+      const unsubscribe = subscribeToTasksByDate(activeDate, (loadedTasks) => {
+         setRawTasks(loadedTasks); // Сохраняем оригинальные данные
+         const formattedTasks = loadedTasks.map(task => formatTaskForCalendar(task));
+         setTasks(formattedTasks);
+         setIsLoading(false);
+      });
+
+      return () => {
+         if (unsubscribe) unsubscribe();
+      };
+   }, [activeDate]);
+
+   // Обновление активных задач каждые 30 секунд и при возврате на экран
+   useEffect(() => {
+      if (rawTasks.length === 0) return;
+
+      const updateTasks = () => {
+         if (auth.currentUser && rawTasks.length > 0) {
+            // Переформатируем задачи для обновления статуса активности
+            const updatedTasks = rawTasks.map(task => formatTaskForCalendar(task));
+            setTasks(updatedTasks);
+         }
+      };
+
+      // Обновляем сразу при монтировании
+      updateTasks();
+
+      // Обновляем каждые 30 секунд
+      const interval = setInterval(updateTasks, 30000);
+
+      // Обновляем при возврате на экран
+      const subscription = AppState.addEventListener('change', (nextAppState) => {
+         if (nextAppState === 'active') {
+            updateTasks();
+         }
+      });
+
+      return () => {
+         clearInterval(interval);
+         subscription?.remove();
+      };
+   }, [rawTasks]);
 
    return (
       <View style={styles.screen}>
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.headerRow}>
                <View>
-                  <Text style={styles.dateOverline}>{`October ${activeDate}, 2025`}</Text>
+                  <Text style={styles.dateOverline}>{formatDateForDisplay(activeDate)}</Text>
                   <Text style={styles.title}>{headerLabel}</Text>
                </View>
 
@@ -95,74 +167,82 @@ export default function UserCalendar({ navigation, route }) {
 
             <View style={styles.dayStrip}>
                {stripDays.map((day) => {
-                  const isActive = day.date === activeDate;
+                  const isActive = day.dateString === activeDate;
+                  const isTodayDate = day.dateString === todayDateString;
                   return (
                      <Pressable
-                        key={day.date}
+                        key={day.dateString}
                         style={[styles.dayChip, isActive && styles.dayChipActive]}
-                        onPress={() => setActiveDate(day.date)}
+                        onPress={() => setActiveDate(day.dateString)}
                      >
                         <Text style={[styles.dayLabel, isActive && styles.dayLabelActive]}>{day.label}</Text>
                         <Text style={[styles.dayNumber, isActive && styles.dayNumberActive]}>{day.date}</Text>
+                        {isTodayDate && !isActive && (
+                           <View style={styles.todayIndicator} />
+                        )}
                      </Pressable>
                   );
                })}
             </View>
 
             <View style={styles.timelineWrapper}>
-               {activeEvents.length === 0 && (
+               {isLoading ? (
+                  <View style={styles.loadingState}>
+                     <ActivityIndicator size="large" color="#2f7cff" />
+                     <Text style={styles.loadingText}>Loading tasks...</Text>
+                  </View>
+               ) : tasks.length === 0 ? (
                   <View style={styles.emptyState}>
                      <Ionicons name="sunny" size={28} color="#d0d8ec" />
                      <Text style={styles.emptyTitle}>Nothing planned</Text>
                      <Text style={styles.emptySubtitle}>Tap + to schedule something new.</Text>
                   </View>
-               )}
-               {activeEvents.map((event, index) => {
-                  const isLast = index === activeEvents.length - 1;
-                  const cardStyles = [styles.eventCard];
-                  if (event.tone === 'highlight') {
-                     cardStyles.push(styles.eventCardHighlight);
-                  }
+               ) : (
+                  tasks.map((event, index) => {
+                     const isLast = index === tasks.length - 1;
+                     const cardStyles = [styles.eventCard];
+                     if (event.tone === 'highlight') {
+                        cardStyles.push(styles.eventCardHighlight);
+                     }
 
-                  return (
-                     <View key={event.id} style={styles.eventRow}>
-                        <Text style={styles.eventTime}>{event.time}</Text>
-                        <View style={styles.nodeColumn}>
-                           <View
-                              style={[styles.timelineNode, event.tone === 'highlight' && styles.timelineNodeHighlight]}
-                           />
-                           {!isLast && <View style={styles.nodeLine} />}
-                        </View>
-                        <View style={cardStyles}>
-                           <Text style={[styles.eventTitle, event.tone === 'highlight' && styles.eventTitleHighlight]}>
-                              {event.title}
-                           </Text>
-                           <Text
-                              style={[
-                                 styles.eventSubtitle,
-                                 event.tone === 'highlight' && styles.eventSubtitleHighlight,
-                              ]}
-                           >
-                              {event.subtitle}
-                           </Text>
-                           {event.tone === 'highlight' && (
-                              <View style={styles.labMeta}>
-                                 <View style={styles.labPeopleRow}>
-                                    {[0, 1, 2, 3].map((slot) => (
-                                       <View key={`avatar-${slot}`} style={styles.labAvatar}>
-                                          <Ionicons name="person" size={14} color="#2f7cff" />
+                     return (
+                        <View key={event.id} style={styles.eventRow}>
+                           <Text style={styles.eventTime}>{formatTimeForDisplay(event.time)}</Text>
+                           <View style={styles.nodeColumn}>
+                              <View
+                                 style={[styles.timelineNode, event.tone === 'highlight' && styles.timelineNodeHighlight]}
+                              />
+                              {!isLast && <View style={styles.nodeLine} />}
+                           </View>
+                           <View style={cardStyles}>
+                              <Text style={[styles.eventTitle, event.tone === 'highlight' && styles.eventTitleHighlight]}>
+                                 {event.title}
+                              </Text>
+                              <Text
+                                 style={[
+                                    styles.eventSubtitle,
+                                    event.tone === 'highlight' && styles.eventSubtitleHighlight,
+                                 ]}
+                              >
+                                 {event.subtitle}
+                              </Text>
+                              {event.tone === 'highlight' && (
+                                 <View style={styles.labMeta}>
+                                    <View style={styles.labPeopleRow}>
+                                       <View style={[styles.labAvatar, { backgroundColor: event.color || '#2f7cff' }]}>
+                                          <Ionicons name="person" size={14} color="#fff" />
                                        </View>
-                                    ))}
+                                    </View>
+                                    <View style={styles.labAction}>
+                                       <Ionicons name="star" size={18} color="#fff" />
+                                    </View>
                                  </View>
-                                 <View style={styles.labAction}>
-                                    <Ionicons name="star" size={18} color="#2f7cff" />
-                                 </View>
-                              </View>
-                           )}
+                              )}
+                           </View>
                         </View>
-                     </View>
-                  );
-               })}
+                     );
+                  })
+               )}
             </View>
          </ScrollView>
 
@@ -370,5 +450,22 @@ const styles = StyleSheet.create({
       marginTop: 4,
       color: '#9aa7bd',
       fontSize: 12,
+   },
+   loadingState: {
+      alignItems: 'center',
+      paddingVertical: 40,
+   },
+   loadingText: {
+      marginTop: 12,
+      color: '#9aa7bd',
+      fontSize: 14,
+   },
+   todayIndicator: {
+      position: 'absolute',
+      bottom: 2,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: '#2f6cff',
    },
 });

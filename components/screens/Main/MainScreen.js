@@ -2,141 +2,192 @@
  * MainScreen hosts the calendar-centric home hub. It combines a hero header, a stylised
  * month grid and an agenda list so students can scan their day quickly.
  */
-import React, { use, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Animated, Easing} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, Animated, Easing, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
+import { subscribeToUserTasks, isTaskActive } from '../../../services/tasksService';
+import { auth } from '../../../FireBaseConfig';
 
 /**
  * Builds a 7-column grid that includes leading/trailing muted days so layout never shifts.
  */
-function buildCalendar({ daysInMonth, startOffset, prevMonthDays, highlightDays = {}, outlineDays = {} }) {
+function buildCalendar({ year, month, tasks = [] }) {
+   const firstDay = new Date(year, month, 1);
+   const lastDay = new Date(year, month + 1, 0);
+   const daysInMonth = lastDay.getDate();
+   const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Понедельник = 0
+   const prevMonthDays = new Date(year, month, 0).getDate();
+
+   // Группируем задачи по дням
+   const tasksByDay = {};
+   tasks.forEach(task => {
+      const [day, monthStr, yearStr] = task.date.split('.');
+      const taskMonth = parseInt(monthStr, 10) - 1;
+      const taskYear = parseInt(yearStr, 10);
+
+      if (taskMonth === month && taskYear === year) {
+         const dayNum = parseInt(day, 10);
+         if (!tasksByDay[dayNum]) {
+            tasksByDay[dayNum] = [];
+         }
+         tasksByDay[dayNum].push(task);
+      }
+   });
+
    const grid = [];
+   // Дни предыдущего месяца
    for (let i = startOffset; i > 0; i -= 1) {
       grid.push({ label: String(prevMonthDays - i + 1), muted: true });
    }
+
+   // Дни текущего месяца
    for (let day = 1; day <= daysInMonth; day += 1) {
       const entry = { label: String(day) };
-      if (highlightDays[day]) {
-         entry.highlight = highlightDays[day];
+      const dayTasks = tasksByDay[day] || [];
+
+      if (dayTasks.length > 0) {
+         // Выделяем день с задачами
+         const hasActiveTask = dayTasks.some(task => isTaskActive(task));
+         if (hasActiveTask) {
+            entry.highlight = '#d9ecff';
+         } else {
+            // Используем цвет первой задачи для outline
+            entry.outline = dayTasks[0].taskColor || '#d7c5ff';
+         }
       }
-      if (outlineDays[day]) {
-         entry.outline = outlineDays[day];
-      }
+
       grid.push(entry);
    }
+
+   // Дни следующего месяца - заполняем до 35 ячеек (5 недель по 7 дней)
    let next = 1;
-   while (grid.length % 7 !== 0 || grid.length < 35) {
+   while (grid.length < 35) {
       grid.push({ label: String(next), muted: true });
       next += 1;
    }
+
    return grid;
 }
 
-/** Hard-coded sample data that mimics a backend payload. */
-const months = [
-   {
-      name: 'October',
-      year: '2025',
-      calendar: buildCalendar({
-         daysInMonth: 31,
-         startOffset: 4,
-         prevMonthDays: 30,
-         highlightDays: { 10: '#d9ecff' },
-         outlineDays: { 16: '#f2de7b', 20: '#d7c5ff', 21: '#ffb2c4' },
+/**
+ * Форматирует задачи для отображения в agenda
+ */
+function formatTasksForAgenda(tasks, year, month) {
+   const tasksByDay = {};
+
+   tasks.forEach(task => {
+      const [day, monthStr, yearStr] = task.date.split('.');
+      const taskMonth = parseInt(monthStr, 10) - 1;
+      const taskYear = parseInt(yearStr, 10);
+
+      if (taskMonth === month && taskYear === year) {
+         const dayNum = parseInt(day, 10);
+         const date = new Date(taskYear, taskMonth, dayNum);
+         const dayKey = date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' }).toUpperCase();
+
+         if (!tasksByDay[dayKey]) {
+            tasksByDay[dayKey] = [];
+         }
+
+         let timeDisplay = '';
+         if (task.timeDilation && task.fromTime && task.toTime) {
+            timeDisplay = `${task.fromTime}-${task.toTime}`;
+         } else if (task.time) {
+            timeDisplay = task.time;
+         }
+
+         tasksByDay[dayKey].push({
+            time: timeDisplay,
+            title: task.name,
+            subtitle: task.description,
+            color: task.taskColor || '#8dddbd',
+         });
+      }
+   });
+
+   // Сортируем дни и задачи внутри дней
+   const sortedDays = Object.keys(tasksByDay).sort((a, b) => {
+      const dayA = parseInt(a.split(' ')[1]);
+      const dayB = parseInt(b.split(' ')[1]);
+      return dayA - dayB;
+   });
+
+   return sortedDays.map(day => ({
+      day: day,
+      items: tasksByDay[day].sort((a, b) => {
+         if (!a.time) return 1;
+         if (!b.time) return -1;
+         return a.time.localeCompare(b.time);
       }),
-      agenda: [
-         {
-            day: 'WEDNESDAY 19',
-            items: [
-               { time: '7:00', title: 'Wakeup', color: '#f3b664' },
-               { time: '8:00', title: 'Morning exercise', color: '#f06792' },
-               {
-                  time: '9:05',
-                  title: 'Laboratory classes',
-                  subtitle: 'Programming in room P1-102',
-                  color: '#8dddbd',
-               },
-            ],
-         },
-         {
-            day: 'THURSDAY 20',
-            items: [
-               { time: '8:00', title: 'Breakfast', subtitle: 'Bacon and eggs', color: '#709bff' },
-               { time: '9:15', title: 'IT Academic Day', color: '#caa6ff' },
-               { time: '15:00', title: 'Take some apply for internship', color: '#bcd5ff' },
-            ],
-         },
-      ],
-   },
-   {
-      name: 'November',
-      year: '2025',
-      calendar: buildCalendar({
-         daysInMonth: 30,
-         startOffset: 0,
-         prevMonthDays: 31,
-         highlightDays: { 2: '#d9ecff' },
-         outlineDays: { 11: '#81d0b4', 17: '#f2de7b' },
-      }),
-      agenda: [
-         {
-            day: 'TUESDAY 2',
-            items: [
-               { time: '7:30', title: 'Stand-up meeting', color: '#8dddbd' },
-               { time: '10:00', title: 'UX Workshop', color: '#f06792' },
-            ],
-         },
-         {
-            day: 'FRIDAY 5',
-            items: [
-               { time: '8:30', title: 'Breakfast with mentor', color: '#709bff' },
-               { time: '11:45', title: 'Midterm review', color: '#f3b664' },
-            ],
-         },
-      ],
-   },
-   {
-      name: 'December',
-      year: '2025',
-      calendar: buildCalendar({
-         daysInMonth: 31,
-         startOffset: 1,
-         prevMonthDays: 30,
-         highlightDays: { 12: '#d9ecff' },
-         outlineDays: { 18: '#f7a6c1', 24: '#d7c5ff' },
-      }),
-      agenda: [
-         {
-            day: 'MONDAY 12',
-            items: [
-               { time: '6:45', title: 'Snow run', color: '#f06792' },
-               { time: '9:00', title: 'Product design sync', color: '#709bff' },
-            ],
-         },
-         {
-            day: 'THURSDAY 15',
-            items: [
-               { time: '11:00', title: 'Client check-in', color: '#8dddbd' },
-               { time: '16:30', title: 'Gift shopping', color: '#f3b664' },
-            ],
-         },
-      ],
-   },
-];
+   }));
+}
+
+/**
+ * Генерирует данные для месяца
+ */
+function getMonthData(year, month, tasks) {
+   const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+   ];
+
+   return {
+      name: monthNames[month],
+      year: String(year),
+      month: month,
+      yearNum: year,
+      calendar: buildCalendar({ year, month, tasks }),
+      agenda: formatTasksForAgenda(tasks, year, month),
+   };
+}
 
 export default function Main({ navigation, route }) {
-   const [monthIndex, setMonthIndex] = useState(0);
-   const activeMonth = months[monthIndex];
+   const today = new Date();
+   const [currentYear, setCurrentYear] = useState(today.getFullYear());
+   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+   const [tasks, setTasks] = useState([]);
+   const [isLoading, setIsLoading] = useState(true);
    const activeRoute = route?.name ?? 'Main';
 
-   /** Moves the selection within the months array while keeping the index in range. */
+   const activeMonth = getMonthData(currentYear, currentMonth, tasks);
+
+   // Загрузка задач из Firestore
+   useEffect(() => {
+      if (!auth.currentUser) {
+         setIsLoading(false);
+         return;
+      }
+
+      setIsLoading(true);
+      const unsubscribe = subscribeToUserTasks((loadedTasks) => {
+         setTasks(loadedTasks);
+         setIsLoading(false);
+      });
+
+      return () => {
+         if (unsubscribe) unsubscribe();
+      };
+   }, []);
+
+   /** Перемещение между месяцами */
    const shiftMonth = (step) => {
-      setMonthIndex((prev) => {
-         const next = (prev + step + months.length) % months.length;
-         return next;
+      setCurrentMonth((prev) => {
+         let newMonth = prev + step;
+         let newYear = currentYear;
+
+         if (newMonth < 0) {
+            newMonth = 11;
+            newYear -= 1;
+         } else if (newMonth > 11) {
+            newMonth = 0;
+            newYear += 1;
+         }
+
+         setCurrentYear(newYear);
+         return newMonth;
       });
    };
    /** 
@@ -145,10 +196,10 @@ export default function Main({ navigation, route }) {
     *And returns the calendar to the initial month.
    */
    const rotateAnim = useState(new Animated.Value(0))[0];
-   const[isRefreshing, setIsRefreshing] = useState(false);
+   const [isRefreshing, setIsRefreshing] = useState(false);
 
    const refreshCalendar = () => {
-      if ( isRefreshing ) return;
+      if (isRefreshing) return;
 
       setIsRefreshing(true);
 
@@ -160,19 +211,19 @@ export default function Main({ navigation, route }) {
          easing: Easing.linear,
          useNativeDriver: true
       }).start(() => {
-      
-         setMonthIndex(0);
+         setCurrentYear(today.getFullYear());
+         setCurrentMonth(today.getMonth());
 
-         setTimeout(() =>{
+         setTimeout(() => {
             setIsRefreshing(false);
          }, 200)
       })
    };
 
-const spin = rotateAnim.interpolate({
-   inputRange: [0, 1],
-   outputRange: ['0deg', '360deg']
-});
+   const spin = rotateAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '360deg']
+   });
 
 
 
@@ -183,11 +234,11 @@ const spin = rotateAnim.interpolate({
                <View style={styles.headerRow}>
 
                   <View style={styles.avatar}>
-                     <Pressable     
-                         onPress={() => navigation.navigate('Settings')}
-                         style={({ pressed }) => ({opacity: pressed ? 0.5 : 1, })}
-                        >
-                     <Ionicons name="person" size={22} color="#1d3f72" />
+                     <Pressable
+                        onPress={() => navigation.navigate('Settings')}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, })}
+                     >
+                        <Ionicons name="person" size={22} color="#1d3f72" />
                      </Pressable>
                   </View>
 
@@ -205,10 +256,10 @@ const spin = rotateAnim.interpolate({
                      </View>
                      <Text style={styles.yearText}>{activeMonth.year}</Text>
 
-                  {/*Animation-Imitation Refresh*/}
+                     {/*Animation-Imitation Refresh*/}
                   </View>
                   <Pressable style={styles.refreshBtn} onPress={refreshCalendar}>
-                     <Animated.View style={{ transform: [{ rotate: spin}] }}>
+                     <Animated.View style={{ transform: [{ rotate: spin }] }}>
                         <Ionicons name="refresh" size={18} color="#1f3d68" />
                      </Animated.View>
                   </Pressable>
@@ -238,50 +289,71 @@ const spin = rotateAnim.interpolate({
                      ))}
                   </View>
                   <View style={styles.dateGrid}>
-                     {activeMonth.calendar.map((day, index) => (
-                        <View
-                           key={`${activeMonth.name}-${index}-${day.label}`}
-                           style={[
-                              styles.dateBadge,
-                              day.highlight && { backgroundColor: day.highlight },
-                              day.outline && { borderColor: day.outline, borderWidth: 1.5 },
-                           ]}
-                        >
-                           <Text
-                              style={[
-                                 styles.dateText,
-                                 day.highlight && { color: '#1a3d64' },
-                                 day.muted && styles.dateTextMuted,
-                              ]}
-                           >
-                              {day.label}
-                           </Text>
-                        </View>
-                     ))}
-                  </View>
-               </View>
-
-               {activeMonth.agenda.map((block) => (
-                  <View key={block.day} style={styles.agendaBlock}>
-                     <Text style={styles.agendaLabel}>{block.day}</Text>
-                     {block.items.map((item, idx) => {
-                        const isLast = idx === block.items.length - 1;
+                     {Array.from({ length: 5 }).map((_, rowIdx) => {
+                        const rowStart = rowIdx * 7;
+                        const rowItems = activeMonth.calendar.slice(rowStart, rowStart + 7);
                         return (
-                           <View key={`${block.day}-${item.time}-${item.title}`} style={styles.agendaRow}>
-                              <Text style={styles.timeText}>{item.time}</Text>
-                              <View style={styles.timeline}>
-                                 <View style={[styles.bullet, { backgroundColor: item.color }]} />
-                                 <View style={[styles.timelineLine, isLast && styles.timelineLineHidden]} />
-                              </View>
-                              <View style={styles.agendaCard}>
-                                 <Text style={styles.agendaTitle}>{item.title}</Text>
-                                 {item.subtitle && <Text style={styles.agendaSubtitle}>{item.subtitle}</Text>}
-                              </View>
+                           <View key={`row-${rowIdx}`} style={styles.dateRow}>
+                              {rowItems.map((day, idx) => (
+                                 <View
+                                    key={`${activeMonth.name}-${rowIdx}-${idx}-${day.label}`}
+                                    style={[
+                                       styles.dateBadge,
+                                       day.highlight && { backgroundColor: day.highlight },
+                                       day.outline && { borderColor: day.outline, borderWidth: 1.5 },
+                                    ]}
+                                 >
+                                    <Text
+                                       style={[
+                                          styles.dateText,
+                                          day.highlight && { color: '#1a3d64' },
+                                          day.muted && styles.dateTextMuted,
+                                       ]}
+                                    >
+                                       {day.label}
+                                    </Text>
+                                 </View>
+                              ))}
                            </View>
                         );
                      })}
                   </View>
-               ))}
+               </View>
+
+               {isLoading ? (
+                  <View style={styles.loadingContainer}>
+                     <ActivityIndicator size="large" color="#3b85ff" />
+                     <Text style={styles.loadingText}>Loading tasks...</Text>
+                  </View>
+               ) : activeMonth.agenda.length === 0 ? (
+                  <View style={styles.emptyAgenda}>
+                     <Ionicons name="calendar-outline" size={32} color="#d0d8ec" />
+                     <Text style={styles.emptyAgendaText}>No tasks scheduled</Text>
+                     <Text style={styles.emptyAgendaSubtext}>Tap + to add a new task</Text>
+                  </View>
+               ) : (
+                  activeMonth.agenda.map((block) => (
+                     <View key={block.day} style={styles.agendaBlock}>
+                        <Text style={styles.agendaLabel}>{block.day}</Text>
+                        {block.items.map((item, idx) => {
+                           const isLast = idx === block.items.length - 1;
+                           return (
+                              <View key={`${block.day}-${item.time}-${item.title}`} style={styles.agendaRow}>
+                                 <Text style={styles.timeText}>{item.time}</Text>
+                                 <View style={styles.timeline}>
+                                    <View style={[styles.bullet, { backgroundColor: item.color }]} />
+                                    <View style={[styles.timelineLine, isLast && styles.timelineLineHidden]} />
+                                 </View>
+                                 <View style={styles.agendaCard}>
+                                    <Text style={styles.agendaTitle}>{item.title}</Text>
+                                    {item.subtitle && <Text style={styles.agendaSubtitle}>{item.subtitle}</Text>}
+                                 </View>
+                              </View>
+                           );
+                        })}
+                     </View>
+                  ))
+               )}
             </View>
          </ScrollView>
 
@@ -427,20 +499,23 @@ const styles = StyleSheet.create({
       fontSize: 12,
    },
    dateGrid: {
+      flexDirection: 'column',
+      gap: 10,
+   },
+   dateRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      rowGap: 14,
-      columnGap: 12,
+      justifyContent: 'space-between',
    },
    dateBadge: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: '#ecf0fb',
+      marginBottom: 6,
    },
    dateText: {
       color: '#1b2d4e',
@@ -502,6 +577,32 @@ const styles = StyleSheet.create({
       marginBottom: 4,
    },
    agendaSubtitle: {
+      color: '#99a7c3',
+      fontSize: 12,
+   },
+   loadingContainer: {
+      alignItems: 'center',
+      paddingVertical: 40,
+      marginTop: 28,
+   },
+   loadingText: {
+      marginTop: 12,
+      color: '#99a7c3',
+      fontSize: 14,
+   },
+   emptyAgenda: {
+      alignItems: 'center',
+      paddingVertical: 40,
+      marginTop: 28,
+   },
+   emptyAgendaText: {
+      marginTop: 12,
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#1a2c4f',
+   },
+   emptyAgendaSubtext: {
+      marginTop: 4,
       color: '#99a7c3',
       fontSize: 12,
    },
