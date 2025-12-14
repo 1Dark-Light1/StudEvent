@@ -4,7 +4,7 @@
  * jump between days and immediately see context-rich events.
  */
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState} from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';

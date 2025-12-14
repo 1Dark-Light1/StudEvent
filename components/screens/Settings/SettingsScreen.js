@@ -3,12 +3,15 @@
  * for list-driven layouts (icon + label + chevron). It intentionally mirrors iOS system
  * cards to make the experience familiar.
  */
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
+import { auth } from '../../../FireBaseConfig';
+import { signOut } from 'firebase/auth';
+import { subscribeToUserData } from '../../../services/userService';
 
 /** Higher priority actions shown at the top of the page. */
 const primaryOptions = [
@@ -26,6 +29,52 @@ const secondaryOptions = [
 
 export default function Settings({ navigation, route }) {
    const activeRoute = route?.name ?? 'Settings';
+   const [userData, setUserData] = useState(null);
+
+   // Подписка на изменения данных пользователя
+   useEffect(() => {
+      const unsubscribe = subscribeToUserData((data) => {
+         setUserData(data);
+      });
+
+      return () => {
+         if (unsubscribe) unsubscribe();
+      };
+   }, []);
+
+   // Формируем отображаемое имя
+   const displayName = userData
+      ? `${userData.name || ''} ${userData.surname || ''}`.trim() || 'Name and Surname'
+      : 'Name and Surname';
+
+   const handleLogout = async () => {
+      Alert.alert(
+         'Log out',
+         'Are you sure you want to log out?',
+         [
+            {
+               text: 'Cancel',
+               style: 'cancel',
+            },
+            {
+               text: 'Log out',
+               style: 'destructive',
+               onPress: async () => {
+                  try {
+                     await signOut(auth);
+                     navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'Login' }],
+                     });
+                  } catch (error) {
+                     console.error('Error signing out:', error);
+                     Alert.alert('Error', 'Failed to log out. Please try again.');
+                  }
+               },
+            },
+         ]
+      );
+   };
 
    return (
       <View style={styles.screen}>
@@ -39,7 +88,7 @@ export default function Settings({ navigation, route }) {
                      <Ionicons name="person-add" size={16} color="#1f2b3f" />
                   </View>
                </View>
-               <Text style={styles.heroName}>Name and Surname</Text>
+               <Text style={styles.heroName}>{displayName}</Text>
             </View>
 
             <View style={styles.card}>
@@ -74,6 +123,21 @@ export default function Settings({ navigation, route }) {
                      <Ionicons name="chevron-forward" size={18} color="#c3cadb" />
                   </View>
                ))}
+            </View>
+
+            {/* Log out button */}
+            <View style={styles.card}>
+               <Pressable
+                  style={styles.logoutRow}
+                  onPress={handleLogout}
+               >
+                  <View style={styles.rowLeft}>
+                     <View style={styles.rowIcon}>
+                        <Ionicons name="log-out-outline" size={20} color="#F44336" />
+                     </View>
+                     <Text style={styles.logoutLabel}>Log out</Text>
+                  </View>
+               </Pressable>
             </View>
          </ScrollView>
 
@@ -177,6 +241,19 @@ const styles = StyleSheet.create({
    rowLabel: {
       fontSize: 15,
       color: '#3a4257',
+      fontWeight: '500',
+      marginLeft: 14,
+   },
+   logoutRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 18,
+   },
+   logoutLabel: {
+      fontSize: 15,
+      color: '#F44336',
       fontWeight: '500',
       marginLeft: 14,
    },
