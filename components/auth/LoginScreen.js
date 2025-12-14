@@ -156,15 +156,6 @@ const IconInput = memo(function IconInput({ icon, style, ...props }) {
 
 /** Password input with eye icon toggle for show/hide password. */
 const PasswordInput = memo(function PasswordInput({ icon, showPassword, onTogglePassword, style, ...props }) {
-	// Memoize eye icon to prevent recreation
-	const eyeIconElement = useMemo(() => (
-		showPassword ? (
-			<Ionicons name="eye" size={20} color="#8F8F8F" />
-		) : (
-			<ClosedEyesIcon />
-		)
-	), [showPassword]);
-
 	return (
 		<View style={[styles.inputWrap, style]}>
 			<View style={styles.inputIcon}>{icon}</View>
@@ -175,7 +166,14 @@ const PasswordInput = memo(function PasswordInput({ icon, showPassword, onToggle
 				{...props}
 			/>
 			<Pressable onPress={onTogglePassword} style={styles.eyeIcon}>
-				{eyeIconElement}
+				<View style={{ position: 'relative', width: 20, height: 20 }}>
+					<View style={{ position: 'absolute', opacity: showPassword ? 1 : 0 }}>
+						<Ionicons name="eye" size={20} color="#8F8F8F" />
+					</View>
+					<View style={{ position: 'absolute', opacity: showPassword ? 0 : 1 }}>
+						<ClosedEyesIcon />
+					</View>
+				</View>
 			</Pressable>
 		</View>
 	);
