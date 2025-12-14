@@ -4,11 +4,14 @@
  * jump between days and immediately see context-rich events.
  */
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
-import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive } from '../../../services/tasksService';
+import SearchBar from '../../ui/SearchBar';
+import FilterPanel from '../../ui/FilterPanel';
+import EventDetailsModal from '../../ui/EventDetailsModal';
+import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive, applyTaskFilters, deleteTask } from '../../../services/tasksService';
 import { auth } from '../../../FireBaseConfig';
 
 /**
@@ -89,6 +92,10 @@ export default function UserCalendar({ navigation, route }) {
    const [tasks, setTasks] = useState([]);
    const [rawTasks, setRawTasks] = useState([]); // Сохраняем оригинальные данные задач
    const [isLoading, setIsLoading] = useState(true);
+   const [searchQuery, setSearchQuery] = useState('');
+   const [selectedTags, setSelectedTags] = useState([]);
+   const [selectedEvent, setSelectedEvent] = useState(null);
+   const [isModalVisible, setIsModalVisible] = useState(false);
 
    const activeDay = stripDays.find((day) => day.dateString === activeDate) || stripDays[0];
    const isToday = activeDay.dateString === todayDateString;
@@ -104,7 +111,9 @@ export default function UserCalendar({ navigation, route }) {
       setIsLoading(true);
       const unsubscribe = subscribeToTasksByDate(activeDate, (loadedTasks) => {
          setRawTasks(loadedTasks); // Сохраняем оригинальные данные
-         const formattedTasks = loadedTasks.map(task => formatTaskForCalendar(task));
+         // Применяем фильтры
+         const filteredTasks = applyTaskFilters(loadedTasks, searchQuery, selectedTags);
+         const formattedTasks = filteredTasks.map(task => formatTaskForCalendar(task));
          setTasks(formattedTasks);
          setIsLoading(false);
       });
@@ -120,8 +129,9 @@ export default function UserCalendar({ navigation, route }) {
 
       const updateTasks = () => {
          if (auth.currentUser && rawTasks.length > 0) {
-            // Переформатируем задачи для обновления статуса активности
-            const updatedTasks = rawTasks.map(task => formatTaskForCalendar(task));
+            // Применяем фильтры и переформатируем задачи
+            const filteredTasks = applyTaskFilters(rawTasks, searchQuery, selectedTags);
+            const updatedTasks = filteredTasks.map(task => formatTaskForCalendar(task));
             setTasks(updatedTasks);
          }
       };
@@ -143,7 +153,65 @@ export default function UserCalendar({ navigation, route }) {
          clearInterval(interval);
          subscription?.remove();
       };
-   }, [rawTasks]);
+   }, [rawTasks, searchQuery, selectedTags]);
+
+   // Обработчики для поиска и фильтров
+   const handleSearchChange = (text) => {
+      setSearchQuery(text);
+   };
+
+   const handleSearchClear = () => {
+      setSearchQuery('');
+   };
+
+   const handleTagToggle = (tag) => {
+      setSelectedTags(prev => {
+         if (prev.includes(tag)) {
+            return prev.filter(t => t !== tag);
+         } else {
+            return [...prev, tag];
+         }
+      });
+   };
+
+   const handleClearFilters = () => {
+      setSelectedTags([]);
+   };
+
+   const handleEventPress = (event) => {
+      // Находим исходную задачу с полными данными
+      const fullTask = rawTasks.find(task => task.id === event.id);
+      if (fullTask) {
+         // Объединяем отформатированные данные события с полными данными задачи
+         setSelectedEvent({
+            id: event.id,
+            title: event.title,
+            subtitle: event.subtitle,
+            time: event.time,
+            color: event.color,
+            tone: event.tone,
+            date: fullTask.date,
+            tagText: fullTask.tagText,
+            name: fullTask.name,
+            description: fullTask.description,
+         });
+         setIsModalVisible(true);
+      }
+   };
+
+   const handleCloseModal = () => {
+      setIsModalVisible(false);
+      setSelectedEvent(null);
+   };
+
+   const handleDeleteEvent = async (eventId) => {
+      try {
+         await deleteTask(eventId);
+         Alert.alert('Success', 'Event deleted successfully!');
+      } catch (error) {
+         Alert.alert('Error', 'Failed to delete event. Please try again.');
+      }
+   };
 
    return (
       <View style={styles.screen}>
@@ -185,6 +253,20 @@ export default function UserCalendar({ navigation, route }) {
                })}
             </View>
 
+            {/* Поиск и фильтры */}
+            <SearchBar
+               value={searchQuery}
+               onChangeText={handleSearchChange}
+               onClear={handleSearchClear}
+               placeholder="Search events by name..."
+            />
+
+            <FilterPanel
+               selectedTags={selectedTags}
+               onTagToggle={handleTagToggle}
+               onClearFilters={handleClearFilters}
+            />
+
             <View style={styles.timelineWrapper}>
                {isLoading ? (
                   <View style={styles.loadingState}>
@@ -214,7 +296,10 @@ export default function UserCalendar({ navigation, route }) {
                               />
                               {!isLast && <View style={styles.nodeLine} />}
                            </View>
-                           <View style={cardStyles}>
+                           <Pressable 
+                              style={cardStyles}
+                              onPress={() => handleEventPress(event)}
+                           >
                               <Text style={[styles.eventTitle, event.tone === 'highlight' && styles.eventTitleHighlight]}>
                                  {event.title}
                               </Text>
@@ -238,7 +323,7 @@ export default function UserCalendar({ navigation, route }) {
                                     </View>
                                  </View>
                               )}
-                           </View>
+                           </Pressable>
                         </View>
                      );
                   })
@@ -247,6 +332,13 @@ export default function UserCalendar({ navigation, route }) {
          </ScrollView>
 
          <BottomNav navigation={navigation} activeRoute={activeRoute} />
+
+         <EventDetailsModal
+            visible={isModalVisible}
+            event={selectedEvent}
+            onClose={handleCloseModal}
+            onDelete={handleDeleteEvent}
+         />
 
          <FloatingActionButton onPress={() => navigation.navigate('AddTask')} />
       </View>

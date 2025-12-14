@@ -14,8 +14,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import BottomNav from '../../navigation/BottomNav';
+import SearchBar from '../../ui/SearchBar';
 import { auth } from '../../../FireBaseConfig';
-import { addTask } from '../../../services/tasksService';
+import { addTask, updateTask, subscribeToUserTasks } from '../../../services/tasksService';
 
 export default function AddTaskScreen({ navigation, route }) {
    const [mode, setMode] = useState('build'); // 'build' or 'change'
@@ -38,6 +39,13 @@ export default function AddTaskScreen({ navigation, route }) {
    const [isLoading, setIsLoading] = useState(false);
    const [showTagPicker, setShowTagPicker] = useState(false);
    const [customTagInput, setCustomTagInput] = useState('');
+   
+   // Для режима редактирования
+   const [allTasks, setAllTasks] = useState([]);
+   const [filteredTasks, setFilteredTasks] = useState([]);
+   const [searchQuery, setSearchQuery] = useState('');
+   const [selectedTaskId, setSelectedTaskId] = useState(null);
+   const [isTasksLoading, setIsTasksLoading] = useState(false);
 
    const activeRoute = route?.name ?? 'AddTask';
 
@@ -66,6 +74,37 @@ export default function AddTaskScreen({ navigation, route }) {
       }
    }, [navigation]);
 
+   // Загрузка тасков для режима редактирования
+   useEffect(() => {
+      if (mode === 'change' && auth.currentUser) {
+         setIsTasksLoading(true);
+         const unsubscribe = subscribeToUserTasks((loadedTasks) => {
+            setAllTasks(loadedTasks);
+            setFilteredTasks(loadedTasks);
+            setIsTasksLoading(false);
+         });
+
+         return () => {
+            if (unsubscribe) unsubscribe();
+         };
+      }
+   }, [mode]);
+
+   // Фильтрация тасков по поиску
+   useEffect(() => {
+      if (searchQuery.trim() === '') {
+         setFilteredTasks(allTasks);
+      } else {
+         const query = searchQuery.toLowerCase();
+         const filtered = allTasks.filter(task => 
+            task.name?.toLowerCase().includes(query) || 
+            task.description?.toLowerCase().includes(query) ||
+            task.tagText?.toLowerCase().includes(query)
+         );
+         setFilteredTasks(filtered);
+      }
+   }, [searchQuery, allTasks]);
+
    // Палітра кольорів
    const colorPalette = [
       '#4CAF50', // зелений
@@ -93,6 +132,42 @@ export default function AddTaskScreen({ navigation, route }) {
       setFrequency('once');
       setCustomDates([]);
       setCustomDateInput('');
+      setSelectedTaskId(null);
+   };
+
+   // Загрузка выбранного таска в форму для редактирования
+   const handleSelectTask = (task) => {
+      setSelectedTaskId(task.id);
+      setName(task.name || '');
+      setDescription(task.description || '');
+      setTaskDate(task.date || '');
+      setTaskColor(task.taskColor || '#4CAF50');
+      setTagText(task.tagText || '');
+      setFrequency(task.frequency || 'once');
+      
+      if (task.timeDilation) {
+         setTimeDilation(true);
+         setFromTime(task.fromTime || '');
+         setToTime(task.toTime || '');
+         setTaskTime('');
+      } else {
+         setTimeDilation(false);
+         setTaskTime(task.time || '');
+         setFromTime('');
+         setToTime('');
+      }
+      
+      // Прокручиваем вниз к форме
+      // ScrollView автоматически прокрутится когда форма станет активной
+   };
+
+   // Обработчики для поиска
+   const handleSearchChange = (text) => {
+      setSearchQuery(text);
+   };
+
+   const handleSearchClear = () => {
+      setSearchQuery('');
    };
 
    const handleAdd = async () => {
@@ -160,20 +235,36 @@ export default function AddTaskScreen({ navigation, route }) {
             customDates: frequency === 'custom' ? customDates : undefined,
          };
 
-         await addTask(taskData);
-         
-         Alert.alert('Success', 'Task added successfully!', [
-            {
-               text: 'OK',
-               onPress: () => {
-                  handleClear();
-                  navigation.goBack();
+         if (mode === 'change' && selectedTaskId) {
+            // Режим редактирования
+            await updateTask(selectedTaskId, taskData);
+            
+            Alert.alert('Success', 'Task updated successfully!', [
+               {
+                  text: 'OK',
+                  onPress: () => {
+                     handleClear();
+                     setMode('build');
+                  },
                },
-            },
-         ]);
+            ]);
+         } else {
+            // Режим добавления
+            await addTask(taskData);
+            
+            Alert.alert('Success', 'Task added successfully!', [
+               {
+                  text: 'OK',
+                  onPress: () => {
+                     handleClear();
+                     navigation.goBack();
+                  },
+               },
+            ]);
+         }
       } catch (error) {
-         console.error('Error adding task:', error);
-         Alert.alert('Error', error.message || 'Failed to add task. Please try again.');
+         console.error('Error with task:', error);
+         Alert.alert('Error', error.message || 'Failed to process task. Please try again.');
       } finally {
          setIsLoading(false);
       }
@@ -263,26 +354,98 @@ export default function AddTaskScreen({ navigation, route }) {
                   </Pressable>
                </LinearGradient>
 
-               {/* Name field */}
-               <View style={styles.section}>
-                  <Text style={styles.label}>
-                     Name <Text style={styles.required}>*</Text>
-                  </Text>
-                  <View style={styles.inputContainer} pointerEvents="box-none">
-                     <TextInput
-                        style={styles.input}
-                        placeholder="Name your task.."
-                        placeholderTextColor="#6B7A8F"
-                        value={name}
-                        onChangeText={setName}
-                        editable={true}
-                        autoCorrect={false}
+               {/* \u0421\u043f\u0438\u0441\u043e\u043a \u0442\u0430\u0441\u043a\u043e\u0432 \u0434\u043b\u044f \u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f */}
+               {mode === 'change' && !selectedTaskId && (
+                  <View style={styles.tasksListContainer}>
+                     <Text style={styles.tasksListTitle}>Select a task to edit</Text>
+                     
+                     <SearchBar
+                        value={searchQuery}
+                        onChangeText={handleSearchChange}
+                        onClear={handleSearchClear}
+                        placeholder="Search tasks..."
                      />
-                  </View>
-               </View>
 
-               {/* Description field */}
-               <View style={styles.section}>
+                     {isTasksLoading ? (
+                        <View style={styles.loadingContainer}>
+                           <Text style={styles.loadingText}>Loading tasks...</Text>
+                        </View>
+                     ) : filteredTasks.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                           <Ionicons name="calendar-outline" size={48} color="#d0d8ec" />
+                           <Text style={styles.emptyText}>
+                              {searchQuery ? 'No tasks found' : 'No tasks available'}
+                           </Text>
+                        </View>
+                     ) : (
+                        <View style={styles.tasksList}>
+                           {filteredTasks.slice(0, 20).map((task) => (
+                              <Pressable
+                                 key={task.id}
+                                 style={({ pressed }) => [
+                                    styles.taskItem,
+                                    pressed && styles.taskItemPressed
+                                 ]}
+                                 onPress={() => handleSelectTask(task)}
+                              >
+                                 <View style={[styles.taskColorIndicator, { backgroundColor: task.taskColor || '#4CAF50' }]} />
+                                 <View style={styles.taskInfo}>
+                                    <Text style={styles.taskName} numberOfLines={1}>{task.name}</Text>
+                                    <Text style={styles.taskDetails} numberOfLines={1}>
+                                       {task.date} {task.time && `\u2022 ${task.time}`}
+                                    </Text>
+                                    {task.tagText && (
+                                       <View style={[styles.taskTag, { backgroundColor: task.taskColor + '20' }]}>
+                                          <Text style={[styles.taskTagText, { color: task.taskColor }]}>
+                                             {task.tagText}
+                                          </Text>
+                                       </View>
+                                    )}
+                                 </View>
+                                 <Ionicons name="chevron-forward" size={20} color="#9aa7bd" />
+                              </Pressable>
+                           ))}
+                        </View>
+                     )}
+                  </View>
+               )}
+
+               {/* \u0424\u043e\u0440\u043c\u0430 \u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f (\u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0432 build \u0438\u043b\u0438 \u043a\u043e\u0433\u0434\u0430 \u0432\u044b\u0431\u0440\u0430\u043d \u0442\u0430\u0441\u043a) */}
+               {(mode === 'build' || (mode === 'change' && selectedTaskId)) && (
+                  <>
+                     {mode === 'change' && selectedTaskId && (
+                        <Pressable 
+                           style={styles.backToListButton}
+                           onPress={() => {
+                              setSelectedTaskId(null);
+                              handleClear();
+                           }}
+                        >
+                           <Ionicons name="arrow-back" size={20} color="#2f7cff" />
+                           <Text style={styles.backToListText}>Back to task list</Text>
+                        </Pressable>
+                     )}
+
+                     {/* Name field */}
+                     <View style={styles.section}>
+                        <Text style={styles.label}>
+                           Name <Text style={styles.required}>*</Text>
+                        </Text>
+                        <View style={styles.inputContainer} pointerEvents="box-none">
+                           <TextInput
+                              style={styles.input}
+                              placeholder="Name your task.."
+                              placeholderTextColor="#6B7A8F"
+                              value={name}
+                              onChangeText={setName}
+                              editable={true}
+                              autoCorrect={false}
+                           />
+                        </View>
+                     </View>
+
+                     {/* Description field */}
+                     <View style={styles.section}>
                   <Text style={styles.label}>
                      Description <Text style={styles.required}>*</Text>
                   </Text>
@@ -534,22 +697,28 @@ export default function AddTaskScreen({ navigation, route }) {
                      </View>
                   )}
                </View>
+               </>
+            )}
             </View>
          </ScrollView>
 
          {/* Action buttons - fixed above bottom nav */}
-         <View style={styles.fixedActionRow}>
-            <Pressable style={styles.clearBtn} onPress={handleClear}>
-               <Text style={styles.clearText}>Clear</Text>
-            </Pressable>
-            <Pressable 
-               style={[styles.addBtn, isLoading && styles.addBtnDisabled]} 
-               onPress={handleAdd}
-               disabled={isLoading}
-            >
-               <Text style={styles.addText}>{isLoading ? 'Adding...' : 'Add'}</Text>
-            </Pressable>
-         </View>
+         {(mode === 'build' || (mode === 'change' && selectedTaskId)) && (
+            <View style={styles.fixedActionRow}>
+               <Pressable style={styles.clearBtn} onPress={handleClear}>
+                  <Text style={styles.clearText}>Clear</Text>
+               </Pressable>
+               <Pressable 
+                  style={[styles.addBtn, isLoading && styles.addBtnDisabled]} 
+                  onPress={handleAdd}
+                  disabled={isLoading}
+               >
+                  <Text style={styles.addText}>
+                     {isLoading ? (mode === 'change' ? 'Updating...' : 'Adding...') : (mode === 'change' ? 'Update' : 'Add')}
+                  </Text>
+               </Pressable>
+            </View>
+         )}
 
          <BottomNav navigation={navigation} activeRoute={activeRoute} />
 
@@ -1232,6 +1401,101 @@ const styles = StyleSheet.create({
    },
    addCustomTagBtnDisabled: {
       backgroundColor: '#B0B8C4',
+   },
+   // Стили для списка тасков
+   tasksListContainer: {
+      marginBottom: 24,
+   },
+   tasksListTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#1B2430',
+      marginBottom: 16,
+   },
+   loadingContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+   },
+   loadingText: {
+      fontSize: 15,
+      color: '#6B7A8F',
+      marginTop: 12,
+   },
+   emptyContainer: {
+      paddingVertical: 60,
+      alignItems: 'center',
+   },
+   emptyText: {
+      fontSize: 15,
+      color: '#9aa7bd',
+      marginTop: 12,
+   },
+   tasksList: {
+      marginTop: 12,
+   },
+   taskItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: '#f0f2f8',
+   },
+   taskItemPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.98 }],
+   },
+   taskColorIndicator: {
+      width: 4,
+      height: 50,
+      borderRadius: 2,
+      marginRight: 12,
+   },
+   taskInfo: {
+      flex: 1,
+   },
+   taskName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#1B2430',
+      marginBottom: 4,
+   },
+   taskDetails: {
+      fontSize: 13,
+      color: '#6B7A8F',
+      marginBottom: 6,
+   },
+   taskTag: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+   },
+   taskTagText: {
+      fontSize: 12,
+      fontWeight: '600',
+   },
+   backToListButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: '#e3f2fd',
+      borderRadius: 12,
+      marginBottom: 20,
+      gap: 8,
+   },
+   backToListText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: '#2f7cff',
    },
 });
 
