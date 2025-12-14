@@ -8,7 +8,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
-import { subscribeToUserTasks, isTaskActive } from '../../../services/tasksService';
+import SearchBar from '../../ui/SearchBar';
+import FilterPanel from '../../ui/FilterPanel';
+import { subscribeToUserTasks, isTaskActive, applyTaskFilters } from '../../../services/tasksService';
 import { auth } from '../../../FireBaseConfig';
 
 /**
@@ -149,7 +151,10 @@ export default function Main({ navigation, route }) {
    const [currentYear, setCurrentYear] = useState(today.getFullYear());
    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
    const [tasks, setTasks] = useState([]);
+   const [rawTasks, setRawTasks] = useState([]); // Сохраняем оригинальные данные
    const [isLoading, setIsLoading] = useState(true);
+   const [searchQuery, setSearchQuery] = useState('');
+   const [selectedTags, setSelectedTags] = useState([]);
    const activeRoute = route?.name ?? 'Main';
 
    const activeMonth = getMonthData(currentYear, currentMonth, tasks);
@@ -163,7 +168,10 @@ export default function Main({ navigation, route }) {
 
       setIsLoading(true);
       const unsubscribe = subscribeToUserTasks((loadedTasks) => {
-         setTasks(loadedTasks);
+         setRawTasks(loadedTasks); // Сохраняем оригинальные данные
+         // Применяем фильтры
+         const filteredTasks = applyTaskFilters(loadedTasks, searchQuery, selectedTags);
+         setTasks(filteredTasks);
          setIsLoading(false);
       });
 
@@ -171,6 +179,14 @@ export default function Main({ navigation, route }) {
          if (unsubscribe) unsubscribe();
       };
    }, []);
+
+   // Применяем фильтры при изменении поиска или тегов
+   useEffect(() => {
+      if (rawTasks.length > 0) {
+         const filteredTasks = applyTaskFilters(rawTasks, searchQuery, selectedTags);
+         setTasks(filteredTasks);
+      }
+   }, [searchQuery, selectedTags, rawTasks]);
 
    /** Перемещение между месяцами */
    const shiftMonth = (step) => {
@@ -225,6 +241,29 @@ export default function Main({ navigation, route }) {
       outputRange: ['0deg', '360deg']
    });
 
+   // Обработчики для поиска и фильтров
+   const handleSearchChange = (text) => {
+      setSearchQuery(text);
+   };
+
+   const handleSearchClear = () => {
+      setSearchQuery('');
+   };
+
+   const handleTagToggle = (tag) => {
+      setSelectedTags(prev => {
+         if (prev.includes(tag)) {
+            return prev.filter(t => t !== tag);
+         } else {
+            return [...prev, tag];
+         }
+      });
+   };
+
+   const handleClearFilters = () => {
+      setSelectedTags([]);
+   };
+
 
 
    return (
@@ -275,16 +314,20 @@ export default function Main({ navigation, route }) {
             </LinearGradient>
 
             <View style={styles.body}>
-               <View style={styles.searchRow}>
-                  <Ionicons name="search" size={18} color="#8ea2c0" />
-                  <Text style={styles.searchText}>Search</Text>
-                  <View style={styles.searchSpacer} />
-                  <View style={styles.searchMood}>
-                     <Ionicons name="happy" size={18} color="#fff" />
-                  </View>
-                  <Pressable style={styles.searchTag}>
-                     <Ionicons name="calendar" size={18} color="#2e63c3" />
-                  </Pressable>
+               {/* Поиск и фильтры */}
+               <View style={styles.filterSection}>
+                  <SearchBar
+                     value={searchQuery}
+                     onChangeText={handleSearchChange}
+                     onClear={handleSearchClear}
+                     placeholder="Search events by name..."
+                  />
+
+                  <FilterPanel
+                     selectedTags={selectedTags}
+                     onTagToggle={handleTagToggle}
+                     onClearFilters={handleClearFilters}
+                  />
                </View>
 
                <View style={styles.calendarCard}>
@@ -461,43 +504,9 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'center',
    },
-   searchRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+   filterSection: {
       marginTop: -12,
-      backgroundColor: '#f6f8ff',
-      borderRadius: 18,
-      paddingHorizontal: 16,
-      height: 52,
-      shadowColor: '#000',
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 6 },
-   },
-   searchText: {
-      flex: 1,
-      marginLeft: 10,
-      color: '#8ea2c0',
-   },
-   searchSpacer: {
-      flex: 0,
-   },
-   searchMood: {
-      width: 34,
-      height: 34,
-      borderRadius: 12,
-      backgroundColor: '#3a7efb',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 10,
-   },
-   searchTag: {
-      width: 34,
-      height: 34,
-      borderRadius: 12,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
+      marginBottom: 16,
    },
    calendarCard: {
       backgroundColor: '#fff',

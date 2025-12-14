@@ -6,6 +6,12 @@ import {
    getDocs,
    Timestamp,
    onSnapshot,
+   doc,
+   deleteDoc,
+   updateDoc,
+   arrayUnion,
+   arrayRemove,
+   getDoc,
 } from 'firebase/firestore';
 import { db } from '../FireBaseConfig';
 import { auth } from '../FireBaseConfig';
@@ -314,4 +320,224 @@ export function formatTaskForCalendar(task) {
       color: task.taskColor,
       tagText: task.tagText,
    };
+}
+
+/**
+ * Фильтрует задачи по поисковому запросу (название или описание)
+ */
+export function filterTasksBySearch(tasks, searchQuery) {
+   if (!searchQuery || searchQuery.trim() === '') {
+      return tasks;
+   }
+
+   const query = searchQuery.toLowerCase().trim();
+   return tasks.filter(task => {
+      const name = task.name?.toLowerCase() || '';
+      const description = task.description?.toLowerCase() || '';
+      return name.includes(query) || description.includes(query);
+   });
+}
+
+/**
+ * Фильтрует задачи по выбранным тегам
+ */
+export function filterTasksByTags(tasks, selectedTags) {
+   if (!selectedTags || selectedTags.length === 0) {
+      return tasks;
+   }
+
+   return tasks.filter(task => {
+      const taskTag = task.tagText || '';
+      return selectedTags.includes(taskTag);
+   });
+}
+
+/**
+ * Применяет все фильтры к задачам
+ */
+export function applyTaskFilters(tasks, searchQuery, selectedTags) {
+   let filteredTasks = tasks;
+
+   // Применяем поиск
+   if (searchQuery && searchQuery.trim() !== '') {
+      filteredTasks = filterTasksBySearch(filteredTasks, searchQuery);
+   }
+
+   // Применяем фильтры по тегам
+   if (selectedTags && selectedTags.length > 0) {
+      filteredTasks = filterTasksByTags(filteredTasks, selectedTags);
+   }
+
+   return filteredTasks;
+}
+
+/**
+ * Удаляет задачу по ID
+ */
+export async function deleteTask(taskId) {
+   try {
+      const user = auth.currentUser;
+      if (!user) {
+         throw new Error('User not authenticated');
+      }
+
+      await deleteDoc(doc(db, 'tasks', taskId));
+      return true;
+   } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+   }
+}
+
+/**
+ * Добавляет текущего пользователя к участникам события
+ */
+export async function joinEvent(taskId) {
+   try {
+      const user = auth.currentUser;
+      if (!user) {
+         throw new Error('User not authenticated');
+      }
+
+      const taskRef = doc(db, 'tasks', taskId);
+      
+      // Получаем данные события
+      const taskSnap = await getDoc(taskRef);
+      if (!taskSnap.exists()) {
+         throw new Error('Event not found');
+      }
+
+      const taskData = taskSnap.data();
+      const participants = taskData.participants || [];
+      
+      // Проверяем, не присоединен ли уже пользователь
+      if (participants.includes(user.uid)) {
+         return { success: false, message: 'Już dołączyłeś do tego wydarzenia' };
+      }
+
+      // Добавляем пользователя в участники
+      await updateDoc(taskRef, {
+         participants: arrayUnion(user.uid)
+      });
+
+      return { success: true, message: 'Pomyślnie dołączono do wydarzenia!' };
+   } catch (error) {
+      console.error('Error joining event:', error);
+      throw error;
+   }
+}
+
+/**
+ * Удаляет текущего пользователя из участников события
+ */
+export async function leaveEvent(taskId) {
+   try {
+      const user = auth.currentUser;
+      if (!user) {
+         throw new Error('User not authenticated');
+      }
+
+      const taskRef = doc(db, 'tasks', taskId);
+      
+      // Удаляем пользователя из участников
+      await updateDoc(taskRef, {
+         participants: arrayRemove(user.uid)
+      });
+
+      return { success: true, message: 'Opuściłeś wydarzenie' };
+   } catch (error) {
+      console.error('Error leaving event:', error);
+      throw error;
+   }
+}
+
+/**
+ * Проверяет, является ли текущий пользователь участником события
+ */
+export async function isUserJoined(taskId) {
+   try {
+      const user = auth.currentUser;
+      if (!user) {
+         return false;
+      }
+
+      const taskRef = doc(db, 'tasks', taskId);
+      const taskSnap = await getDoc(taskRef);
+      
+      if (!taskSnap.exists()) {
+         return false;
+      }
+
+      const taskData = taskSnap.data();
+      const participants = taskData.participants || [];
+      
+      return participants.includes(user.uid);
+   } catch (error) {
+      console.error('Error checking if user joined:', error);
+      return false;
+   }
+}
+
+/**
+ * Получает количество участников события
+ */
+export async function getParticipantsCount(taskId) {
+   try {
+      const taskRef = doc(db, 'tasks', taskId);
+      const taskSnap = await getDoc(taskRef);
+      
+      if (!taskSnap.exists()) {
+         return 0;
+      }
+
+      const taskData = taskSnap.data();
+      const participants = taskData.participants || [];
+      
+      return participants.length;
+   } catch (error) {
+      console.error('Error getting participants count:', error);
+      return 0;
+   }
+}
+
+/**
+ * Обновляет существующую задачу
+ */
+export async function updateTask(taskId, taskData) {
+   try {
+      const user = auth.currentUser;
+      if (!user) {
+         throw new Error('User not authenticated');
+      }
+
+      const taskRef = doc(db, 'tasks', taskId);
+      
+      // Проверяем существование задачи
+      const taskSnap = await getDoc(taskRef);
+      if (!taskSnap.exists()) {
+         throw new Error('Task not found');
+      }
+
+      // Обновляем данные
+      const taskDate = parseDate(taskData.date);
+      const updateData = {
+         name: taskData.name,
+         description: taskData.description,
+         date: taskData.date,
+         dateTimestamp: Timestamp.fromDate(taskDate),
+         time: taskData.time || null,
+         timeDilation: taskData.timeDilation || false,
+         fromTime: taskData.fromTime || null,
+         toTime: taskData.toTime || null,
+         tagText: taskData.tagText,
+         taskColor: taskData.taskColor || '#4CAF50',
+         frequency: taskData.frequency || 'once',
+      };
+
+      await updateDoc(taskRef, updateData);
+      return true;
+   } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
+   }
 }
