@@ -36,8 +36,23 @@ export default function AddTaskScreen({ navigation, route }) {
    const [customDateInput, setCustomDateInput] = useState(''); // Временный ввод даты
    const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
    const [isLoading, setIsLoading] = useState(false);
+   const [showTagPicker, setShowTagPicker] = useState(false);
+   const [customTagInput, setCustomTagInput] = useState('');
 
    const activeRoute = route?.name ?? 'AddTask';
+
+   // Предустановленные теги
+   const predefinedTags = [
+      'Work',
+      'Study',
+      'Personal',
+      'Health',
+      'Sport',
+      'Home',
+      'Finance',
+      'Shopping',
+      'Other',
+   ];
 
    // Проверка авторизации при монтировании компонента
    useEffect(() => {
@@ -385,21 +400,32 @@ export default function AddTaskScreen({ navigation, route }) {
                   <Text style={styles.label}>
                      Tags <Text style={styles.required}>*</Text>
                   </Text>
-                  <View style={styles.inputContainer} pointerEvents="box-none">
+                  <Pressable
+                     style={styles.inputContainer}
+                     onPress={() => setShowTagPicker(true)}
+                  >
                      <View style={[styles.colorDot, { backgroundColor: taskColor }]} />
-                     <TextInput
-                        style={styles.input}
-                        placeholder="Enter tag name.."
-                        placeholderTextColor="#6B7A8F"
-                        value={tagText}
-                        onChangeText={setTagText}
-                        editable={true}
-                        autoCorrect={false}
-                     />
-                     <Pressable style={styles.colorBtn} onPress={() => setShowColorPicker(true)}>
+                     <Text style={[styles.input, !tagText && styles.placeholderText]}>
+                        {tagText || 'Select or enter tag name..'}
+                     </Text>
+                     <Pressable 
+                        style={styles.colorBtn} 
+                        onPress={(e) => {
+                           e.stopPropagation();
+                           setShowColorPicker(true);
+                        }}
+                     >
                         <Ionicons name="color-palette-outline" size={20} color="#2F7BFF" />
                      </Pressable>
-                  </View>
+                  </Pressable>
+                  {tagText && (
+                     <View style={styles.selectedTagContainer}>
+                        <Text style={styles.selectedTagText}>{tagText}</Text>
+                        <Pressable onPress={() => setTagText('')}>
+                           <Ionicons name="close-circle" size={20} color="#6B7A8F" />
+                        </Pressable>
+                     </View>
+                  )}
                </View>
 
                {/* Frequency */}
@@ -669,6 +695,89 @@ export default function AddTaskScreen({ navigation, route }) {
                            )}
                         </Pressable>
                      ))}
+                  </View>
+               </View>
+            </Pressable>
+         </Modal>
+
+         {/* Tag Picker Modal */}
+         <Modal
+            visible={showTagPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowTagPicker(false)}
+         >
+            <Pressable 
+               style={styles.tagModalOverlay} 
+               onPress={() => setShowTagPicker(false)}
+            >
+               <View 
+                  style={styles.tagModalContent} 
+                  onStartShouldSetResponder={() => true}
+               >
+                  <View style={styles.tagModalHeader}>
+                     <Text style={styles.tagModalTitle}>Select Tag</Text>
+                     <Pressable onPress={() => setShowTagPicker(false)}>
+                        <Ionicons name="close" size={24} color="#1B2430" />
+                     </Pressable>
+                  </View>
+                  
+                  <ScrollView style={styles.tagList} showsVerticalScrollIndicator={false}>
+                     {predefinedTags.map((tag) => (
+                        <Pressable
+                           key={tag}
+                           style={[
+                              styles.tagOption,
+                              tagText === tag && styles.tagOptionSelected,
+                           ]}
+                           onPress={() => {
+                              setTagText(tag);
+                              setShowTagPicker(false);
+                           }}
+                        >
+                           <Text
+                              style={[
+                                 styles.tagOptionText,
+                                 tagText === tag && styles.tagOptionTextSelected,
+                              ]}
+                           >
+                              {tag}
+                           </Text>
+                           {tagText === tag && (
+                              <Ionicons name="checkmark" size={20} color="#2F7BFF" />
+                           )}
+                        </Pressable>
+                     ))}
+                  </ScrollView>
+
+                  <View style={styles.customTagSection}>
+                     <Text style={styles.customTagLabel}>Or enter custom tag:</Text>
+                     <View style={styles.customTagInputContainer}>
+                        <TextInput
+                           style={styles.customTagInput}
+                           placeholder="Enter custom tag.."
+                           placeholderTextColor="#6B7A8F"
+                           value={customTagInput}
+                           onChangeText={setCustomTagInput}
+                           autoCorrect={false}
+                        />
+                        <Pressable
+                           style={[
+                              styles.addCustomTagBtn,
+                              !customTagInput.trim() && styles.addCustomTagBtnDisabled,
+                           ]}
+                           onPress={() => {
+                              if (customTagInput.trim()) {
+                                 setTagText(customTagInput.trim());
+                                 setCustomTagInput('');
+                                 setShowTagPicker(false);
+                              }
+                           }}
+                           disabled={!customTagInput.trim()}
+                        >
+                           <Ionicons name="add" size={20} color="#fff" />
+                        </Pressable>
+                     </View>
                   </View>
                </View>
             </Pressable>
@@ -1011,6 +1120,118 @@ const styles = StyleSheet.create({
    },
    removeDateBtn: {
       padding: 2,
+   },
+   placeholderText: {
+      color: '#6B7A8F',
+   },
+   selectedTagContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: '#F0F4F8',
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+      gap: 8,
+   },
+   selectedTagText: {
+      fontSize: 14,
+      color: '#1B2430',
+      fontWeight: '600',
+   },
+   tagModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+   },
+   tagModalContent: {
+      backgroundColor: '#fff',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingBottom: 40,
+      maxHeight: '70%',
+   },
+   tagModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#E3E8F4',
+   },
+   tagModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#1B2430',
+   },
+   tagList: {
+      maxHeight: 300,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+   },
+   tagOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      marginBottom: 8,
+      backgroundColor: '#F0F4F8',
+   },
+   tagOptionSelected: {
+      backgroundColor: '#E3F2FD',
+      borderWidth: 2,
+      borderColor: '#2F7BFF',
+   },
+   tagOptionText: {
+      fontSize: 16,
+      color: '#1B2430',
+      fontWeight: '500',
+   },
+   tagOptionTextSelected: {
+      color: '#2F7BFF',
+      fontWeight: '600',
+   },
+   customTagSection: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: '#E3E8F4',
+   },
+   customTagLabel: {
+      fontSize: 14,
+      color: '#6B7A8F',
+      marginBottom: 12,
+      fontWeight: '500',
+   },
+   customTagInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+   },
+   customTagInput: {
+      flex: 1,
+      backgroundColor: '#F0F4F8',
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: '#1B2430',
+      fontWeight: '500',
+   },
+   addCustomTagBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#2F7BFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+   },
+   addCustomTagBtnDisabled: {
+      backgroundColor: '#B0B8C4',
    },
 });
 

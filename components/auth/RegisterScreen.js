@@ -10,6 +10,7 @@ import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import Header from '../ui/Header';
 import { auth } from '../../FireBaseConfig';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { saveUserData } from '../../services/userService';
 
 // Cache images at module level to prevent reloading
 const profileIcon = require('../../assets/Profile.png');
@@ -90,6 +91,18 @@ export default function Register({ navigation }) {
 			const fullName = `${firstName} ${lastName}`.trim();
 			if (fullName) {
 				await updateProfile(userCredential.user, { displayName: fullName });
+			}
+
+			// Сохраняем данные пользователя в Firestore
+			try {
+				await saveUserData({
+					name: firstName.trim(),
+					surname: lastName.trim(),
+					email: email.trim(),
+				});
+			} catch (error) {
+				console.error('Error saving user data to Firestore:', error);
+				// Не прерываем регистрацию, если не удалось сохранить в Firestore
 			}
 
 			// message + transition to login screen
