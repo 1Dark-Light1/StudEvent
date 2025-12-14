@@ -229,7 +229,14 @@ export default function Main({ navigation, route }) {
 
    return (
       <View style={styles.screen}>
-         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+         <ScrollView 
+            contentContainerStyle={styles.scroll} 
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollView}
+            bounces={true}
+            alwaysBounceVertical={false}
+         >
+            <View style={styles.topBounceBackground} />
             <LinearGradient colors={["#3b85ff", "#8fc5ff"]} style={styles.hero}>
                <View style={styles.headerRow}>
 
@@ -369,6 +376,18 @@ const styles = StyleSheet.create({
       flex: 1,
       backgroundColor: '#eef4ff',
    },
+   scrollView: {
+      flex: 1,
+      backgroundColor: '#eef4ff',
+   },
+   topBounceBackground: {
+      position: 'absolute',
+      top: -1000,
+      left: 0,
+      right: 0,
+      height: 1000,
+      backgroundColor: '#3b85ff',
+   },
    hero: {
       borderBottomLeftRadius: 38,
       borderBottomRightRadius: 38,
@@ -379,6 +398,8 @@ const styles = StyleSheet.create({
    },
    scroll: {
       paddingBottom: 140,
+      backgroundColor: '#eef4ff',
+      flexGrow: 1,
    },
    body: {
       paddingHorizontal: 22,
