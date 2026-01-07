@@ -11,6 +11,7 @@ import Header from '../ui/Header';
 import { auth } from '../../FireBaseConfig';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { saveUserData } from '../../services/userService';
+import { useI18n } from '../../i18n/I18nContext';
 
 // Cache images at module level to prevent reloading
 const profileIcon = require('../../assets/Profile.png');
@@ -19,6 +20,7 @@ const lockIconReg = require('../../assets/lock.png');
 const closedEyesIconReg = require('../../assets/closed-eyes.png');
 
 export default function Register({ navigation }) {
+	const { t } = useI18n();
 	const [firstName, setFirstName] = useState('');
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
@@ -64,18 +66,18 @@ export default function Register({ navigation }) {
 	const handleRegister = async () => {
 		// verification of acceptance of terms and conditions
 		if (!accept) {
-			Alert.alert('Registration', 'You must accept the terms of use.');
+			Alert.alert(t('auth.register.alert.title'), t('auth.register.alert.mustAccept'));
 			return;
 		}
 
 		// basic field validation
 		if (!email || !password || !confirm) {
-			Alert.alert('Registration', 'Enter your email and password.');
+			Alert.alert(t('auth.register.alert.title'), t('auth.register.alert.missing'));
 			return;
 		}
 
 		if (password !== confirm) {
-			Alert.alert('Registration', 'Passwords do not match.');
+			Alert.alert(t('auth.register.alert.title'), t('auth.register.alert.passwordMismatch'));
 			return;
 		}
 
@@ -106,7 +108,7 @@ export default function Register({ navigation }) {
 			}
 
 			// message + transition to login screen
-			Alert.alert('Success', 'You have successfully registered! Now log in to your account', [
+			Alert.alert(t('auth.register.alert.successTitle'), t('auth.register.alert.successBody'), [
 				{
 					text: 'OK',
 					onPress: () => navigation.navigate('Login'),
@@ -114,7 +116,10 @@ export default function Register({ navigation }) {
 			]);
 		} catch (error) {
 			console.log('Register error:', error);
-			Alert.alert('Registration error', error.message || 'Something went wrong.');
+			Alert.alert(
+				t('auth.register.alert.errorTitle'),
+				error.message || t('auth.register.alert.errorFallback')
+			);
 		}
 	};
 
@@ -124,23 +129,23 @@ export default function Register({ navigation }) {
 
 			<View style={styles.card}>
 				<View style={styles.cardContent}>
-					<Text style={styles.cardTitle}>Create a new account</Text>
+					<Text style={styles.cardTitle}>{t('auth.register.title')}</Text>
 
 					<IconInput
 						icon={profileIconElement}
-						placeholder="First name"
+						placeholder={t('field.firstName')}
 						value={firstName}
 						onChangeText={setFirstName}
 					/>
 					<IconInput
 						icon={profileIconElement}
-						placeholder="Last name"
+						placeholder={t('field.lastName')}
 						value={lastName}
 						onChangeText={setLastName}
 					/>
 					<IconInput
 						icon={emailIconElement}
-						placeholder="Email"
+						placeholder={t('field.email')}
 						keyboardType="email-address"
 						value={email}
 						onChangeText={setEmail}
@@ -148,7 +153,7 @@ export default function Register({ navigation }) {
 					/>
 					<PasswordInput
 						icon={lockIconElement}
-						placeholder="Password"
+						placeholder={t('field.password')}
 						value={password}
 						onChangeText={setPassword}
 						showPassword={showPassword}
@@ -156,14 +161,18 @@ export default function Register({ navigation }) {
 					/>
 					<PasswordInput
 						icon={lockIconElement}
-						placeholder="Confirm password"
+						placeholder={t('field.confirmPassword')}
 						value={confirm}
 						onChangeText={setConfirm}
 						showPassword={showConfirmPassword}
 						onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
 					/>
 
-					<CheckboxRow checked={accept} onToggle={() => setAccept((v) => !v)} label="I accept the terms and conditions" />
+					<CheckboxRow
+						checked={accept}
+						onToggle={() => setAccept((v) => !v)}
+						label={t('auth.register.acceptTerms')}
+					/>
 
 					<Pressable onPress={handleRegister} style={({ pressed }) => pressed && { opacity: 0.9 }}>
 						<LinearGradient
@@ -172,14 +181,14 @@ export default function Register({ navigation }) {
 							start={{ x: 0, y: 0 }}
 							end={{ x: 0, y: 1 }}
 						>
-							<Text style={styles.primaryText}>Sign up</Text>
+							<Text style={styles.primaryText}>{t('auth.register.cta')}</Text>
 						</LinearGradient>
 					</Pressable>
 
 					<Text style={styles.miniText}>
-						Do you already have an account?{' '}
+						{t('auth.register.haveAccount')}{' '}
 						<Text style={styles.link} onPress={() => navigation.navigate('Login')}>
-							Log in
+							{t('auth.register.login')}
 						</Text>
 					</Text>
 				</View>

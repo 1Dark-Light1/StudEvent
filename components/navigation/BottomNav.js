@@ -7,10 +7,12 @@ import React from 'react';
 import { View, StyleSheet, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { bottomNavItems } from './navItems';
+import { useI18n } from '../../i18n/I18nContext';
 
 const NAV_HEIGHT = 68;
 
 export default function BottomNav({ navigation, activeRoute, style }) {
+   const { t } = useI18n();
    // Map config to UI to keep navigation copy and routing centralized.
    return (
       <View style={[styles.navBar, style]}>
@@ -27,7 +29,9 @@ export default function BottomNav({ navigation, activeRoute, style }) {
                      size={21}
                      color={isActive ? '#2f6bff' : '#9aa8c2'}
                   />
-                  <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{item.label}</Text>
+                  <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                     {t(item.labelKey)}
+                  </Text>
                </Pressable>
             );
          })}

@@ -4,8 +4,8 @@
  * allows analytics to iterate on ordering, and simplifies testing.
  */
 export const bottomNavItems = [
-   { key: 'home', label: 'Home', icon: 'home', route: 'Main' },
-   { key: 'calendar', label: 'Calendar', icon: 'time', route: 'UserCalendar' },
-   { key: 'alerts', label: 'Alerts', icon: 'notifications', route: 'Alerts' },
-   { key: 'settings', label: 'Settings', icon: 'settings', route: 'Settings' },
+   { key: 'home', labelKey: 'nav.home', icon: 'home', route: 'Main' },
+   { key: 'calendar', labelKey: 'nav.calendar', icon: 'time', route: 'UserCalendar' },
+   { key: 'alerts', labelKey: 'nav.alerts', icon: 'notifications', route: 'Alerts' },
+   { key: 'settings', labelKey: 'nav.settings', icon: 'settings', route: 'Settings' },
 ];

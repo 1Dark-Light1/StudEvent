@@ -10,6 +10,7 @@ import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import Header from '../ui/Header';
 import { auth } from '../../FireBaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useI18n } from '../../i18n/I18nContext';
 
 // Cache images at module level to prevent reloading
 const emailIcon = require('../../assets/email.png');
@@ -18,6 +19,7 @@ const closedEyesIcon = require('../../assets/closed-eyes.png');
 
 
 export default function Login({ navigation }) {
+	const { t } = useI18n();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [remember, setRemember] = useState(true);
@@ -53,13 +55,13 @@ export default function Login({ navigation }) {
 	 */
 	const handleLogin = async () => {
 		if (!email || !password) {
-			Alert.alert('Login', 'Enter your email and password.');
+			Alert.alert(t('auth.login.alert.title'), t('auth.login.alert.missing'));
 			return;
 		}
 
 		try {
 			await signInWithEmailAndPassword(auth, email.trim(), password);
-			Alert.alert('Success', 'Login successful!', [
+			Alert.alert(t('auth.login.alert.successTitle'), t('auth.login.alert.successBody'), [
 				{
 					text: 'OK',
 					onPress: () => navigation.navigate('Main'),
@@ -67,7 +69,10 @@ export default function Login({ navigation }) {
 			]);
 		} catch (error) {
 			console.log('Login error:', error);
-			Alert.alert('Login error', error.message || 'Incorrect email or password.');
+			Alert.alert(
+				t('auth.login.alert.errorTitle'),
+				error.message || t('auth.login.alert.errorFallback')
+			);
 		}
 	};
 
@@ -77,11 +82,11 @@ export default function Login({ navigation }) {
 
 			<View style={styles.card}>
 				<View style={styles.cardContent}>
-					<Text style={styles.cardTitle}>Log in to your account</Text>
+					<Text style={styles.cardTitle}>{t('auth.login.title')}</Text>
 
 					<IconInput
 						icon={emailIconElement}
-						placeholder="Email"
+						placeholder={t('field.email')}
 						keyboardType="email-address"
 						value={email}
 						onChangeText={setEmail}
@@ -90,7 +95,7 @@ export default function Login({ navigation }) {
 
 					<PasswordInput
 						icon={lockIconElement}
-						placeholder="Password"
+						placeholder={t('field.password')}
 						value={password}
 						onChangeText={setPassword}
 						showPassword={showPassword}
@@ -100,7 +105,7 @@ export default function Login({ navigation }) {
 					<CheckboxRow
 						checked={remember}
 						onToggle={() => setRemember((v) => !v)}
-						label="Remember your account"
+						label={t('auth.login.remember')}
 					/>
 
 					<Pressable onPress={handleLogin} style={({ pressed }) => pressed && { opacity: 0.9 }}>
@@ -110,14 +115,14 @@ export default function Login({ navigation }) {
 							start={{ x: 0, y: 0 }}
 							end={{ x: 0, y: 1 }}
 						>
-							<Text style={styles.primaryText}>Log in</Text>
+							<Text style={styles.primaryText}>{t('auth.login.cta')}</Text>
 						</LinearGradient>
 					</Pressable>
 
 					<Text style={styles.miniText}>
-						Don't have an account?{' '}
+						{t('auth.login.noAccount')}{' '}
 						<Text style={styles.link} onPress={() => navigation.navigate('Register')}>
-							Sign up
+							{t('auth.login.signup')}
 						</Text>
 					</Text>
 				</View>

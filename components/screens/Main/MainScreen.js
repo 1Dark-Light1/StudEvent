@@ -12,6 +12,7 @@ import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
 import { subscribeToUserTasks, isTaskActive, applyTaskFilters } from '../../../services/tasksService';
 import { auth } from '../../../FireBaseConfig';
+import { useI18n } from '../../../i18n/I18nContext';
 
 /**
  * Builds a 7-column grid that includes leading/trailing muted days so layout never shifts.
@@ -156,6 +157,7 @@ export default function Main({ navigation, route }) {
    const [searchQuery, setSearchQuery] = useState('');
    const [selectedTags, setSelectedTags] = useState([]);
    const activeRoute = route?.name ?? 'Main';
+   const { t } = useI18n();
 
    const activeMonth = getMonthData(currentYear, currentMonth, tasks);
 
@@ -320,7 +322,7 @@ export default function Main({ navigation, route }) {
                      value={searchQuery}
                      onChangeText={handleSearchChange}
                      onClear={handleSearchClear}
-                     placeholder="Search events by name..."
+                     placeholder={t('field.searchEvents')}
                   />
 
                   <FilterPanel
