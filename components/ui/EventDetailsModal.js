@@ -16,9 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount } from '../../services/tasksService';
 
-/**
- * Форматирует время для отображения (добавляет AM/PM)
- */
+
 function formatTimeForDisplay(timeString) {
    if (!timeString) return '';
    if (timeString.includes('-')) {
@@ -36,9 +34,7 @@ function formatSingleTime(timeString) {
    return `${displayHour}:${minutes} ${ampm}`;
 }
 
-/**
- * Форматирует дату для отображения
- */
+
 function formatDateForDisplay(dateString) {
    const [day, month, year] = dateString.split('.');
    const monthNames = [
@@ -53,7 +49,6 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
    const [participantsCount, setParticipantsCount] = useState(0);
    const [isLoading, setIsLoading] = useState(false);
 
-   // Загружаем статус участия при открытии модала
    useEffect(() => {
       if (visible && event) {
          loadEventStatus();
@@ -103,7 +98,6 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
       setIsLoading(true);
       try {
          if (isJoined) {
-            // Выход из события
             const result = await leaveEvent(event.id);
             if (result.success) {
                setIsJoined(false);
@@ -111,7 +105,6 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                Alert.alert('Sukces', result.message);
             }
          } else {
-            // Присоединение к событию
             const result = await joinEvent(event.id);
             if (result.success) {
                setIsJoined(true);

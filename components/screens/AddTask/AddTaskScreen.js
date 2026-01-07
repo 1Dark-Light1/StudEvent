@@ -62,7 +62,7 @@ export default function AddTaskScreen({ navigation, route }) {
       'Other',
    ];
 
-   // Проверка авторизации при монтировании компонента
+   
    useEffect(() => {
       if (!auth.currentUser) {
          Alert.alert('Authentication Required', 'Please log in to add tasks.', [
@@ -74,7 +74,7 @@ export default function AddTaskScreen({ navigation, route }) {
       }
    }, [navigation]);
 
-   // Загрузка тасков для режима редактирования
+   
    useEffect(() => {
       if (mode === 'change' && auth.currentUser) {
          setIsTasksLoading(true);

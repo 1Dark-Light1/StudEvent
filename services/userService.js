@@ -74,7 +74,7 @@ export function subscribeToUserData(callback) {
       if (docSnapshot.exists()) {
          callback(docSnapshot.data());
       } else {
-         // Если данных нет в Firestore, пробуем получить из displayName
+         
          if (user.displayName) {
             const nameParts = user.displayName.split(' ');
             callback({
@@ -87,7 +87,7 @@ export function subscribeToUserData(callback) {
       }
    }, (error) => {
       console.error('Error subscribing to user data:', error);
-      // В случае ошибки пробуем получить из displayName
+      
       if (user.displayName) {
          const nameParts = user.displayName.split(' ');
          callback({
