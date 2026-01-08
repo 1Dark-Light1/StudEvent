@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Правила для коллекции users
+    // Пользователи могут читать и писать только свой собственный документ
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Правила для коллекции tasks
+    match /tasks/{taskId} {
+      // Разрешаем чтение, если пользователь аутентифицирован и:
+      // - задача принадлежит ему (userId совпадает), или
+      // - пользователь является участником события
+      // Для запросов: работает с where('userId', '==', user.uid)
+      // Для отдельных документов: проверяет resource.data
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.uid in resource.data.get('participants', [])
+      );
+      
+      // Разрешаем создание задач только аутентифицированным пользователям
+      // и только если userId совпадает с текущим пользователем
+      allow create: if request.auth != null && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Разрешаем обновление задач, если:
+      // 1. Пользователь является владельцем задачи (может обновлять всё), или
+      // 2. Пользователь обновляет только поле participants (для join/leave)
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']))
+      );
+      
+      // Разрешаем удаление только владельцу задачи
+      allow delete: if request.auth != null && 
+                      resource.data.userId == request.auth.uid;
+    }
+  }
+}
+

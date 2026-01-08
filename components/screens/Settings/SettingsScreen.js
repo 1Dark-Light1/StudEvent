@@ -12,26 +12,24 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import { auth } from '../../../FireBaseConfig';
 import { signOut } from 'firebase/auth';
 import { subscribeToUserData } from '../../../services/userService';
-import { useI18n } from '../../../i18n/I18nContext';
 
 /** Higher priority actions shown at the top of the page. */
 const primaryOptions = [
-   { icon: 'person-circle', labelKey: 'settings.personalInfo' },
-   { icon: 'settings', labelKey: 'settings.settings' },
+   { icon: 'person-circle', label: 'Personal information' },
+   { icon: 'settings', label: 'Settings' },
 ];
 
 /** Secondary preferences that still need quick access. */
 const secondaryOptions = [
-   { icon: 'notifications', labelKey: 'settings.notifications' },
-   { icon: 'language', labelKey: 'settings.language', route: 'Language' },
-   { icon: 'color-palette', labelKey: 'settings.theme' },
-   { icon: 'people', labelKey: 'settings.accounts' },
+   { icon: 'notifications', label: 'Notifications' },
+   { icon: 'language', label: 'Language' },
+   { icon: 'color-palette', label: 'Theme' },
+   { icon: 'people', label: 'Accounts' },
 ];
 
 export default function Settings({ navigation, route }) {
    const activeRoute = route?.name ?? 'Settings';
    const [userData, setUserData] = useState(null);
-   const { t } = useI18n();
 
    // Подписка на изменения данных пользователя
    useEffect(() => {
@@ -46,20 +44,28 @@ export default function Settings({ navigation, route }) {
 
    // Формируем отображаемое имя
    const displayName = userData
-      ? `${userData.name || ''} ${userData.surname || ''}`.trim() || t('settings.profile.fallbackName')
-      : t('settings.profile.fallbackName');
+      ? `${userData.name || ''} ${userData.surname || ''}`.trim() || 'Name and Surname'
+      : 'Name and Surname';
+
+   // Обработчик навигации для опций настроек
+   const handleOptionPress = (label) => {
+      if (label === 'Language') {
+         navigation.navigate('Language');
+      }
+      // Можно добавить обработчики для других опций здесь
+   };
 
    const handleLogout = async () => {
       Alert.alert(
-         t('settings.logout.title'),
-         t('settings.logout.confirm'),
+         'Log out',
+         'Are you sure you want to log out?',
          [
             {
-               text: t('settings.logout.cancel'),
+               text: 'Cancel',
                style: 'cancel',
             },
             {
-               text: t('settings.logout.action'),
+               text: 'Log out',
                style: 'destructive',
                onPress: async () => {
                   try {
@@ -70,7 +76,7 @@ export default function Settings({ navigation, route }) {
                      });
                   } catch (error) {
                      console.error('Error signing out:', error);
-                     Alert.alert(t('settings.logout.errorTitle'), t('settings.logout.errorBody'));
+                     Alert.alert('Error', 'Failed to log out. Please try again.');
                   }
                },
             },
@@ -83,7 +89,7 @@ export default function Settings({ navigation, route }) {
          <LinearGradient colors={["#dbe8ff", "#f6f7fb"]} style={styles.heroBg} />
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.heroCard}>
-               <Text style={styles.heroTitle}>{t('settings.title')}</Text>
+               <Text style={styles.heroTitle}>Your profile</Text>
                <View style={styles.avatarWrap}>
                   <Ionicons name="person" size={76} color="#6a6f80" />
                   <View style={styles.avatarBadge}>
@@ -96,19 +102,15 @@ export default function Settings({ navigation, route }) {
             <View style={styles.card}>
                {primaryOptions.map((item, index) => (
                   <Pressable
-                     key={item.labelKey}
-                     onPress={() => item.route && navigation.navigate(item.route)}
-                     style={({ pressed }) => [
-                        styles.row,
-                        index === primaryOptions.length - 1 && styles.rowLast,
-                        pressed && { opacity: 0.85 },
-                     ]}
+                     key={item.label}
+                     onPress={() => handleOptionPress(item.label)}
+                     style={[styles.row, index === primaryOptions.length - 1 && styles.rowLast]}
                   >
                      <View style={styles.rowLeft}>
                         <View style={styles.rowIcon}>
                            <Ionicons name={item.icon} size={20} color="#78849e" />
                         </View>
-                        <Text style={styles.rowLabel}>{t(item.labelKey)}</Text>
+                        <Text style={styles.rowLabel}>{item.label}</Text>
                      </View>
                      <Ionicons name="chevron-forward" size={18} color="#c3cadb" />
                   </Pressable>
@@ -118,19 +120,19 @@ export default function Settings({ navigation, route }) {
             <View style={styles.card}>
                {secondaryOptions.map((item, index) => (
                   <Pressable
-                     key={item.labelKey}
-                     onPress={() => item.route && navigation.navigate(item.route)}
+                     key={item.label}
+                     onPress={() => handleOptionPress(item.label)}
                      style={({ pressed }) => [
                         styles.row,
                         index === secondaryOptions.length - 1 && styles.rowLast,
-                        pressed && { opacity: 0.85 },
+                        pressed && { opacity: 0.7 }
                      ]}
                   >
                      <View style={styles.rowLeft}>
                         <View style={styles.rowIcon}>
                            <Ionicons name={item.icon} size={20} color="#78849e" />
                         </View>
-                        <Text style={styles.rowLabel}>{t(item.labelKey)}</Text>
+                        <Text style={styles.rowLabel}>{item.label}</Text>
                      </View>
                      <Ionicons name="chevron-forward" size={18} color="#c3cadb" />
                   </Pressable>
@@ -147,7 +149,7 @@ export default function Settings({ navigation, route }) {
                      <View style={styles.rowIcon}>
                         <Ionicons name="log-out-outline" size={20} color="#F44336" />
                      </View>
-                     <Text style={styles.logoutLabel}>{t('settings.logout.title')}</Text>
+                     <Text style={styles.logoutLabel}>Log out</Text>
                   </View>
                </Pressable>
             </View>
