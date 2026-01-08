@@ -6,8 +6,10 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, Image, Button, Alert } from 'react-native';
 import { GlobalStyle } from '../../../styles/style'; 
 import Header from '../../ui/Header';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function Home({ navigation }) {
+  const { t } = useI18n();
   // Helpful for instrumentation / verifying press areas while the UI is simple.
   const handleTextPress = () => console.log('Text Press');
 
@@ -21,7 +23,7 @@ export default function Home({ navigation }) {
       <Header />
       <Text onPress={handleTextPress}> </Text>
       <Text> </Text>
-      <Button title='Start' onPress={handleButtonPress}   />
+      <Button title={t('home.start')} onPress={handleButtonPress}   />
 
       <StatusBar style="auto" />
     </View>

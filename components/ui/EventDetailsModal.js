@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount } from '../../services/tasksService';
+import { useI18n } from '../../i18n/I18nContext';
 
 
 function formatTimeForDisplay(timeString) {
@@ -35,16 +36,17 @@ function formatSingleTime(timeString) {
 }
 
 
-function formatDateForDisplay(dateString) {
+function formatDateForDisplay(dateString, t) {
    const [day, month, year] = dateString.split('.');
    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
+      t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
    ];
    return `${monthNames[parseInt(month) - 1]} ${day}, ${year}`;
 }
 
 export default function EventDetailsModal({ visible, event, onClose, onDelete }) {
+   const { t } = useI18n();
    const [isJoined, setIsJoined] = useState(false);
    const [participantsCount, setParticipantsCount] = useState(0);
    const [isLoading, setIsLoading] = useState(false);
@@ -75,15 +77,15 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
 
    const handleDelete = () => {
       Alert.alert(
-         'Delete Event',
-         'Are you sure you want to delete this event?',
+         t('event.delete'),
+         t('event.deleteConfirm'),
          [
             {
-               text: 'Cancel',
+               text: t('task.cancel'),
                style: 'cancel',
             },
             {
-               text: 'Delete',
+               text: t('event.deleteAction'),
                style: 'destructive',
                onPress: () => {
                   onDelete(event.id);
@@ -102,20 +104,20 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             if (result.success) {
                setIsJoined(false);
                setParticipantsCount(prev => Math.max(0, prev - 1));
-               Alert.alert('Sukces', result.message);
+               Alert.alert(t('event.success'), result.message);
             }
          } else {
             const result = await joinEvent(event.id);
             if (result.success) {
                setIsJoined(true);
                setParticipantsCount(prev => prev + 1);
-               Alert.alert('Sukces', result.message);
+               Alert.alert(t('event.success'), result.message);
             } else {
-               Alert.alert('Informacja', result.message);
+               Alert.alert(t('event.info'), result.message);
             }
          }
       } catch (error) {
-         Alert.alert('Błąd', 'Nie udało się przetworzyć żądania. Spróbuj ponownie.');
+         Alert.alert(t('event.error'), t('event.errorMessage'));
       } finally {
          setIsLoading(false);
       }
@@ -136,7 +138,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                      <Pressable onPress={onClose} style={styles.closeButton}>
                         <Ionicons name="close" size={28} color="#262c3b" />
                      </Pressable>
-                     <Text style={styles.headerLabel}>Event Details</Text>
+                     <Text style={styles.headerLabel}>{t('event.details')}</Text>
                      <Pressable onPress={handleDelete} style={styles.deleteButton}>
                         <Ionicons name="trash-outline" size={24} color="#f44336" />
                      </Pressable>
@@ -161,7 +163,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                      <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                            <Ionicons name="document-text-outline" size={22} color="#2f7cff" />
-                           <Text style={styles.sectionTitle}>Description</Text>
+                           <Text style={styles.sectionTitle}>{t('event.description')}</Text>
                         </View>
                         <Text style={styles.descriptionText}>{event.subtitle}</Text>
                      </View>
@@ -171,12 +173,12 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   <View style={styles.section}>
                      <View style={styles.sectionHeader}>
                         <Ionicons name="time-outline" size={22} color="#2f7cff" />
-                        <Text style={styles.sectionTitle}>Date & Time</Text>
+                        <Text style={styles.sectionTitle}>{t('event.dateTime')}</Text>
                      </View>
                      <View style={styles.infoRow}>
                         <View style={styles.infoItem}>
                            <Ionicons name="calendar-outline" size={18} color="#9aa7bd" />
-                           <Text style={styles.infoText}>{formatDateForDisplay(event.date)}</Text>
+                           <Text style={styles.infoText}>{formatDateForDisplay(event.date, t)}</Text>
                         </View>
                         {event.time && (
                            <View style={styles.infoItem}>
@@ -192,7 +194,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                      <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                            <Ionicons name="pricetag-outline" size={22} color="#2f7cff" />
-                           <Text style={styles.sectionTitle}>Category</Text>
+                           <Text style={styles.sectionTitle}>{t('event.category')}</Text>
                         </View>
                         <View style={styles.tagContainer}>
                            <View style={[styles.tag, { backgroundColor: event.color || '#2f7cff' }]}>
@@ -206,7 +208,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   <View style={styles.section}>
                      <View style={styles.sectionHeader}>
                         <Ionicons name="information-circle-outline" size={22} color="#2f7cff" />
-                        <Text style={styles.sectionTitle}>Status</Text>
+                        <Text style={styles.sectionTitle}>{t('event.status')}</Text>
                      </View>
                      <View style={styles.statusContainer}>
                         <View style={[
@@ -221,7 +223,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                               styles.statusText,
                               event.tone === 'highlight' ? styles.statusTextActive : styles.statusTextInactive
                            ]}>
-                              {event.tone === 'highlight' ? 'Active Now' : 'Scheduled'}
+                              {event.tone === 'highlight' ? t('event.activeNow') : t('event.scheduled')}
                            </Text>
                         </View>
                      </View>
@@ -231,13 +233,13 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   <View style={styles.section}>
                      <View style={styles.sectionHeader}>
                         <Ionicons name="people-outline" size={22} color="#2f7cff" />
-                        <Text style={styles.sectionTitle}>Uczestnicy</Text>
+                        <Text style={styles.sectionTitle}>{t('event.participants')}</Text>
                      </View>
                      <View style={styles.participantsContainer}>
                         <View style={styles.participantsBadge}>
                            <Ionicons name="people" size={18} color="#2f7cff" />
                            <Text style={styles.participantsText}>
-                              {participantsCount} {participantsCount === 1 ? 'uczestnik' : 'uczestników'}
+                              {participantsCount} {participantsCount === 1 ? t('event.participant') : t('event.participantsPlural')}
                            </Text>
                         </View>
                      </View>
@@ -265,7 +267,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                                  color="#fff" 
                               />
                               <Text style={styles.joinButtonText}>
-                                 {isJoined ? 'Opuść wydarzenie' : 'Dołącz do wydarzenia'}
+                                 {isJoined ? t('event.leave') : t('event.join')}
                               </Text>
                               <Ionicons 
                                  name={isJoined ? "exit-outline" : "arrow-forward"} 

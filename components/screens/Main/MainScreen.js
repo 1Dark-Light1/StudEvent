@@ -131,10 +131,10 @@ function formatTasksForAgenda(tasks, year, month) {
 /**
  * Генерирует данные для месяца
  */
-function getMonthData(year, month, tasks) {
+function getMonthData(year, month, tasks, t) {
    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
+      t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
    ];
 
    return {
@@ -148,6 +148,7 @@ function getMonthData(year, month, tasks) {
 }
 
 export default function Main({ navigation, route }) {
+   const { t } = useI18n();
    const today = new Date();
    const [currentYear, setCurrentYear] = useState(today.getFullYear());
    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -157,9 +158,8 @@ export default function Main({ navigation, route }) {
    const [searchQuery, setSearchQuery] = useState('');
    const [selectedTags, setSelectedTags] = useState([]);
    const activeRoute = route?.name ?? 'Main';
-   const { t } = useI18n();
 
-   const activeMonth = getMonthData(currentYear, currentMonth, tasks);
+   const activeMonth = getMonthData(currentYear, currentMonth, tasks, t);
 
    // Загрузка задач из Firestore
    useEffect(() => {
@@ -334,8 +334,8 @@ export default function Main({ navigation, route }) {
 
                <View style={styles.calendarCard}>
                   <View style={styles.weekRow}>
-                     {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                        <Text key={day} style={styles.weekLabel}>
+                     {[t('date.mon'), t('date.tue'), t('date.wed'), t('date.thu'), t('date.fri'), t('date.sat'), t('date.sun')].map((day, idx) => (
+                        <Text key={idx} style={styles.weekLabel}>
                            {day}
                         </Text>
                      ))}

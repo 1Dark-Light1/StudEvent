@@ -13,11 +13,12 @@ import FilterPanel from '../../ui/FilterPanel';
 import EventDetailsModal from '../../ui/EventDetailsModal';
 import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive, applyTaskFilters, deleteTask } from '../../../services/tasksService';
 import { auth } from '../../../FireBaseConfig';
+import { useI18n } from '../../../i18n/I18nContext';
 
 /**
  * Генерирует массив дней недели начиная с понедельника текущей недели
  */
-function generateWeekDays() {
+function generateWeekDays(t) {
    const today = new Date();
    const currentDay = today.getDay();
    // Понедельник = 1, воскресенье = 0
@@ -26,7 +27,7 @@ function generateWeekDays() {
    monday.setDate(today.getDate() + mondayOffset);
 
    const days = [];
-   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+   const dayLabels = [t('date.mon'), t('date.tue'), t('date.wed'), t('date.thu'), t('date.fri'), t('date.sat'), t('date.sun')];
    
    for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
@@ -51,11 +52,11 @@ function generateWeekDays() {
 /**
  * Форматирует дату для отображения
  */
-function formatDateForDisplay(dateString) {
+function formatDateForDisplay(dateString, t) {
    const [day, month, year] = dateString.split('.');
    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
+      t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
    ];
    return `${monthNames[parseInt(month) - 1]} ${day}, ${year}`;
 }
@@ -83,7 +84,8 @@ function formatSingleTime(timeString) {
 
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
-   const stripDays = generateWeekDays();
+   const { t } = useI18n();
+   const stripDays = generateWeekDays(t);
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
@@ -218,7 +220,7 @@ export default function UserCalendar({ navigation, route }) {
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.headerRow}>
                <View>
-                  <Text style={styles.dateOverline}>{formatDateForDisplay(activeDate)}</Text>
+                  <Text style={styles.dateOverline}>{formatDateForDisplay(activeDate, t)}</Text>
                   <Text style={styles.title}>{headerLabel}</Text>
                </View>
 

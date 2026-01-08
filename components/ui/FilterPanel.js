@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useI18n } from '../../i18n/I18nContext';
 
 const PREDEFINED_TAGS = [
    'Work',
@@ -19,6 +20,7 @@ const PREDEFINED_TAGS = [
 ];
 
 export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters }) {
+   const { t } = useI18n();
    const hasFilters = selectedTags.length > 0;
    const [expandedTag, setExpandedTag] = useState(null);
 
@@ -29,7 +31,7 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
                <View style={styles.iconCircle}>
                   <Ionicons name="filter" size={16} color="#2f7cff" />
                </View>
-               <Text style={styles.headerText}>Filter by Category</Text>
+               <Text style={styles.headerText}>{t('filter.title')}</Text>
             </View>
             {hasFilters && (
                <Pressable 
@@ -37,7 +39,7 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
                   style={styles.clearButton}
                >
                   <Ionicons name="close-circle" size={18} color="#ff6b6b" />
-                  <Text style={styles.clearText}>Clear</Text>
+                  <Text style={styles.clearText}>{t('filter.clear')}</Text>
                </Pressable>
             )}
          </View>
@@ -48,6 +50,7 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
          >
             {PREDEFINED_TAGS.map((tag) => {
                const isSelected = selectedTags.includes(tag);
+               const tagKey = `filter.tag.${tag.toLowerCase()}`;
                return (
                   <Pressable
                      key={tag}
@@ -66,26 +69,26 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
                            end={{ x: 1, y: 1 }}
                         >
                            <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                           <Text style={styles.tagTextSelected}>{tag}</Text>
+                           <Text style={styles.tagTextSelected}>{t(tagKey)}</Text>
                         </LinearGradient>
                      ) : (
                         <View style={styles.tagContent}>
                            <Ionicons name="pricetag-outline" size={16} color="#5a6477" />
-                           <Text style={styles.tagText}>{tag}</Text>
+                           <Text style={styles.tagText}>{t(tagKey)}</Text>
                         </View>
                      )}
                   </Pressable>
                );
             })}
          </ScrollView>
-         {hasFilters && (
-            <View style={styles.activeFiltersInfo}>
-               <Ionicons name="information-circle" size={14} color="#2f7cff" />
-               <Text style={styles.activeFiltersText}>
-                  {selectedTags.length} {selectedTags.length === 1 ? 'filter' : 'filters'} active
-               </Text>
-            </View>
-         )}
+            {hasFilters && (
+               <View style={styles.activeFiltersInfo}>
+                  <Ionicons name="information-circle" size={14} color="#2f7cff" />
+                  <Text style={styles.activeFiltersText}>
+                     {selectedTags.length} {selectedTags.length === 1 ? t('filter.active') : t('filter.activePlural')} {t('filter.activeText')}
+                  </Text>
+               </View>
+            )}
       </View>
    );
 }

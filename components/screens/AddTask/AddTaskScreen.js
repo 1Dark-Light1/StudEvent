@@ -17,8 +17,10 @@ import BottomNav from '../../navigation/BottomNav';
 import SearchBar from '../../ui/SearchBar';
 import { auth } from '../../../FireBaseConfig';
 import { addTask, updateTask, subscribeToUserTasks } from '../../../services/tasksService';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function AddTaskScreen({ navigation, route }) {
+   const { t } = useI18n();
    const [mode, setMode] = useState('build'); // 'build' or 'change'
    const [name, setName] = useState('');
    const [description, setDescription] = useState('');
@@ -173,9 +175,9 @@ export default function AddTaskScreen({ navigation, route }) {
    const handleAdd = async () => {
       // Проверка авторизации
       if (!auth.currentUser) {
-         Alert.alert('Authentication Required', 'Please log in to add tasks.', [
+         Alert.alert(t('task.alert.authRequired'), t('task.alert.loginRequired'), [
             {
-               text: 'OK',
+               text: t('common.ok'),
                onPress: () => navigation.navigate('Login'),
             },
          ]);
@@ -184,37 +186,37 @@ export default function AddTaskScreen({ navigation, route }) {
 
       // Валідація обов'язкових полів
       if (!name.trim()) {
-         Alert.alert('Error', 'The "Name" field is required.');
+         Alert.alert(t('task.alert.error'), t('task.alert.nameRequired'));
          return;
       }
 
       if (!description.trim()) {
-         Alert.alert('Error', 'The "Description" field is required.');
+         Alert.alert(t('task.alert.error'), t('task.alert.descriptionRequired'));
          return;
       }
 
       if (!taskTime.trim() && !timeDilation) {
-         Alert.alert('Error', 'The "Task time" field is required.');
+         Alert.alert(t('task.alert.error'), t('task.alert.timeRequired'));
          return;
       }
 
       if (timeDilation && (!fromTime.trim() || !toTime.trim())) {
-         Alert.alert('Error', 'The "From" and "To" fields are required when Time dilation is enabled.');
+         Alert.alert(t('task.alert.error'), t('task.alert.fromToRequired'));
          return;
       }
 
       if (!taskDate.trim()) {
-         Alert.alert('Error', 'The "Task date" field is required.');
+         Alert.alert(t('task.alert.error'), t('task.alert.dateRequired'));
          return;
       }
 
       if (!tagText.trim()) {
-         Alert.alert('Error', 'The "Tags" field is required.');
+         Alert.alert(t('task.alert.error'), t('task.alert.tagsRequired'));
          return;
       }
 
       if (frequency === 'custom' && customDates.length === 0) {
-         Alert.alert('Error', 'Please add at least one date for Custom frequency.');
+         Alert.alert(t('task.alert.error'), t('task.alert.customDateRequired'));
          return;
       }
 
@@ -239,9 +241,9 @@ export default function AddTaskScreen({ navigation, route }) {
             // Режим редактирования
             await updateTask(selectedTaskId, taskData);
             
-            Alert.alert('Success', 'Task updated successfully!', [
+            Alert.alert(t('task.alert.success'), t('task.alert.updated'), [
                {
-                  text: 'OK',
+                  text: t('common.ok'),
                   onPress: () => {
                      handleClear();
                      setMode('build');
@@ -252,9 +254,9 @@ export default function AddTaskScreen({ navigation, route }) {
             // Режим добавления
             await addTask(taskData);
             
-            Alert.alert('Success', 'Task added successfully!', [
+            Alert.alert(t('task.alert.success'), t('task.alert.added'), [
                {
-                  text: 'OK',
+                  text: t('common.ok'),
                   onPress: () => {
                      handleClear();
                      navigation.goBack();
@@ -264,7 +266,7 @@ export default function AddTaskScreen({ navigation, route }) {
          }
       } catch (error) {
          console.error('Error with task:', error);
-         Alert.alert('Error', error.message || 'Failed to process task. Please try again.');
+         Alert.alert(t('task.alert.error'), error.message || t('task.alert.failed'));
       } finally {
          setIsLoading(false);
       }
@@ -326,7 +328,7 @@ export default function AddTaskScreen({ navigation, route }) {
             keyboardShouldPersistTaps="handled"
          >
             <View style={styles.container}>
-               <Text style={styles.title}>Add task</Text>
+               <Text style={styles.title}>{t('task.add')}</Text>
 
                {/* Mode selector */}
                <LinearGradient
@@ -340,7 +342,7 @@ export default function AddTaskScreen({ navigation, route }) {
                      onPress={() => setMode('build')}
                   >
                      <Text style={[styles.modeText, mode === 'build' && styles.modeTextActive]}>
-                        Build task
+                        {t('task.build')}
                      </Text>
                   </Pressable>
 
@@ -349,7 +351,7 @@ export default function AddTaskScreen({ navigation, route }) {
                      onPress={() => setMode('change')}
                   >
                      <Text style={[styles.modeText, mode === 'change' && styles.modeTextActive]}>
-                        Change task
+                        {t('task.change')}
                      </Text>
                   </Pressable>
                </LinearGradient>
@@ -357,24 +359,24 @@ export default function AddTaskScreen({ navigation, route }) {
                {/* \u0421\u043f\u0438\u0441\u043e\u043a \u0442\u0430\u0441\u043a\u043e\u0432 \u0434\u043b\u044f \u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f */}
                {mode === 'change' && !selectedTaskId && (
                   <View style={styles.tasksListContainer}>
-                     <Text style={styles.tasksListTitle}>Select a task to edit</Text>
+                     <Text style={styles.tasksListTitle}>{t('task.selectToEdit')}</Text>
                      
                      <SearchBar
                         value={searchQuery}
                         onChangeText={handleSearchChange}
                         onClear={handleSearchClear}
-                        placeholder="Search tasks..."
+                        placeholder={t('field.searchTasks')}
                      />
 
                      {isTasksLoading ? (
                         <View style={styles.loadingContainer}>
-                           <Text style={styles.loadingText}>Loading tasks...</Text>
+                           <Text style={styles.loadingText}>{t('task.loading')}</Text>
                         </View>
                      ) : filteredTasks.length === 0 ? (
                         <View style={styles.emptyContainer}>
                            <Ionicons name="calendar-outline" size={48} color="#d0d8ec" />
                            <Text style={styles.emptyText}>
-                              {searchQuery ? 'No tasks found' : 'No tasks available'}
+                              {searchQuery ? t('task.noTasksFound') : t('task.noTasksAvailable')}
                            </Text>
                         </View>
                      ) : (
@@ -422,19 +424,19 @@ export default function AddTaskScreen({ navigation, route }) {
                            }}
                         >
                            <Ionicons name="arrow-back" size={20} color="#2f7cff" />
-                           <Text style={styles.backToListText}>Back to task list</Text>
+                           <Text style={styles.backToListText}>{t('task.backToList')}</Text>
                         </Pressable>
                      )}
 
                      {/* Name field */}
                      <View style={styles.section}>
                         <Text style={styles.label}>
-                           Name <Text style={styles.required}>*</Text>
+                           {t('task.name')} <Text style={styles.required}>{t('task.required')}</Text>
                         </Text>
                         <View style={styles.inputContainer} pointerEvents="box-none">
                            <TextInput
                               style={styles.input}
-                              placeholder="Name your task.."
+                              placeholder={t('task.namePlaceholder')}
                               placeholderTextColor="#6B7A8F"
                               value={name}
                               onChangeText={setName}
@@ -447,12 +449,12 @@ export default function AddTaskScreen({ navigation, route }) {
                      {/* Description field */}
                      <View style={styles.section}>
                   <Text style={styles.label}>
-                     Description <Text style={styles.required}>*</Text>
+                     {t('task.description')} <Text style={styles.required}>{t('task.required')}</Text>
                   </Text>
                   <View style={styles.inputContainer} pointerEvents="box-none">
                      <TextInput
                         style={[styles.input, styles.textArea]}
-                        placeholder="Describe your task.."
+                        placeholder={t('task.descriptionPlaceholder')}
                         placeholderTextColor="#6B7A8F"
                         value={description}
                         onChangeText={setDescription}
@@ -467,7 +469,7 @@ export default function AddTaskScreen({ navigation, route }) {
                {/* Time and Date */}
                <View style={styles.section}>
                   <Text style={styles.label}>
-                     Choose a time and date <Text style={styles.required}>*</Text>
+                     {t('task.timeDate')} <Text style={styles.required}>{t('task.required')}</Text>
                   </Text>
                   <View style={styles.row}>
                      <View
@@ -480,7 +482,7 @@ export default function AddTaskScreen({ navigation, route }) {
                      >
                         <TextInput
                            style={[styles.input, timeDilation && styles.inputDisabled]}
-                           placeholder="Task time.."
+                           placeholder={t('task.timePlaceholder')}
                            placeholderTextColor={timeDilation ? "#B0B8C4" : "#6B7A8F"}
                            value={timeDilation ? "" : taskTime}
                            onChangeText={(text) => handleTimeChange(text, setTaskTime)}
@@ -499,7 +501,7 @@ export default function AddTaskScreen({ navigation, route }) {
                      <View style={[styles.inputContainer, styles.halfWidth]} pointerEvents="box-none">
                         <TextInput
                            style={styles.input}
-                           placeholder="Task date.."
+                           placeholder={t('task.datePlaceholder')}
                            placeholderTextColor="#6B7A8F"
                            value={taskDate}
                            onChangeText={setTaskDate}
@@ -516,7 +518,7 @@ export default function AddTaskScreen({ navigation, route }) {
                {/* Time dilation */}
                <View style={styles.section}>
                   <View style={styles.rowBetween}>
-                     <Text style={styles.label}>Time dilation</Text>
+                     <Text style={styles.label}>{t('task.timeDilation')}</Text>
                      <Pressable
                         style={[styles.toggle, timeDilation && styles.toggleActive]}
                         onPress={() => setTimeDilation(!timeDilation)}
@@ -529,7 +531,7 @@ export default function AddTaskScreen({ navigation, route }) {
                         <View style={[styles.inputContainer, styles.halfWidth]} pointerEvents="box-none">
                            <TextInput
                               style={styles.input}
-                              placeholder="From.."
+                              placeholder={t('task.fromPlaceholder')}
                               placeholderTextColor="#6B7A8F"
                               value={fromTime}
                               onChangeText={(text) => handleTimeChange(text, setFromTime)}
@@ -543,7 +545,7 @@ export default function AddTaskScreen({ navigation, route }) {
                         <View style={[styles.inputContainer, styles.halfWidth]} pointerEvents="box-none">
                            <TextInput
                               style={styles.input}
-                              placeholder="To.."
+                              placeholder={t('task.toPlaceholder')}
                               placeholderTextColor="#6B7A8F"
                               value={toTime}
                               onChangeText={(text) => handleTimeChange(text, setToTime)}
@@ -561,7 +563,7 @@ export default function AddTaskScreen({ navigation, route }) {
                {/* Tags */}
                <View style={styles.section}>
                   <Text style={styles.label}>
-                     Tags <Text style={styles.required}>*</Text>
+                     {t('task.tags')} <Text style={styles.required}>{t('task.required')}</Text>
                   </Text>
                   <Pressable
                      style={styles.inputContainer}
@@ -593,7 +595,7 @@ export default function AddTaskScreen({ navigation, route }) {
 
                {/* Frequency */}
                <View style={styles.section}>
-                  <Text style={styles.label}>Frequency</Text>
+                  <Text style={styles.label}>{t('task.frequency')}</Text>
                   <View style={styles.frequencyRow}>
                      <Pressable
                         style={[styles.frequencyBtn, frequency === 'once' && styles.frequencyBtnActive]}
@@ -605,7 +607,7 @@ export default function AddTaskScreen({ navigation, route }) {
                               frequency === 'once' && styles.frequencyTextActive,
                            ]}
                         >
-                           Once
+                           {t('task.once')}
                         </Text>
                      </Pressable>
                      <Pressable
@@ -618,7 +620,7 @@ export default function AddTaskScreen({ navigation, route }) {
                               frequency === 'weekly' && styles.frequencyTextActive,
                            ]}
                         >
-                           Weekly
+                           {t('task.weekly')}
                         </Text>
                      </Pressable>
                      <Pressable
@@ -631,7 +633,7 @@ export default function AddTaskScreen({ navigation, route }) {
                               frequency === 'custom' && styles.frequencyTextActive,
                            ]}
                         >
-                           Custom
+                           {t('task.custom')}
                         </Text>
                      </Pressable>
                   </View>
@@ -639,12 +641,12 @@ export default function AddTaskScreen({ navigation, route }) {
                   {/* Custom dates input */}
                   {frequency === 'custom' && (
                      <View style={styles.customDatesSection}>
-                        <Text style={styles.label}>Add dates</Text>
+                        <Text style={styles.label}>{t('task.addDates')}</Text>
                         <View style={styles.customDateInputRow}>
                            <View style={[styles.inputContainer, styles.flex1]} pointerEvents="box-none">
                               <TextInput
                                  style={styles.input}
-                                 placeholder="DD.MM.YYYY"
+                                 placeholder={t('task.dateFormat')}
                                  placeholderTextColor="#6B7A8F"
                                  value={customDateInput}
                                  onChangeText={setCustomDateInput}
@@ -706,7 +708,7 @@ export default function AddTaskScreen({ navigation, route }) {
          {(mode === 'build' || (mode === 'change' && selectedTaskId)) && (
             <View style={styles.fixedActionRow}>
                <Pressable style={styles.clearBtn} onPress={handleClear}>
-                  <Text style={styles.clearText}>Clear</Text>
+                  <Text style={styles.clearText}>{t('task.clear')}</Text>
                </Pressable>
                <Pressable 
                   style={[styles.addBtn, isLoading && styles.addBtnDisabled]} 
@@ -734,16 +736,16 @@ export default function AddTaskScreen({ navigation, route }) {
                   <View style={styles.modalContent}>
                      <View style={styles.modalHeader}>
                         <Pressable onPress={() => setShowDatePicker(false)}>
-                           <Text style={styles.modalCancel}>Cancel</Text>
+                           <Text style={styles.modalCancel}>{t('task.cancel')}</Text>
                         </Pressable>
-                        <Text style={styles.modalTitle}>Select Date</Text>
+                        <Text style={styles.modalTitle}>{t('task.selectDate')}</Text>
                         <Pressable
                            onPress={() => {
                               setTaskDate(formatDate(selectedDate));
                               setShowDatePicker(false);
                            }}
                         >
-                           <Text style={styles.modalDone}>Done</Text>
+                           <Text style={styles.modalDone}>{t('task.done')}</Text>
                         </Pressable>
                      </View>
                      <DateTimePicker
@@ -780,9 +782,9 @@ export default function AddTaskScreen({ navigation, route }) {
                   <View style={styles.modalContent}>
                      <View style={styles.modalHeader}>
                         <Pressable onPress={() => setShowCustomDatePicker(false)}>
-                           <Text style={styles.modalCancel}>Cancel</Text>
+                           <Text style={styles.modalCancel}>{t('task.cancel')}</Text>
                         </Pressable>
-                        <Text style={styles.modalTitle}>Select Date</Text>
+                        <Text style={styles.modalTitle}>{t('task.selectDate')}</Text>
                         <Pressable
                            onPress={() => {
                               setCustomDateInput(formatDate(selectedDate));
@@ -840,7 +842,7 @@ export default function AddTaskScreen({ navigation, route }) {
             <Pressable style={styles.colorModalOverlay} onPress={() => setShowColorPicker(false)}>
                <View style={styles.colorModalContent} onStartShouldSetResponder={() => true}>
                   <View style={styles.colorModalHeader}>
-                     <Text style={styles.colorModalTitle}>Choose Color</Text>
+                     <Text style={styles.colorModalTitle}>{t('task.chooseColor')}</Text>
                      <Pressable onPress={() => setShowColorPicker(false)}>
                         <Ionicons name="close" size={24} color="#1B2430" />
                      </Pressable>
@@ -885,7 +887,7 @@ export default function AddTaskScreen({ navigation, route }) {
                   onStartShouldSetResponder={() => true}
                >
                   <View style={styles.tagModalHeader}>
-                     <Text style={styles.tagModalTitle}>Select Tag</Text>
+                     <Text style={styles.tagModalTitle}>{t('task.selectTag')}</Text>
                      <Pressable onPress={() => setShowTagPicker(false)}>
                         <Ionicons name="close" size={24} color="#1B2430" />
                      </Pressable>
@@ -920,11 +922,11 @@ export default function AddTaskScreen({ navigation, route }) {
                   </ScrollView>
 
                   <View style={styles.customTagSection}>
-                     <Text style={styles.customTagLabel}>Or enter custom tag:</Text>
+                     <Text style={styles.customTagLabel}>{t('task.customTag')}</Text>
                      <View style={styles.customTagInputContainer}>
                         <TextInput
                            style={styles.customTagInput}
-                           placeholder="Enter custom tag.."
+                           placeholder={t('task.customTagPlaceholder')}
                            placeholderTextColor="#6B7A8F"
                            value={customTagInput}
                            onChangeText={setCustomTagInput}

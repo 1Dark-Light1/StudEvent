@@ -6,15 +6,17 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import BottomNav from '../../navigation/BottomNav';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function Alerts({ navigation, route }) {
    const activeRoute = route?.name ?? 'Alerts';
+   const { t } = useI18n();
 
    return (
       <View style={styles.screen}>
          <View style={styles.content}>
-            <Text style={styles.title}>Alerts</Text>
-            <Text style={styles.subtitle}>You are all caught up for today.</Text>
+            <Text style={styles.title}>{t('alerts.title')}</Text>
+            <Text style={styles.subtitle}>{t('alerts.caughtUp')}</Text>
          </View>
 
          <BottomNav navigation={navigation} activeRoute={activeRoute} />
