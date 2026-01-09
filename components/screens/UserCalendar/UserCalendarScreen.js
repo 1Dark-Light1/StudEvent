@@ -3,8 +3,8 @@
  * It mixes a day-strip selector with a vertical schedule so users can
  * jump between days and immediately see context-rich events.
  */
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert } from 'react-native';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
@@ -18,10 +18,12 @@ import { useI18n } from '../../../i18n/I18nContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 /**
- * Генерирует массив дней недели начиная с понедельника текущей недели
+ * Генерирует массив дней недели начиная с понедельника недели с учётом смещения
  */
-function generateWeekDays(t) {
+function generateWeekDays(t, weekOffset = 0) {
    const today = new Date();
+   // Смещаем базовую дату на нужное количество недель
+   today.setDate(today.getDate() + weekOffset * 7);
    const currentDay = today.getDay();
    // Понедельник = 1, воскресенье = 0
    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
@@ -87,7 +89,8 @@ function formatSingleTime(timeString) {
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
    const { t } = useI18n();
-   const stripDays = generateWeekDays(t);
+   const [weekOffset, setWeekOffset] = useState(0);
+   const stripDays = useMemo(() => generateWeekDays(t, weekOffset), [t, weekOffset]);
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
@@ -105,6 +108,46 @@ export default function UserCalendar({ navigation, route }) {
    const activeDay = stripDays.find((day) => day.dateString === activeDate) || stripDays[0];
    const isToday = activeDay.dateString === todayDateString;
    const headerLabel = isToday ? t('calendar.today') : activeDay.label;
+
+   // Горизонтальный свайп по всему экрану календаря для переключения недель
+   const panResponder = useRef(
+      PanResponder.create({
+         onMoveShouldSetPanResponder: (_evt, gestureState) => {
+            const { dx, dy } = gestureState;
+            // Игнорируем совсем мелкие движения, реагируем только на горизонтальный жест
+            return Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2;
+         },
+         onPanResponderRelease: (_evt, gestureState) => {
+            const { dx } = gestureState;
+            const threshold = 30;
+            if (dx > threshold) {
+               // свайп вправо → предыдущая неделя
+               setWeekOffset((offset) => offset - 1);
+            } else if (dx < -threshold) {
+               // свайп влево → следующая неделя
+               setWeekOffset((offset) => offset + 1);
+            }
+         },
+      })
+   ).current;
+
+   // При смене недели стараемся сохранить тот же день недели (например, четверг -> четверг следующей недели)
+   useEffect(() => {
+      if (stripDays.length === 0) return;
+
+      setActiveDate((prevDate) => {
+         if (!prevDate) return stripDays[0].dateString;
+
+         const [d, m, y] = prevDate.split('.');
+         const prevDateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+         // Преобразуем getDay (0-6, где 0 воскресенье) в индекс с понедельника
+         const jsDay = prevDateObj.getDay(); // 0..6
+         const weekdayIndex = jsDay === 0 ? 6 : jsDay - 1; // 0..6, где 0 понедельник
+
+         const targetDay = stripDays[weekdayIndex] || stripDays[0];
+         return targetDay.dateString;
+      });
+   }, [weekOffset, stripDays]);
 
    // Подписка на задачи для выбранной даты
    useEffect(() => {
@@ -236,7 +279,7 @@ export default function UserCalendar({ navigation, route }) {
    };
 
    return (
-      <View style={styles.screen}>
+      <View style={styles.screen} {...panResponder.panHandlers}>
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.headerRow}>
                <View>
