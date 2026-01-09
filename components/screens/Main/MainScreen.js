@@ -11,6 +11,7 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
 import { subscribeToUserTasks, isTaskActive, applyTaskFilters } from '../../../services/tasksService';
+import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
 
@@ -54,8 +55,14 @@ function buildCalendar({ year, month, tasks = [] }) {
       if (dayTasks.length > 0) {
          // Выделяем день с задачами
          const hasActiveTask = dayTasks.some(task => isTaskActive(task));
+         const hasGlobalTask = dayTasks.some(task => task.isGlobal === true);
+         
          if (hasActiveTask) {
             entry.highlight = '#d9ecff';
+         } else if (hasGlobalTask) {
+            // Для глобальных задач - заполненный кружок
+            const globalTask = dayTasks.find(task => task.isGlobal === true);
+            entry.filled = globalTask.taskColor || '#2f6cff';
          } else {
             // Используем цвет первой задачи для outline
             entry.outline = dayTasks[0].taskColor || '#d7c5ff';
@@ -103,10 +110,13 @@ function formatTasksForAgenda(tasks, year, month) {
          }
 
          tasksByDay[dayKey].push({
+            id: task.id,
             time: timeDisplay,
             title: task.name,
             subtitle: task.description,
             color: task.taskColor || '#8dddbd',
+            isGlobal: task.isGlobal || false,
+            participants: task.participants || [],
          });
       }
    });
@@ -157,6 +167,7 @@ export default function Main({ navigation, route }) {
    const [isLoading, setIsLoading] = useState(true);
    const [searchQuery, setSearchQuery] = useState('');
    const [selectedTags, setSelectedTags] = useState([]);
+   const [participantsData, setParticipantsData] = useState({}); // Кэш данных участников по taskId
    const activeRoute = route?.name ?? 'Main';
 
    const activeMonth = getMonthData(currentYear, currentMonth, tasks, t);
@@ -189,6 +200,29 @@ export default function Main({ navigation, route }) {
          setTasks(filteredTasks);
       }
    }, [searchQuery, selectedTags, rawTasks]);
+
+   // Загружаем данные участников для глобальных задач
+   useEffect(() => {
+      const loadParticipants = async () => {
+         if (rawTasks.length === 0) return;
+         
+         const globalTasksWithParticipants = rawTasks.filter(task => task.isGlobal && task.participants && task.participants.length > 0);
+         const participantsMap = {};
+         
+         for (const task of globalTasksWithParticipants) {
+            if (!participantsData[task.id] && task.participants && task.participants.length > 0) {
+               const usersData = await getUsersDataByIds(task.participants);
+               participantsMap[task.id] = usersData;
+            }
+         }
+         
+         if (Object.keys(participantsMap).length > 0) {
+            setParticipantsData(prev => ({ ...prev, ...participantsMap }));
+         }
+      };
+      
+      loadParticipants();
+   }, [rawTasks]);
 
    /** Перемещение между месяцами */
    const shiftMonth = (step) => {
@@ -353,12 +387,14 @@ export default function Main({ navigation, route }) {
                                        styles.dateBadge,
                                        day.highlight && { backgroundColor: day.highlight },
                                        day.outline && { borderColor: day.outline, borderWidth: 1.5 },
+                                       day.filled && { backgroundColor: day.filled, borderWidth: 0 },
                                     ]}
                                  >
                                     <Text
                                        style={[
                                           styles.dateText,
                                           day.highlight && { color: '#1a3d64' },
+                                          day.filled && { color: '#fff' },
                                           day.muted && styles.dateTextMuted,
                                        ]}
                                     >
@@ -375,13 +411,13 @@ export default function Main({ navigation, route }) {
                {isLoading ? (
                   <View style={styles.loadingContainer}>
                      <ActivityIndicator size="large" color="#3b85ff" />
-                     <Text style={styles.loadingText}>Loading tasks...</Text>
+                     <Text style={styles.loadingText}>{t('main.loadingTasks')}</Text>
                   </View>
                ) : activeMonth.agenda.length === 0 ? (
                   <View style={styles.emptyAgenda}>
                      <Ionicons name="calendar-outline" size={32} color="#d0d8ec" />
-                     <Text style={styles.emptyAgendaText}>No tasks scheduled</Text>
-                     <Text style={styles.emptyAgendaSubtext}>Tap + to add a new task</Text>
+                     <Text style={styles.emptyAgendaText}>{t('main.noTasksScheduled')}</Text>
+                     <Text style={styles.emptyAgendaSubtext}>{t('main.addNewTask')}</Text>
                   </View>
                ) : (
                   activeMonth.agenda.map((block) => (
@@ -389,17 +425,88 @@ export default function Main({ navigation, route }) {
                         <Text style={styles.agendaLabel}>{block.day}</Text>
                         {block.items.map((item, idx) => {
                            const isLast = idx === block.items.length - 1;
+                           const isGlobal = item.isGlobal === true;
+                           // Получаем участников для глобальной задачи
+                           const taskParticipants = isGlobal && participantsData[item.id] ? participantsData[item.id] : [];
+                           const displayParticipants = taskParticipants.slice(0, 4);
+                           
+                           // Проверяем, прикреплен ли текущий пользователь к задаче
+                           const isUserJoined = isGlobal && auth.currentUser && item.participants && item.participants.includes(auth.currentUser.uid);
+                           
+                           // Для админских задач используем цвет тага с градиентом
+                           const adminTagColor = isGlobal ? (item.color || '#2f7cff') : '#2f7cff';
+                           const adminGradientColors = isGlobal 
+                              ? [adminTagColor, `${adminTagColor}E6`, `${adminTagColor}CC`, `${adminTagColor}99`]
+                              : [item.color || '#2f7cff', `${item.color || '#2f7cff'}E6`, `${item.color || '#2f7cff'}CC`];
+                           
+                           // Создаем более светлую обводку для кружечка админской задачи
+                           // Используем тот же цвет с увеличенной прозрачностью для эффекта осветления
+                           // Для обводки используем цвет с добавлением белого через opacity
+                           const lightBorderColor = isGlobal ? adminTagColor + 'CC' : null;
+                           
                            return (
-                              <View key={`${block.day}-${item.time}-${item.title}`} style={styles.agendaRow}>
+                              <View key={`${block.day}-${item.time}-${item.title}-${item.id}`} style={styles.agendaRow}>
                                  <Text style={styles.timeText}>{item.time}</Text>
                                  <View style={styles.timeline}>
-                                    <View style={[styles.bullet, { backgroundColor: item.color }]} />
-                                    <View style={[styles.timelineLine, isLast && styles.timelineLineHidden]} />
+                                    <View 
+                                       style={[
+                                          styles.bullet, 
+                                          { backgroundColor: isGlobal ? adminTagColor : item.color },
+                                          isGlobal && [
+                                             styles.bulletGlobal,
+                                             lightBorderColor && { borderColor: lightBorderColor, borderWidth: 2 }
+                                          ]
+                                       ]} 
+                                    />
+                                    {!isLast && <View style={styles.timelineLine} />}
                                  </View>
-                                 <View style={styles.agendaCard}>
-                                    <Text style={styles.agendaTitle}>{item.title}</Text>
-                                    {item.subtitle && <Text style={styles.agendaSubtitle}>{item.subtitle}</Text>}
-                                 </View>
+                                 {isGlobal ? (
+                                    <LinearGradient
+                                       colors={adminGradientColors}
+                                       start={{ x: 0, y: 0 }}
+                                       end={{ x: 0, y: 1 }}
+                                       style={styles.agendaCardGlobal}
+                                    >
+                                       <View style={styles.agendaCardGlobalContent}>
+                                          <View style={styles.agendaCardGlobalText}>
+                                             <Text style={styles.agendaTitleGlobal}>{item.title}</Text>
+                                             {item.subtitle && (
+                                                <Text style={styles.agendaSubtitleGlobal}>{item.subtitle}</Text>
+                                             )}
+                                             {displayParticipants.length > 0 && (
+                                                <View style={styles.agendaParticipantsRow}>
+                                                   {displayParticipants.map((participant, pIdx) => (
+                                                      <View 
+                                                         key={pIdx} 
+                                                         style={[
+                                                            styles.agendaParticipantAvatar, 
+                                                            { backgroundColor: adminTagColor },
+                                                            pIdx > 0 && { marginLeft: -8 }
+                                                         ]}
+                                                      >
+                                                         <Ionicons name="person" size={14} color="#fff" />
+                                                      </View>
+                                                   ))}
+                                                </View>
+                                             )}
+                                          </View>
+                                       </View>
+                                       {isGlobal && (
+                                          <View style={styles.agendaJoinStatusIcon}>
+                                             {isUserJoined ? (
+                                                <Ionicons name="checkmark-circle" size={24} color="#fff" />
+                                             ) : (
+                                                <Ionicons name="add-circle-outline" size={24} color="rgba(255,255,255,0.7)" />
+                                             )}
+                                          </View>
+                                       )}
+                                    </LinearGradient>
+                                 ) : (
+                                    <View style={styles.agendaCard}>
+                                       <Text style={styles.agendaTitle}>{item.title}</Text>
+                                       {item.subtitle && <Text style={styles.agendaSubtitle}>{item.subtitle}</Text>}
+                                    </View>
+                                 )}
                               </View>
                            );
                         })}
@@ -578,20 +685,24 @@ const styles = StyleSheet.create({
    timeline: {
       alignItems: 'center',
       marginRight: 12,
+      alignSelf: 'stretch',
    },
    bullet: {
       width: 12,
       height: 12,
       borderRadius: 6,
    },
+   bulletGlobal: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+   },
    timelineLine: {
       width: 2,
-      height: 48,
+      flex: 1,
       backgroundColor: '#e3e8f4',
       marginTop: 4,
-   },
-   timelineLineHidden: {
-      opacity: 0,
+      minHeight: 48,
    },
    agendaCard: {
       flex: 1,
@@ -603,6 +714,24 @@ const styles = StyleSheet.create({
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 },
    },
+   agendaCardGlobal: {
+      flex: 1,
+      borderRadius: 14,
+      padding: 14,
+      paddingBottom: 16,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      minHeight: 70,
+      position: 'relative',
+   },
+   agendaCardGlobalContent: {
+      flex: 1,
+   },
+   agendaCardGlobalText: {
+      flex: 1,
+   },
    agendaTitle: {
       color: '#1a2c4f',
       fontWeight: '600',
@@ -611,6 +740,34 @@ const styles = StyleSheet.create({
    agendaSubtitle: {
       color: '#99a7c3',
       fontSize: 12,
+   },
+   agendaTitleGlobal: {
+      color: '#fff',
+      fontWeight: '600',
+      marginBottom: 6,
+      fontSize: 15,
+   },
+   agendaSubtitleGlobal: {
+      color: 'rgba(255,255,255,0.9)',
+      fontSize: 12,
+      marginBottom: 8,
+   },
+   agendaParticipantsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+   },
+   agendaParticipantAvatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+   },
+   agendaJoinStatusIcon: {
+      position: 'absolute',
+      bottom: 14,
+      right: 14,
    },
    loadingContainer: {
       alignItems: 'center',

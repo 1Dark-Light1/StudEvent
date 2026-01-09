@@ -12,8 +12,10 @@ import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
 import EventDetailsModal from '../../ui/EventDetailsModal';
 import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive, applyTaskFilters, deleteTask } from '../../../services/tasksService';
+import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 /**
  * Генерирует массив дней недели начиная с понедельника текущей недели
@@ -98,10 +100,11 @@ export default function UserCalendar({ navigation, route }) {
    const [selectedTags, setSelectedTags] = useState([]);
    const [selectedEvent, setSelectedEvent] = useState(null);
    const [isModalVisible, setIsModalVisible] = useState(false);
+   const [participantsData, setParticipantsData] = useState({}); // Кэш данных участников по taskId
 
    const activeDay = stripDays.find((day) => day.dateString === activeDate) || stripDays[0];
    const isToday = activeDay.dateString === todayDateString;
-   const headerLabel = isToday ? 'Today' : activeDay.label;
+   const headerLabel = isToday ? t('calendar.today') : activeDay.label;
 
    // Подписка на задачи для выбранной даты
    useEffect(() => {
@@ -111,12 +114,28 @@ export default function UserCalendar({ navigation, route }) {
       }
 
       setIsLoading(true);
-      const unsubscribe = subscribeToTasksByDate(activeDate, (loadedTasks) => {
+      const unsubscribe = subscribeToTasksByDate(activeDate, async (loadedTasks) => {
          setRawTasks(loadedTasks); // Сохраняем оригинальные данные
          // Применяем фильтры
          const filteredTasks = applyTaskFilters(loadedTasks, searchQuery, selectedTags);
          const formattedTasks = filteredTasks.map(task => formatTaskForCalendar(task));
          setTasks(formattedTasks);
+         
+         // Загружаем данные участников для глобальных задач
+         const globalTasksWithParticipants = loadedTasks.filter(task => task.isGlobal && task.participants && task.participants.length > 0);
+         const participantsMap = {};
+         
+         for (const task of globalTasksWithParticipants) {
+            if (!participantsData[task.id] && task.participants && task.participants.length > 0) {
+               const usersData = await getUsersDataByIds(task.participants);
+               participantsMap[task.id] = usersData;
+            }
+         }
+         
+         if (Object.keys(participantsMap).length > 0) {
+            setParticipantsData(prev => ({ ...prev, ...participantsMap }));
+         }
+         
          setIsLoading(false);
       });
 
@@ -196,6 +215,7 @@ export default function UserCalendar({ navigation, route }) {
             tagText: fullTask.tagText,
             name: fullTask.name,
             description: fullTask.description,
+            isGlobal: fullTask.isGlobal || false,
          });
          setIsModalVisible(true);
       }
@@ -209,9 +229,9 @@ export default function UserCalendar({ navigation, route }) {
    const handleDeleteEvent = async (eventId) => {
       try {
          await deleteTask(eventId);
-         Alert.alert('Success', 'Event deleted successfully!');
+         Alert.alert(t('common.success'), t('calendar.deleteSuccess'));
       } catch (error) {
-         Alert.alert('Error', 'Failed to delete event. Please try again.');
+         Alert.alert(t('common.error'), t('calendar.deleteError'));
       }
    };
 
@@ -260,7 +280,7 @@ export default function UserCalendar({ navigation, route }) {
                value={searchQuery}
                onChangeText={handleSearchChange}
                onClear={handleSearchClear}
-               placeholder="Search events by name..."
+               placeholder={t('field.searchEvents')}
             />
 
             <FilterPanel
@@ -273,59 +293,133 @@ export default function UserCalendar({ navigation, route }) {
                {isLoading ? (
                   <View style={styles.loadingState}>
                      <ActivityIndicator size="large" color="#2f7cff" />
-                     <Text style={styles.loadingText}>Loading tasks...</Text>
+                     <Text style={styles.loadingText}>{t('calendar.loadingTasks')}</Text>
                   </View>
                ) : tasks.length === 0 ? (
                   <View style={styles.emptyState}>
                      <Ionicons name="sunny" size={28} color="#d0d8ec" />
-                     <Text style={styles.emptyTitle}>Nothing planned</Text>
-                     <Text style={styles.emptySubtitle}>Tap + to schedule something new.</Text>
+                     <Text style={styles.emptyTitle}>{t('calendar.nothingPlanned')}</Text>
+                     <Text style={styles.emptySubtitle}>{t('calendar.addNewTask')}</Text>
                   </View>
                ) : (
                   tasks.map((event, index) => {
                      const isLast = index === tasks.length - 1;
-                     const cardStyles = [styles.eventCard];
-                     if (event.tone === 'highlight') {
-                        cardStyles.push(styles.eventCardHighlight);
-                     }
+                     const isGlobal = event.isGlobal === true;
+                     
+                     // Проверяем, прикреплен ли текущий пользователь к задаче
+                     const isUserJoined = isGlobal && auth.currentUser && event.participants && event.participants.includes(auth.currentUser.uid);
+                     
+                     // Получаем участников для глобальной задачи
+                     const taskParticipants = isGlobal && participantsData[event.id] ? participantsData[event.id] : [];
+                     const displayParticipants = taskParticipants.slice(0, 4);
 
                      return (
                         <View key={event.id} style={styles.eventRow}>
                            <Text style={styles.eventTime}>{formatTimeForDisplay(event.time)}</Text>
                            <View style={styles.nodeColumn}>
                               <View
-                                 style={[styles.timelineNode, event.tone === 'highlight' && styles.timelineNodeHighlight]}
+                                 style={[
+                                    styles.timelineNode,
+                                    event.tone === 'highlight' && styles.timelineNodeHighlight,
+                                    isGlobal && !event.tone && styles.timelineNodeGlobal
+                                 ]}
                               />
                               {!isLast && <View style={styles.nodeLine} />}
                            </View>
-                           <Pressable 
-                              style={cardStyles}
-                              onPress={() => handleEventPress(event)}
-                           >
-                              <Text style={[styles.eventTitle, event.tone === 'highlight' && styles.eventTitleHighlight]}>
-                                 {event.title}
-                              </Text>
-                              <Text
-                                 style={[
-                                    styles.eventSubtitle,
-                                    event.tone === 'highlight' && styles.eventSubtitleHighlight,
-                                 ]}
+                           {isGlobal ? (
+                              // Админская задача - с цветом тага и градиентом как в основном календаре
+                              (() => {
+                                 const adminTagColor = event.color || '#2f7cff';
+                                 const adminGradientColors = [
+                                    adminTagColor,
+                                    `${adminTagColor}E6`,
+                                    `${adminTagColor}CC`,
+                                    `${adminTagColor}99`
+                                 ];
+                                 return (
+                                    <Pressable 
+                                       onPress={() => handleEventPress(event)}
+                                       style={{ flex: 1 }}
+                                    >
+                                       <LinearGradient
+                                          colors={adminGradientColors}
+                                          start={{ x: 0, y: 0 }}
+                                          end={{ x: 0, y: 1 }}
+                                          style={styles.eventCardGlobalGradient}
+                                       >
+                                          <View style={styles.eventCardGlobalContent}>
+                                             <View style={styles.eventCardGlobalText}>
+                                                <Text style={styles.eventTitleGlobalWhite}>
+                                                   {event.title}
+                                                </Text>
+                                                {event.subtitle && (
+                                                   <Text style={styles.eventSubtitleGlobalWhite}>
+                                                      {event.subtitle}
+                                                   </Text>
+                                                )}
+                                                {displayParticipants.length > 0 && (
+                                                   <View style={styles.agendaParticipantsRow}>
+                                                      {displayParticipants.map((participant, pIdx) => (
+                                                         <View 
+                                                            key={pIdx} 
+                                                            style={[
+                                                               styles.agendaParticipantAvatar, 
+                                                               { backgroundColor: adminTagColor },
+                                                               pIdx > 0 && { marginLeft: -8 }
+                                                            ]}
+                                                         >
+                                                            <Ionicons name="person" size={14} color="#fff" />
+                                                         </View>
+                                                      ))}
+                                                   </View>
+                                                )}
+                                             </View>
+                                          </View>
+                                          <View style={styles.agendaJoinStatusIcon}>
+                                             {isUserJoined ? (
+                                                <Ionicons name="checkmark-circle" size={24} color="#fff" />
+                                             ) : (
+                                                <Ionicons name="add-circle-outline" size={24} color="rgba(255,255,255,0.7)" />
+                                             )}
+                                          </View>
+                                       </LinearGradient>
+                                    </Pressable>
+                                 );
+                              })()
+                           ) : event.tone === 'highlight' ? (
+                              // Активная задача - с градиентом и увеличенным размером
+                              <LinearGradient
+                                 colors={['#2f7cff', '#4a9eff', '#6bb5ff']}
+                                 start={{ x: 0, y: 0 }}
+                                 end={{ x: 0, y: 1 }}
+                                 style={[styles.eventCardHighlightGradient, styles.eventCardHighlightActive]}
                               >
-                                 {event.subtitle}
-                              </Text>
-                              {event.tone === 'highlight' && (
-                                 <View style={styles.labMeta}>
-                                    <View style={styles.labPeopleRow}>
-                                       <View style={[styles.labAvatar, { backgroundColor: event.color || '#2f7cff' }]}>
-                                          <Ionicons name="person" size={14} color="#fff" />
-                                       </View>
-                                    </View>
-                                    <View style={styles.labAction}>
-                                       <Ionicons name="star" size={18} color="#fff" />
-                                    </View>
-                                 </View>
-                              )}
-                           </Pressable>
+                                 <Pressable 
+                                    style={styles.eventCardHighlightContent}
+                                    onPress={() => handleEventPress(event)}
+                                 >
+                                    <Text style={styles.eventTitleHighlight}>
+                                       {event.title}
+                                    </Text>
+                                    <Text style={styles.eventSubtitleHighlight}>
+                                       {event.subtitle}
+                                    </Text>
+                                 </Pressable>
+                              </LinearGradient>
+                           ) : (
+                              // Обычная задача
+                              <Pressable 
+                                 style={styles.eventCard}
+                                 onPress={() => handleEventPress(event)}
+                              >
+                                 <Text style={styles.eventTitle}>
+                                    {event.title}
+                                 </Text>
+                                 <Text style={styles.eventSubtitle}>
+                                    {event.subtitle}
+                                 </Text>
+                              </Pressable>
+                           )}
                         </View>
                      );
                   })
@@ -465,6 +559,10 @@ const styles = StyleSheet.create({
       backgroundColor: '#2f6cff',
       borderColor: '#6fa9ff',
    },
+   timelineNodeGlobal: {
+      backgroundColor: '#2f6cff',
+      borderWidth: 0,
+   },
    nodeLine: {
       width: 2,
       flex: 1,
@@ -481,8 +579,39 @@ const styles = StyleSheet.create({
       shadowRadius: 10,
       shadowOffset: { width: 0, height: 6 },
    },
-   eventCardHighlight: {
-      backgroundColor: '#2f7cff',
+   eventCardHighlightGradient: {
+      flex: 1,
+      borderRadius: 20,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+   },
+   eventCardHighlightActive: {
+      marginVertical: 4,
+      marginHorizontal: -4,
+      padding: 2,
+   },
+   eventCardHighlightContent: {
+      padding: 20,
+   },
+   eventCardGlobalGradient: {
+      flex: 1,
+      borderRadius: 20,
+      padding: 18,
+      paddingBottom: 16,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      minHeight: 70,
+      position: 'relative',
+   },
+   eventCardGlobalContent: {
+      flex: 1,
+   },
+   eventCardGlobalText: {
+      flex: 1,
    },
    eventTitle: {
       color: '#1f2b3f',
@@ -501,6 +630,49 @@ const styles = StyleSheet.create({
    eventSubtitleHighlight: {
       color: 'rgba(255,255,255,0.85)',
    },
+   eventTitleGlobal: {
+      color: '#1f2b3f',
+      fontWeight: '700',
+   },
+   eventTitleGlobalWhite: {
+      color: '#fff',
+      fontWeight: '600',
+      marginBottom: 6,
+      fontSize: 15,
+   },
+   eventSubtitleGlobalWhite: {
+      color: 'rgba(255,255,255,0.9)',
+      fontSize: 12,
+      marginBottom: 8,
+   },
+   agendaParticipantsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+   },
+   agendaParticipantAvatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+   },
+   agendaJoinStatusIcon: {
+      position: 'absolute',
+      bottom: 18,
+      right: 18,
+   },
+   descriptionGradient: {
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginTop: 8,
+   },
+   eventSubtitleGlobal: {
+      color: '#6a748b',
+      fontSize: 12,
+      lineHeight: 18,
+   },
    labMeta: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -514,10 +686,12 @@ const styles = StyleSheet.create({
    labAvatar: {
       width: 32,
       height: 32,
-      borderRadius: 12,
+      borderRadius: 16,
       backgroundColor: '#f4f7ff',
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: '#fff',
    },
    labAction: {
       width: 38,

@@ -16,7 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import BottomNav from '../../navigation/BottomNav';
 import SearchBar from '../../ui/SearchBar';
 import { auth } from '../../../FireBaseConfig';
-import { addTask, updateTask, subscribeToUserTasks } from '../../../services/tasksService';
+import { addTask, updateTask, subscribeToUserTasks, isAdmin } from '../../../services/tasksService';
 import { useI18n } from '../../../i18n/I18nContext';
 
 export default function AddTaskScreen({ navigation, route }) {
@@ -81,8 +81,13 @@ export default function AddTaskScreen({ navigation, route }) {
       if (mode === 'change' && auth.currentUser) {
          setIsTasksLoading(true);
          const unsubscribe = subscribeToUserTasks((loadedTasks) => {
-            setAllTasks(loadedTasks);
-            setFilteredTasks(loadedTasks);
+            const userIsAdmin = isAdmin();
+            // Если пользователь не админ, фильтруем админские задачи
+            const tasksToShow = userIsAdmin 
+               ? loadedTasks 
+               : loadedTasks.filter(task => !task.isGlobal || task.userId === auth.currentUser?.uid);
+            setAllTasks(tasksToShow);
+            setFilteredTasks(tasksToShow);
             setIsTasksLoading(false);
          });
 
@@ -94,11 +99,19 @@ export default function AddTaskScreen({ navigation, route }) {
 
    // Фильтрация тасков по поиску
    useEffect(() => {
+      const userIsAdmin = isAdmin();
+      let tasksToFilter = allTasks;
+      
+      // Если пользователь не админ, дополнительно фильтруем админские задачи
+      if (!userIsAdmin) {
+         tasksToFilter = allTasks.filter(task => !task.isGlobal || task.userId === auth.currentUser?.uid);
+      }
+      
       if (searchQuery.trim() === '') {
-         setFilteredTasks(allTasks);
+         setFilteredTasks(tasksToFilter);
       } else {
          const query = searchQuery.toLowerCase();
-         const filtered = allTasks.filter(task => 
+         const filtered = tasksToFilter.filter(task => 
             task.name?.toLowerCase().includes(query) || 
             task.description?.toLowerCase().includes(query) ||
             task.tagText?.toLowerCase().includes(query)
@@ -571,7 +584,7 @@ export default function AddTaskScreen({ navigation, route }) {
                   >
                      <View style={[styles.colorDot, { backgroundColor: taskColor }]} />
                      <Text style={[styles.input, !tagText && styles.placeholderText]}>
-                        {tagText || 'Select or enter tag name..'}
+                        {tagText || t('task.selectTag')}
                      </Text>
                      <Pressable 
                         style={styles.colorBtn} 
@@ -990,8 +1003,10 @@ const styles = StyleSheet.create({
    modeBtn: {
       flex: 1,
       paddingVertical: 10,
+      paddingHorizontal: 8,
       borderRadius: 35,
       alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: 'transparent',
    },
    modeBtnActive: {
@@ -1013,6 +1028,7 @@ const styles = StyleSheet.create({
       color: '#3D4C66',
       fontWeight: '600',
       marginBottom: 8,
+      flexWrap: 'wrap',
    },
    required: {
       color: '#FF3B30',
@@ -1023,7 +1039,7 @@ const styles = StyleSheet.create({
       backgroundColor: '#F0F4F8',
       borderRadius: 12,
       paddingHorizontal: 16,
-      paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+      paddingVertical: Platform.OS === 'ios' ? 12 : 10,
       minHeight: 48,
    },
    input: {
@@ -1041,8 +1057,11 @@ const styles = StyleSheet.create({
       backgroundColor: '#E0E4E8',
    },
    textArea: {
-      minHeight: 20,
+      minHeight: 60,
+      maxHeight: 120,
       textAlignVertical: 'top',
+      paddingTop: Platform.OS === 'ios' ? 8 : 6,
+      paddingBottom: Platform.OS === 'ios' ? 8 : 6,
    },
    inputIcon: {
       marginLeft: 8,
@@ -1100,21 +1119,26 @@ const styles = StyleSheet.create({
    },
    frequencyBtn: {
       flex: 1,
-      paddingVertical: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
       borderRadius: 40,
       borderWidth: 2.5,
       borderColor: '#E3E8F4',
       backgroundColor: '#fff',
       alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 44,
    },
    frequencyBtnActive: {
       backgroundColor: '#F0F4F8',
       borderColor: '#838282ff',
    },
    frequencyText: {
-      fontSize: 16,
+      fontSize: 14,
       color: '#7A8BA3',
       fontWeight: '600',
+      textAlign: 'center',
+      flexWrap: 'wrap',
    },
    frequencyTextActive: {
       color: '#838282ff',
@@ -1280,9 +1304,10 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       backgroundColor: '#E3E8F4',
       borderRadius: 20,
-      paddingHorizontal: 12,
+      paddingHorizontal: 10,
       paddingVertical: 6,
-      gap: 8,
+      gap: 6,
+      minHeight: 32,
    },
    customDateText: {
       fontSize: 14,
@@ -1305,6 +1330,7 @@ const styles = StyleSheet.create({
       borderRadius: 12,
       alignSelf: 'flex-start',
       gap: 8,
+      minHeight: 36,
    },
    selectedTagText: {
       fontSize: 14,
@@ -1346,11 +1372,12 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingVertical: 14,
+      paddingVertical: 12,
       paddingHorizontal: 16,
       borderRadius: 12,
       marginBottom: 8,
       backgroundColor: '#F0F4F8',
+      minHeight: 48,
    },
    tagOptionSelected: {
       backgroundColor: '#E3F2FD',

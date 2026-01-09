@@ -3,19 +3,23 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Правила для коллекции users
     // Пользователи могут читать и писать только свой собственный документ
+    // Но все аутентифицированные пользователи могут читать публичные данные для отображения участников
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Правила для коллекции tasks
     match /tasks/{taskId} {
       // Разрешаем чтение, если пользователь аутентифицирован и:
       // - задача принадлежит ему (userId совпадает), или
+      // - задача глобальная (isGlobal == true), или
       // - пользователь является участником события
-      // Для запросов: работает с where('userId', '==', user.uid)
+      // Для запросов: работает с where('userId', '==', user.uid) и where('isGlobal', '==', true)
       // Для отдельных документов: проверяет resource.data
       allow read: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
+        resource.data.get('isGlobal', false) == true ||
         request.auth.uid in resource.data.get('participants', [])
       );
       

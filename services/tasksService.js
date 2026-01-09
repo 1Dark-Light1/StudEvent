@@ -17,6 +17,16 @@ import { db } from '../FireBaseConfig';
 import { auth } from '../FireBaseConfig';
 
 /**
+ * Проверяет, является ли текущий пользователь админом
+ */
+export function isAdmin() {
+   const user = auth.currentUser;
+   if (!user) return false;
+   // Проверяем по email
+   return user.email === 'admin@gmail.com';
+}
+
+/**
  * Преобразует дату в формате DD.MM.YYYY в объект Date
  */
 function parseDate(dateString) {
@@ -122,6 +132,9 @@ export async function addTask(taskData) {
 
       const createdIds = [];
       
+      // Проверяем, является ли пользователь админом
+      const admin = isAdmin();
+      
       // Создаем задачу для каждой даты
       for (const dateString of datesToAdd) {
          const taskDate = parseDate(dateString);
@@ -139,6 +152,7 @@ export async function addTask(taskData) {
             taskColor: taskData.taskColor || '#4CAF50',
             frequency: taskData.frequency || 'once',
             createdAt: Timestamp.now(),
+            ...(admin && { isGlobal: true, participants: [] }), // Для админа добавляем isGlobal и participants
          };
 
          const docRef = await addDoc(collection(db, 'tasks'), taskDoc);
@@ -229,6 +243,7 @@ export async function getTasksByDate(dateString) {
 
 /**
  * Подписывается на изменения задач пользователя в реальном времени
+ * Включает собственные задачи пользователя и глобальные задачи админа
  */
 export function subscribeToUserTasks(callback) {
    const user = auth.currentUser;
@@ -237,13 +252,27 @@ export function subscribeToUserTasks(callback) {
       return () => {};
    }
 
-   const q = query(collection(db, 'tasks'), where('userId', '==', user.uid));
+   // Подписываемся на свои задачи и глобальные задачи
+   const userTasksQuery = query(collection(db, 'tasks'), where('userId', '==', user.uid));
+   const globalTasksQuery = query(collection(db, 'tasks'), where('isGlobal', '==', true));
 
-   return onSnapshot(q, (querySnapshot) => {
-      const tasks = querySnapshot.docs.map((doc) => ({
-         id: doc.id,
-         ...doc.data(),
-      })).sort((a, b) => {
+   let userTasksUnsubscribe;
+   let globalTasksUnsubscribe;
+   let userTasks = [];
+   let globalTasks = [];
+
+   const mergeAndSortTasks = () => {
+      // Объединяем задачи и убираем дубликаты
+      const allTasks = [...userTasks];
+      globalTasks.forEach(globalTask => {
+         // Не добавляем, если это уже есть в своих задачах
+         if (!allTasks.find(t => t.id === globalTask.id)) {
+            allTasks.push(globalTask);
+         }
+      });
+
+      // Сортируем
+      const sorted = allTasks.sort((a, b) => {
          const dateA = a.dateTimestamp?.toMillis?.() || 0;
          const dateB = b.dateTimestamp?.toMillis?.() || 0;
          if (dateA !== dateB) return dateA - dateB;
@@ -253,15 +282,41 @@ export function subscribeToUserTasks(callback) {
          if (!timeB) return -1;
          return timeA.localeCompare(timeB);
       });
-      callback(tasks);
+
+      callback(sorted);
+   };
+
+   userTasksUnsubscribe = onSnapshot(userTasksQuery, (querySnapshot) => {
+      userTasks = querySnapshot.docs.map((doc) => ({
+         id: doc.id,
+         ...doc.data(),
+      }));
+      mergeAndSortTasks();
    }, (error) => {
-      console.error('Error subscribing to tasks:', error);
+      console.error('Error subscribing to user tasks:', error);
       callback([]);
    });
+
+   globalTasksUnsubscribe = onSnapshot(globalTasksQuery, (querySnapshot) => {
+      globalTasks = querySnapshot.docs.map((doc) => ({
+         id: doc.id,
+         ...doc.data(),
+      }));
+      mergeAndSortTasks();
+   }, (error) => {
+      console.error('Error subscribing to global tasks:', error);
+      // Не прерываем, если глобальные задачи не загрузились
+   });
+
+   return () => {
+      if (userTasksUnsubscribe) userTasksUnsubscribe();
+      if (globalTasksUnsubscribe) globalTasksUnsubscribe();
+   };
 }
 
 /**
  * Подписывается на изменения задач по дате в реальном времени
+ * Включает собственные задачи пользователя и глобальные задачи админа
  */
 export function subscribeToTasksByDate(dateString, callback) {
    const user = auth.currentUser;
@@ -270,20 +325,36 @@ export function subscribeToTasksByDate(dateString, callback) {
       return () => {};
    }
 
-   const q = query(
+   // Запрос для своих задач по дате
+   const userTasksQuery = query(
       collection(db, 'tasks'),
       where('userId', '==', user.uid),
       where('date', '==', dateString)
    );
 
-   return onSnapshot(q, (querySnapshot) => {
-      const tasks = querySnapshot.docs.map(doc => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
+   // Запрос для глобальных задач по дате
+   const globalTasksQuery = query(
+      collection(db, 'tasks'),
+      where('isGlobal', '==', true),
+      where('date', '==', dateString)
+   );
+
+   let userTasksUnsubscribe;
+   let globalTasksUnsubscribe;
+   let userTasks = [];
+   let globalTasks = [];
+
+   const mergeAndSortTasks = () => {
+      // Объединяем задачи и убираем дубликаты
+      const allTasks = [...userTasks];
+      globalTasks.forEach(globalTask => {
+         if (!allTasks.find(t => t.id === globalTask.id)) {
+            allTasks.push(globalTask);
+         }
+      });
 
       // Сортируем по времени
-      const sortedTasks = tasks.sort((a, b) => {
+      const sortedTasks = allTasks.sort((a, b) => {
          const timeA = a.timeDilation ? a.fromTime : a.time;
          const timeB = b.timeDilation ? b.fromTime : b.time;
          if (!timeA) return 1;
@@ -292,10 +363,34 @@ export function subscribeToTasksByDate(dateString, callback) {
       });
 
       callback(sortedTasks);
+   };
+
+   userTasksUnsubscribe = onSnapshot(userTasksQuery, (querySnapshot) => {
+      userTasks = querySnapshot.docs.map(doc => ({
+         id: doc.id,
+         ...doc.data(),
+      }));
+      mergeAndSortTasks();
    }, (error) => {
-      console.error('Error subscribing to tasks by date:', error);
+      console.error('Error subscribing to user tasks by date:', error);
       callback([]);
    });
+
+   globalTasksUnsubscribe = onSnapshot(globalTasksQuery, (querySnapshot) => {
+      globalTasks = querySnapshot.docs.map(doc => ({
+         id: doc.id,
+         ...doc.data(),
+      }));
+      mergeAndSortTasks();
+   }, (error) => {
+      console.error('Error subscribing to global tasks by date:', error);
+      // Не прерываем, если глобальные задачи не загрузились
+   });
+
+   return () => {
+      if (userTasksUnsubscribe) userTasksUnsubscribe();
+      if (globalTasksUnsubscribe) globalTasksUnsubscribe();
+   };
 }
 
 /**
@@ -303,6 +398,7 @@ export function subscribeToTasksByDate(dateString, callback) {
  */
 export function formatTaskForCalendar(task) {
    const isActive = isTaskActive(task);
+   const isGlobal = task.isGlobal === true;
    
    let timeDisplay = '';
    if (task.timeDilation && task.fromTime && task.toTime) {
@@ -319,6 +415,8 @@ export function formatTaskForCalendar(task) {
       tone: isActive ? 'highlight' : 'frost',
       color: task.taskColor,
       tagText: task.tagText,
+      isGlobal: isGlobal,
+      participants: task.participants || [],
    };
 }
 
@@ -516,6 +614,20 @@ export async function updateTask(taskId, taskData) {
       const taskSnap = await getDoc(taskRef);
       if (!taskSnap.exists()) {
          throw new Error('Task not found');
+      }
+
+      const taskDataFromDb = taskSnap.data();
+      const isTaskGlobal = taskDataFromDb.isGlobal === true;
+      const userIsAdmin = isAdmin();
+
+      // Если задача админская, только админ может её редактировать
+      if (isTaskGlobal && !userIsAdmin) {
+         throw new Error('Only admin can edit global tasks');
+      }
+
+      // Если задача не админская, проверяем, что пользователь является владельцем
+      if (!isTaskGlobal && taskDataFromDb.userId !== user.uid) {
+         throw new Error('You can only edit your own tasks');
       }
 
       // Обновляем данные

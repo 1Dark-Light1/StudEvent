@@ -59,6 +59,40 @@ export async function saveUserData(userData) {
 }
 
 /**
+ * Получает данные пользователя по его UID
+ */
+export async function getUserDataById(userId) {
+   try {
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+         return userDoc.data();
+      }
+
+      return null;
+   } catch (error) {
+      console.error('Error getting user data by ID:', error);
+      return null;
+   }
+}
+
+/**
+ * Получает данные нескольких пользователей по их UIDs
+ */
+export async function getUsersDataByIds(userIds) {
+   try {
+      const usersData = await Promise.all(
+         userIds.slice(0, 4).map(userId => getUserDataById(userId))
+      );
+      return usersData.filter(user => user !== null);
+   } catch (error) {
+      console.error('Error getting users data by IDs:', error);
+      return [];
+   }
+}
+
+/**
  * Подписывается на изменения данных пользователя в реальном времени
  */
 export function subscribeToUserData(callback) {

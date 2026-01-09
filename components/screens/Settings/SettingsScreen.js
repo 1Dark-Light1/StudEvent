@@ -12,22 +12,12 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import { auth } from '../../../FireBaseConfig';
 import { signOut } from 'firebase/auth';
 import { subscribeToUserData } from '../../../services/userService';
+import { useI18n } from '../../../i18n/I18nContext';
 
-/** Higher priority actions shown at the top of the page. */
-const primaryOptions = [
-   { icon: 'person-circle', label: 'Personal information' },
-   { icon: 'settings', label: 'Settings' },
-];
-
-/** Secondary preferences that still need quick access. */
-const secondaryOptions = [
-   { icon: 'notifications', label: 'Notifications' },
-   { icon: 'language', label: 'Language' },
-   { icon: 'color-palette', label: 'Theme' },
-   { icon: 'people', label: 'Accounts' },
-];
+// Options will be created inside component to use translations
 
 export default function Settings({ navigation, route }) {
+   const { t } = useI18n();
    const activeRoute = route?.name ?? 'Settings';
    const [userData, setUserData] = useState(null);
 
@@ -44,12 +34,26 @@ export default function Settings({ navigation, route }) {
 
    // Формируем отображаемое имя
    const displayName = userData
-      ? `${userData.name || ''} ${userData.surname || ''}`.trim() || 'Name and Surname'
-      : 'Name and Surname';
+      ? `${userData.name || ''} ${userData.surname || ''}`.trim() || t('settings.profile.fallbackName')
+      : t('settings.profile.fallbackName');
+
+   // Higher priority actions shown at the top of the page
+   const primaryOptions = [
+      { icon: 'person-circle', label: t('settings.personalInfo') },
+      { icon: 'settings', label: t('settings.settings') },
+   ];
+
+   // Secondary preferences that still need quick access
+   const secondaryOptions = [
+      { icon: 'notifications', label: t('settings.notifications') },
+      { icon: 'language', label: t('settings.language') },
+      { icon: 'color-palette', label: t('settings.theme') },
+      { icon: 'people', label: t('settings.accounts') },
+   ];
 
    // Обработчик навигации для опций настроек
    const handleOptionPress = (label) => {
-      if (label === 'Language') {
+      if (label === t('settings.language')) {
          navigation.navigate('Language');
       }
       // Можно добавить обработчики для других опций здесь
@@ -57,15 +61,15 @@ export default function Settings({ navigation, route }) {
 
    const handleLogout = async () => {
       Alert.alert(
-         'Log out',
-         'Are you sure you want to log out?',
+         t('settings.logout.title'),
+         t('settings.logout.confirm'),
          [
             {
-               text: 'Cancel',
+               text: t('settings.logout.cancel'),
                style: 'cancel',
             },
             {
-               text: 'Log out',
+               text: t('settings.logout.action'),
                style: 'destructive',
                onPress: async () => {
                   try {
@@ -76,7 +80,7 @@ export default function Settings({ navigation, route }) {
                      });
                   } catch (error) {
                      console.error('Error signing out:', error);
-                     Alert.alert('Error', 'Failed to log out. Please try again.');
+                     Alert.alert(t('settings.logout.errorTitle'), t('settings.logout.errorBody'));
                   }
                },
             },
@@ -89,7 +93,7 @@ export default function Settings({ navigation, route }) {
          <LinearGradient colors={["#dbe8ff", "#f6f7fb"]} style={styles.heroBg} />
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.heroCard}>
-               <Text style={styles.heroTitle}>Your profile</Text>
+               <Text style={styles.heroTitle}>{t('settings.title')}</Text>
                <View style={styles.avatarWrap}>
                   <Ionicons name="person" size={76} color="#6a6f80" />
                   <View style={styles.avatarBadge}>
@@ -149,7 +153,7 @@ export default function Settings({ navigation, route }) {
                      <View style={styles.rowIcon}>
                         <Ionicons name="log-out-outline" size={20} color="#F44336" />
                      </View>
-                     <Text style={styles.logoutLabel}>Log out</Text>
+                     <Text style={styles.logoutLabel}>{t('settings.logout.title')}</Text>
                   </View>
                </Pressable>
             </View>

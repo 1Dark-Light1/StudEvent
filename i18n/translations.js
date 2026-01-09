@@ -173,6 +173,8 @@ export const translations = {
     'event.participants': 'Participants',
     'event.participant': 'participant',
     'event.participantsPlural': 'participants',
+    'event.loadingParticipants': 'Loading...',
+    'event.noParticipants': 'No participants yet',
     'event.join': 'Join event',
     'event.leave': 'Leave event',
     'event.delete': 'Delete Event',
@@ -190,8 +192,23 @@ export const translations = {
     // HomeScreen
     'home.start': 'Start',
 
+    // MainScreen
+    'main.loadingTasks': 'Loading tasks...',
+    'main.noTasksScheduled': 'No tasks scheduled',
+    'main.addNewTask': 'Tap + to add a new task',
+
+    // UserCalendarScreen
+    'calendar.today': 'Today',
+    'calendar.loadingTasks': 'Loading tasks...',
+    'calendar.nothingPlanned': 'Nothing planned',
+    'calendar.addNewTask': 'Tap + to schedule something new.',
+    'calendar.deleteSuccess': 'Event deleted successfully!',
+    'calendar.deleteError': 'Failed to delete event. Please try again.',
+
     // Common
     'common.ok': 'OK',
+    'common.success': 'Success',
+    'common.error': 'Error',
   },
 
   uk: {
@@ -359,6 +376,8 @@ export const translations = {
     'event.participants': 'Учасники',
     'event.participant': 'учасник',
     'event.participantsPlural': 'учасників',
+    'event.loadingParticipants': 'Завантаження...',
+    'event.noParticipants': 'Поки що немає учасників',
     'event.join': 'Приєднатися до події',
     'event.leave': 'Покинути подію',
     'event.delete': 'Видалити подію',
@@ -376,8 +395,23 @@ export const translations = {
     // HomeScreen
     'home.start': 'Почати',
 
+    // MainScreen
+    'main.loadingTasks': 'Завантаження завдань...',
+    'main.noTasksScheduled': 'Немає запланованих завдань',
+    'main.addNewTask': 'Натисніть +, щоб додати нове завдання',
+
+    // UserCalendarScreen
+    'calendar.today': 'Сьогодні',
+    'calendar.loadingTasks': 'Завантаження завдань...',
+    'calendar.nothingPlanned': 'Нічого не заплановано',
+    'calendar.addNewTask': 'Натисніть +, щоб запланувати щось нове.',
+    'calendar.deleteSuccess': 'Подію успішно видалено!',
+    'calendar.deleteError': 'Не вдалося видалити подію. Спробуйте ще раз.',
+
     // Common
     'common.ok': 'ОК',
+    'common.success': 'Успіх',
+    'common.error': 'Помилка',
   },
 
   pl: {
@@ -545,6 +579,8 @@ export const translations = {
     'event.participants': 'Uczestnicy',
     'event.participant': 'uczestnik',
     'event.participantsPlural': 'uczestników',
+    'event.loadingParticipants': 'Ładowanie...',
+    'event.noParticipants': 'Brak uczestników',
     'event.join': 'Dołącz do wydarzenia',
     'event.leave': 'Opuść wydarzenie',
     'event.delete': 'Usuń wydarzenie',
@@ -562,8 +598,23 @@ export const translations = {
     // HomeScreen
     'home.start': 'Start',
 
+    // MainScreen
+    'main.loadingTasks': 'Ładowanie zadań...',
+    'main.noTasksScheduled': 'Brak zaplanowanych zadań',
+    'main.addNewTask': 'Naciśnij +, aby dodać nowe zadanie',
+
+    // UserCalendarScreen
+    'calendar.today': 'Dzisiaj',
+    'calendar.loadingTasks': 'Ładowanie zadań...',
+    'calendar.nothingPlanned': 'Nic nie zaplanowano',
+    'calendar.addNewTask': 'Naciśnij +, aby zaplanować coś nowego.',
+    'calendar.deleteSuccess': 'Wydarzenie zostało usunięte!',
+    'calendar.deleteError': 'Nie udało się usunąć wydarzenia. Spróbuj ponownie.',
+
     // Common
     'common.ok': 'OK',
+    'common.success': 'Sukces',
+    'common.error': 'Błąd',
   },
 };
 

@@ -14,8 +14,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount } from '../../services/tasksService';
+import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount, isAdmin } from '../../services/tasksService';
+import { getUsersDataByIds, getUserDataById } from '../../services/userService';
 import { useI18n } from '../../i18n/I18nContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../FireBaseConfig';
 
 
 function formatTimeForDisplay(timeString) {
@@ -50,10 +53,16 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
    const [isJoined, setIsJoined] = useState(false);
    const [participantsCount, setParticipantsCount] = useState(0);
    const [isLoading, setIsLoading] = useState(false);
+   const [isParticipantsExpanded, setIsParticipantsExpanded] = useState(false);
+   const [participantsList, setParticipantsList] = useState([]);
+   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+   const userIsAdmin = isAdmin();
 
    useEffect(() => {
       if (visible && event) {
          loadEventStatus();
+         setIsParticipantsExpanded(false);
+         setParticipantsList([]);
       }
    }, [visible, event]);
 
@@ -68,6 +77,45 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
       } catch (error) {
          console.error('Error loading event status:', error);
       }
+   };
+
+   const loadParticipantsList = async () => {
+      if (!event?.id || !event.isGlobal) return;
+      
+      setIsLoadingParticipants(true);
+      try {
+         const taskRef = doc(db, 'tasks', event.id);
+         const taskSnap = await getDoc(taskRef);
+         
+         if (taskSnap.exists()) {
+            const taskData = taskSnap.data();
+            const participantsIds = taskData.participants || [];
+            
+            if (participantsIds.length > 0) {
+               // Завантажуємо всіх учасників, не тільки перших 4
+               const usersDataPromises = participantsIds.map(userId => 
+                  getUserDataById(userId)
+               );
+               const usersData = await Promise.all(usersDataPromises);
+               setParticipantsList(usersData.filter(user => user !== null));
+            } else {
+               setParticipantsList([]);
+            }
+         }
+      } catch (error) {
+         console.error('Error loading participants list:', error);
+         setParticipantsList([]);
+      } finally {
+         setIsLoadingParticipants(false);
+      }
+   };
+
+   const handleParticipantsToggle = async () => {
+      if (!isParticipantsExpanded) {
+         // Розгортаємо - завантажуємо список
+         await loadParticipantsList();
+      }
+      setIsParticipantsExpanded(!isParticipantsExpanded);
    };
 
    if (!event) return null;
@@ -139,9 +187,12 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                         <Ionicons name="close" size={28} color="#262c3b" />
                      </Pressable>
                      <Text style={styles.headerLabel}>{t('event.details')}</Text>
-                     <Pressable onPress={handleDelete} style={styles.deleteButton}>
-                        <Ionicons name="trash-outline" size={24} color="#f44336" />
-                     </Pressable>
+                     {(userIsAdmin || !event.isGlobal) && (
+                        <Pressable onPress={handleDelete} style={styles.deleteButton}>
+                           <Ionicons name="trash-outline" size={24} color="#f44336" />
+                        </Pressable>
+                     )}
+                     {!userIsAdmin && event.isGlobal && <View style={styles.deleteButtonPlaceholder} />}
                   </View>
 
                   <View style={styles.headerContent}>
@@ -230,20 +281,61 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   </View>
 
                   {/* Participants */}
-                  <View style={styles.section}>
-                     <View style={styles.sectionHeader}>
-                        <Ionicons name="people-outline" size={22} color="#2f7cff" />
-                        <Text style={styles.sectionTitle}>{t('event.participants')}</Text>
-                     </View>
-                     <View style={styles.participantsContainer}>
-                        <View style={styles.participantsBadge}>
-                           <Ionicons name="people" size={18} color="#2f7cff" />
-                           <Text style={styles.participantsText}>
-                              {participantsCount} {participantsCount === 1 ? t('event.participant') : t('event.participantsPlural')}
-                           </Text>
+                  {event.isGlobal && (
+                     <View style={styles.section}>
+                        <Pressable 
+                           onPress={handleParticipantsToggle} 
+                           style={({ pressed }) => [
+                              styles.participantsSectionHeader,
+                              pressed && { opacity: 0.7 }
+                           ]}
+                        >
+                           <View style={styles.sectionHeader}>
+                              <Ionicons name="people-outline" size={22} color="#2f7cff" />
+                              <Text style={styles.sectionTitle}>{t('event.participants')}</Text>
+                           </View>
+                           <Ionicons 
+                              name={isParticipantsExpanded ? "chevron-up" : "chevron-down"} 
+                              size={20} 
+                              color="#9aa7bd" 
+                           />
+                        </Pressable>
+                        <View style={styles.participantsContainer}>
+                           <View style={styles.participantsBadge}>
+                              <Ionicons name="people" size={18} color="#2f7cff" />
+                              <Text style={styles.participantsText}>
+                                 {participantsCount} {participantsCount === 1 ? t('event.participant') : t('event.participantsPlural')}
+                              </Text>
+                           </View>
                         </View>
+                        {isParticipantsExpanded && (
+                           <View style={styles.participantsListContainer}>
+                              {isLoadingParticipants ? (
+                                 <View style={styles.participantsListLoading}>
+                                    <ActivityIndicator size="small" color="#2f7cff" />
+                                    <Text style={styles.participantsListLoadingText}>{t('event.loadingParticipants')}</Text>
+                                 </View>
+                              ) : participantsList.length > 0 ? (
+                                 participantsList.map((participant, index) => {
+                                    const fullName = `${participant.name || ''} ${participant.surname || ''}`.trim() || t('settings.profile.fallbackName');
+                                    return (
+                                       <View key={index} style={styles.participantItem}>
+                                          <View style={styles.participantAvatar}>
+                                             <Ionicons name="person" size={18} color="#2f7cff" />
+                                          </View>
+                                          <Text style={styles.participantName}>{fullName}</Text>
+                                       </View>
+                                    );
+                                 })
+                              ) : (
+                                 <View style={styles.participantsListEmpty}>
+                                    <Text style={styles.participantsListEmptyText}>{t('event.noParticipants')}</Text>
+                                 </View>
+                              )}
+                           </View>
+                        )}
                      </View>
-                  </View>
+                  )}
 
                   {/* Join Event Button */}
                   <View style={styles.actionSection}>
@@ -339,6 +431,10 @@ const styles = StyleSheet.create({
       backgroundColor: '#ffebee',
       alignItems: 'center',
       justifyContent: 'center',
+   },
+   deleteButtonPlaceholder: {
+      width: 40,
+      height: 40,
    },
    headerContent: {
       alignItems: 'center',
@@ -460,8 +556,15 @@ const styles = StyleSheet.create({
    statusTextInactive: {
       color: '#5a6477',
    },
+   participantsSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+   },
    participantsContainer: {
       paddingLeft: 30,
+      marginBottom: 12,
    },
    participantsBadge: {
       flexDirection: 'row',
@@ -477,6 +580,57 @@ const styles = StyleSheet.create({
       fontWeight: '600',
       color: '#1976d2',
       marginLeft: 8,
+   },
+   participantsListContainer: {
+      paddingLeft: 30,
+      marginTop: 8,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: '#eef1f6',
+   },
+   participantItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      marginBottom: 8,
+      backgroundColor: '#f8f9fb',
+      borderRadius: 10,
+   },
+   participantAvatar: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: '#e3f2fd',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+   },
+   participantName: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: '#3a4257',
+      flex: 1,
+   },
+   participantsListLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+      gap: 10,
+   },
+   participantsListLoadingText: {
+      fontSize: 14,
+      color: '#9aa7bd',
+   },
+   participantsListEmpty: {
+      paddingVertical: 20,
+      alignItems: 'center',
+   },
+   participantsListEmptyText: {
+      fontSize: 14,
+      color: '#9aa7bd',
+      fontStyle: 'italic',
    },
    actionSection: {
       marginTop: 8,
