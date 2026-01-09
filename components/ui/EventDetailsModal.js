@@ -337,39 +337,41 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                      </View>
                   )}
 
-                  {/* Join Event Button */}
-                  <View style={styles.actionSection}>
-                     <Pressable 
-                        style={({ pressed }) => [
-                           styles.joinButton,
-                           { backgroundColor: isJoined ? '#4caf50' : (event.color || '#2f7cff') },
-                           pressed && styles.joinButtonPressed,
-                           isLoading && styles.joinButtonDisabled
-                        ]}
-                        onPress={handleJoinEvent}
-                        disabled={isLoading}
-                     >
-                        {isLoading ? (
-                           <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                           <>
-                              <Ionicons 
-                                 name={isJoined ? "checkmark-circle" : "people"} 
-                                 size={22} 
-                                 color="#fff" 
-                              />
-                              <Text style={styles.joinButtonText}>
-                                 {isJoined ? t('event.leave') : t('event.join')}
-                              </Text>
-                              <Ionicons 
-                                 name={isJoined ? "exit-outline" : "arrow-forward"} 
-                                 size={20} 
-                                 color="#fff" 
-                              />
-                           </>
-                        )}
-                     </Pressable>
-                  </View>
+                  {/* Join Event Button - только для глобальных задач */}
+                  {event.isGlobal && (
+                     <View style={styles.actionSection}>
+                        <Pressable 
+                           style={({ pressed }) => [
+                              styles.joinButton,
+                              { backgroundColor: isJoined ? '#4caf50' : (event.color || '#2f7cff') },
+                              pressed && styles.joinButtonPressed,
+                              isLoading && styles.joinButtonDisabled
+                           ]}
+                           onPress={handleJoinEvent}
+                           disabled={isLoading}
+                        >
+                           {isLoading ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                           ) : (
+                              <>
+                                 <Ionicons 
+                                    name={isJoined ? "checkmark-circle" : "people"} 
+                                    size={22} 
+                                    color="#fff" 
+                                 />
+                                 <Text style={styles.joinButtonText}>
+                                    {isJoined ? t('event.leave') : t('event.join')}
+                                 </Text>
+                                 <Ionicons 
+                                    name={isJoined ? "exit-outline" : "arrow-forward"} 
+                                    size={20} 
+                                    color="#fff" 
+                                 />
+                              </>
+                           )}
+                        </Pressable>
+                     </View>
+                  )}
                </ScrollView>
             </View>
          </View>
