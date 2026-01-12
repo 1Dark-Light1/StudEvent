@@ -6,6 +6,6 @@
 export const bottomNavItems = [
    { key: 'home', labelKey: 'nav.home', icon: 'home', route: 'Main' },
    { key: 'calendar', labelKey: 'nav.calendar', icon: 'time', route: 'UserCalendar' },
-   { key: 'alerts', labelKey: 'nav.alerts', icon: 'notifications', route: 'Alerts' },
+   { key: 'completed', labelKey: 'nav.completed', icon: 'checkmark-circle', route: 'CompletedTasks' },
    { key: 'settings', labelKey: 'nav.settings', icon: 'settings', route: 'Settings' },
 ];

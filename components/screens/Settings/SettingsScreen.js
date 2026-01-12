@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import { auth } from '../../../FireBaseConfig';
@@ -49,12 +50,42 @@ export default function Settings({ navigation, route }) {
       { icon: 'language', label: t('settings.language') },
       { icon: 'color-palette', label: t('settings.theme') },
       { icon: 'people', label: t('settings.accounts') },
+      { icon: 'trash-outline', label: t('settings.clearCache') },
    ];
 
    // Обработчик навигации для опций настроек
    const handleOptionPress = (label) => {
       if (label === t('settings.language')) {
          navigation.navigate('Language');
+      } else if (label === t('settings.clearCache')) {
+         Alert.alert(
+            t('settings.clearCache'),
+            t('settings.clearCache.confirm'),
+            [
+               {
+                  text: t('settings.logout.cancel'),
+                  style: 'cancel',
+               },
+               {
+                  text: t('settings.clearCache'),
+                  style: 'destructive',
+                  onPress: async () => {
+                     try {
+                        // Очищаємо AsyncStorage (крім локалізації)
+                        const keys = await AsyncStorage.getAllKeys();
+                        const keysToRemove = keys.filter(key => !key.includes('i18n'));
+                        if (keysToRemove.length > 0) {
+                           await AsyncStorage.multiRemove(keysToRemove);
+                        }
+                        Alert.alert(t('settings.clearCache.success'), '');
+                     } catch (error) {
+                        console.error('Error clearing cache:', error);
+                        Alert.alert(t('settings.logout.errorTitle'), t('settings.logout.errorBody'));
+                     }
+                  },
+               },
+            ]
+         );
       }
       // Можно добавить обработчики для других опций здесь
    };

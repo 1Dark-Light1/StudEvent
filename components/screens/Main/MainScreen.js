@@ -3,14 +3,14 @@
  * month grid and an agenda list so students can scan their day quickly.
  */
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Animated, Easing, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
-import { subscribeToUserTasks, isTaskActive, applyTaskFilters } from '../../../services/tasksService';
+import { subscribeToUserTasks, isTaskActive, applyTaskFilters, autoMarkUncompletedTasks } from '../../../services/tasksService';
 import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
@@ -47,10 +47,21 @@ function buildCalendar({ year, month, tasks = [] }) {
       grid.push({ label: String(prevMonthDays - i + 1), muted: true });
    }
 
+   // Перевіряємо, чи поточний день є сьогоднішнім
+   const today = new Date();
+   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+   const todayDay = today.getDate();
+
    // Дни текущего месяца
    for (let day = 1; day <= daysInMonth; day += 1) {
       const entry = { label: String(day) };
       const dayTasks = tasksByDay[day] || [];
+      const isToday = isCurrentMonth && day === todayDay;
+
+      // Підсвічуємо поточний день легко синім кольором
+      if (isToday) {
+         entry.todayHighlight = '#d9ecff';
+      }
 
       if (dayTasks.length > 0) {
          // Выделяем день с задачами
@@ -58,14 +69,32 @@ function buildCalendar({ year, month, tasks = [] }) {
          const hasGlobalTask = dayTasks.some(task => task.isGlobal === true);
          
          if (hasActiveTask) {
-            entry.highlight = '#d9ecff';
+            // Якщо це сьогодні, зберігаємо легко синій фон і додаємо обводку
+            if (isToday) {
+               entry.todayHighlight = '#d9ecff';
+               entry.outline = dayTasks[0].taskColor || '#d7c5ff';
+            } else {
+               entry.highlight = '#d9ecff';
+            }
          } else if (hasGlobalTask) {
             // Для глобальных задач - заполненный кружок
             const globalTask = dayTasks.find(task => task.isGlobal === true);
-            entry.filled = globalTask.taskColor || '#2f6cff';
+            if (isToday) {
+               // Якщо це сьогодні, легко синій фон з обводкою кольору тага
+               entry.todayHighlight = '#d9ecff';
+               entry.outline = globalTask.taskColor || '#2f6cff';
+            } else {
+               entry.filled = globalTask.taskColor || '#2f6cff';
+            }
          } else {
             // Используем цвет первой задачи для outline
-            entry.outline = dayTasks[0].taskColor || '#d7c5ff';
+            if (isToday) {
+               // Якщо це сьогодні, легко синій фон з обводкою
+               entry.todayHighlight = '#d9ecff';
+               entry.outline = dayTasks[0].taskColor || '#d7c5ff';
+            } else {
+               entry.outline = dayTasks[0].taskColor || '#d7c5ff';
+            }
          }
       }
 
@@ -168,6 +197,7 @@ export default function Main({ navigation, route }) {
    const [searchQuery, setSearchQuery] = useState('');
    const [selectedTags, setSelectedTags] = useState([]);
    const [participantsData, setParticipantsData] = useState({}); // Кэш данных участников по taskId
+   const [refreshing, setRefreshing] = useState(false);
    const activeRoute = route?.name ?? 'Main';
 
    const activeMonth = getMonthData(currentYear, currentMonth, tasks, t);
@@ -180,7 +210,20 @@ export default function Main({ navigation, route }) {
       }
 
       setIsLoading(true);
-      const unsubscribe = subscribeToUserTasks((loadedTasks) => {
+      let isFirstLoad = true;
+      
+      const unsubscribe = subscribeToUserTasks(async (loadedTasks) => {
+         // Автоматически отмечаем просроченные задачи только при первой загрузке
+         if (isFirstLoad) {
+            isFirstLoad = false;
+            try {
+               await autoMarkUncompletedTasks();
+            } catch (error) {
+               console.error('Error auto-marking uncompleted tasks:', error);
+            }
+         }
+         
+         // Всегда обновляем задачи (даже если массив пустой - это нормально)
          setRawTasks(loadedTasks); // Сохраняем оригинальные данные
          // Применяем фильтры
          const filteredTasks = applyTaskFilters(loadedTasks, searchQuery, selectedTags);
@@ -195,16 +238,32 @@ export default function Main({ navigation, route }) {
 
    // Применяем фильтры при изменении поиска или тегов
    useEffect(() => {
-      if (rawTasks.length > 0) {
-         const filteredTasks = applyTaskFilters(rawTasks, searchQuery, selectedTags);
-         setTasks(filteredTasks);
-      }
+      // Завжди застосовуємо фільтри, навіть якщо rawTasks порожній
+      // Це гарантує, що глобальні таски не зникнуть
+      const filteredTasks = applyTaskFilters(rawTasks, searchQuery, selectedTags);
+      setTasks(filteredTasks);
    }, [searchQuery, selectedTags, rawTasks]);
 
    // Загружаем данные участников для глобальных задач
    useEffect(() => {
       const loadParticipants = async () => {
-         if (rawTasks.length === 0) return;
+         if (rawTasks.length === 0) {
+            // Очищаємо кеш, якщо задач немає
+            setParticipantsData({});
+            return;
+         }
+         
+         // Очищаємо кеш для задач, яких більше немає
+         const currentTaskIds = new Set(rawTasks.map(task => task.id));
+         setParticipantsData(prev => {
+            const cleaned = {};
+            Object.keys(prev).forEach(taskId => {
+               if (currentTaskIds.has(taskId)) {
+                  cleaned[taskId] = prev[taskId];
+               }
+            });
+            return cleaned;
+         });
          
          const globalTasksWithParticipants = rawTasks.filter(task => task.isGlobal && task.participants && task.participants.length > 0);
          const participantsMap = {};
@@ -242,40 +301,6 @@ export default function Main({ navigation, route }) {
          return newMonth;
       });
    };
-   /** 
-    *Starts the refresh button rotation animation 
-    
-    *And returns the calendar to the initial month.
-   */
-   const rotateAnim = useState(new Animated.Value(0))[0];
-   const [isRefreshing, setIsRefreshing] = useState(false);
-
-   const refreshCalendar = () => {
-      if (isRefreshing) return;
-
-      setIsRefreshing(true);
-
-      //Start Animation
-      rotateAnim.setValue(0);
-      Animated.timing(rotateAnim, {
-         toValue: 1,
-         duration: 600,
-         easing: Easing.linear,
-         useNativeDriver: true
-      }).start(() => {
-         setCurrentYear(today.getFullYear());
-         setCurrentMonth(today.getMonth());
-
-         setTimeout(() => {
-            setIsRefreshing(false);
-         }, 200)
-      })
-   };
-
-   const spin = rotateAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['0deg', '360deg']
-   });
 
    // Обработчики для поиска и фильтров
    const handleSearchChange = (text) => {
@@ -300,7 +325,30 @@ export default function Main({ navigation, route }) {
       setSelectedTags([]);
    };
 
-
+   const onRefresh = async () => {
+      setRefreshing(true);
+      try {
+         // Перекидаємо на поточний місяць
+         const today = new Date();
+         setCurrentYear(today.getFullYear());
+         setCurrentMonth(today.getMonth());
+         
+         // Очищаємо фільтри
+         setSearchQuery('');
+         setSelectedTags([]);
+         
+         // Очищаємо кеш учасників
+         setParticipantsData({});
+         
+         // Оновлюємо задачі
+         await autoMarkUncompletedTasks();
+         // Дані оновляться автоматично через subscribeToUserTasks
+      } catch (error) {
+         console.error('Error refreshing tasks:', error);
+      } finally {
+         setRefreshing(false);
+      }
+   };
 
    return (
       <View style={styles.screen}>
@@ -310,6 +358,15 @@ export default function Main({ navigation, route }) {
             style={styles.scrollView}
             bounces={true}
             alwaysBounceVertical={false}
+            refreshControl={
+               <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#3b85ff']}
+                  tintColor="#3b85ff"
+                  progressViewOffset={Platform.OS === 'ios' ? 100 : 0}
+               />
+            }
          >
             <View style={styles.topBounceBackground} />
             <LinearGradient colors={["#3b85ff", "#8fc5ff"]} style={styles.hero}>
@@ -340,10 +397,11 @@ export default function Main({ navigation, route }) {
 
                      {/*Animation-Imitation Refresh*/}
                   </View>
-                  <Pressable style={styles.refreshBtn} onPress={refreshCalendar}>
-                     <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                        <Ionicons name="refresh" size={18} color="#1f3d68" />
-                     </Animated.View>
+                  <Pressable 
+                     style={styles.refreshBtn} 
+                     onPress={() => navigation.navigate('Alerts')}
+                  >
+                     <Ionicons name="notifications" size={18} color="#1f3d68" />
                   </Pressable>
                </View>
 
@@ -385,6 +443,7 @@ export default function Main({ navigation, route }) {
                                     key={`${activeMonth.name}-${rowIdx}-${idx}-${day.label}`}
                                     style={[
                                        styles.dateBadge,
+                                       day.todayHighlight && { backgroundColor: day.todayHighlight },
                                        day.highlight && { backgroundColor: day.highlight },
                                        day.outline && { borderColor: day.outline, borderWidth: 1.5 },
                                        day.filled && { backgroundColor: day.filled, borderWidth: 0 },
@@ -444,8 +503,22 @@ export default function Main({ navigation, route }) {
                            // Для обводки используем цвет с добавлением белого через opacity
                            const lightBorderColor = isGlobal ? adminTagColor + 'CC' : null;
                            
+                           // Знаходимо повну задачу для навігації
+                           const fullTask = rawTasks.find(t => t.id === item.id);
+                           
                            return (
-                              <View key={`${block.day}-${item.time}-${item.title}-${item.id}`} style={styles.agendaRow}>
+                              <Pressable
+                                 key={`${block.day}-${item.time}-${item.title}-${item.id}`}
+                                 style={styles.agendaRow}
+                                 onPress={() => {
+                                    if (fullTask) {
+                                       // Навігація до UserCalendar з датою задачі
+                                       navigation.navigate('UserCalendar', {
+                                          initialDate: fullTask.date
+                                       });
+                                    }
+                                 }}
+                              >
                                  <Text style={styles.timeText}>{item.time}</Text>
                                  <View style={styles.timeline}>
                                     <View 
@@ -507,7 +580,7 @@ export default function Main({ navigation, route }) {
                                        {item.subtitle && <Text style={styles.agendaSubtitle}>{item.subtitle}</Text>}
                                     </View>
                                  )}
-                              </View>
+                              </Pressable>
                            );
                         })}
                      </View>

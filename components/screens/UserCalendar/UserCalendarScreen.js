@@ -4,14 +4,14 @@
  * jump between days and immediately see context-rich events.
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert, PanResponder } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert, PanResponder, RefreshControl, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
 import EventDetailsModal from '../../ui/EventDetailsModal';
-import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive, applyTaskFilters, deleteTask } from '../../../services/tasksService';
+import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive, applyTaskFilters, deleteTask, markTaskAsCompleted, markTaskAsUncompleted, canMarkTaskAsCompleted, autoMarkUncompletedTasks } from '../../../services/tasksService';
 import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
@@ -86,19 +86,74 @@ function formatSingleTime(timeString) {
    return `${displayHour}:${minutes} ${ampm}`;
 }
 
+/**
+ * Обчислює weekOffset для заданої дати
+ */
+function calculateWeekOffset(targetDateString) {
+   const [day, month, year] = targetDateString.split('.');
+   const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+   
+   const today = new Date();
+   today.setHours(0, 0, 0, 0);
+   targetDate.setHours(0, 0, 0, 0);
+   
+   // Знаходимо понеділок поточного тижня
+   const currentDay = today.getDay();
+   const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+   const currentMonday = new Date(today);
+   currentMonday.setDate(today.getDate() + mondayOffset);
+   
+   // Знаходимо понеділок тижня з цільовою датою
+   const targetDay = targetDate.getDay();
+   const targetMondayOffset = targetDay === 0 ? -6 : 1 - targetDay;
+   const targetMonday = new Date(targetDate);
+   targetMonday.setDate(targetDate.getDate() + targetMondayOffset);
+   
+   // Обчислюємо різницю в тижнях
+   const diffInMs = targetMonday.getTime() - currentMonday.getTime();
+   const diffInWeeks = Math.round(diffInMs / (7 * 24 * 60 * 60 * 1000));
+   
+   return diffInWeeks;
+}
+
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
    const { t } = useI18n();
-   const [weekOffset, setWeekOffset] = useState(0);
-   const stripDays = useMemo(() => generateWeekDays(t, weekOffset), [t, weekOffset]);
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
-   const defaultDay = stripDays.find(day => day.dateString === todayDateString) || stripDays[0];
+   // Отримуємо initialDate з параметрів навігації та обчислюємо weekOffset
+   const initialDate = route?.params?.initialDate;
+   const calculatedWeekOffset = initialDate ? calculateWeekOffset(initialDate) : 0;
+   const [weekOffset, setWeekOffset] = useState(calculatedWeekOffset);
+   const stripDays = useMemo(() => generateWeekDays(t, weekOffset), [t, weekOffset]);
+   
+   const defaultDay = initialDate 
+      ? stripDays.find(day => day.dateString === initialDate) || stripDays[0]
+      : stripDays.find(day => day.dateString === todayDateString) || stripDays[0];
    const [activeDate, setActiveDate] = useState(defaultDay.dateString);
+   
+   // Оновлюємо weekOffset та activeDate, коли змінюється initialDate
+   useEffect(() => {
+      if (initialDate) {
+         const newWeekOffset = calculateWeekOffset(initialDate);
+         setWeekOffset(newWeekOffset);
+      }
+   }, [initialDate]);
+   
+   // Оновлюємо activeDate після зміни weekOffset
+   useEffect(() => {
+      if (initialDate && stripDays.length > 0) {
+         const targetDay = stripDays.find(day => day.dateString === initialDate);
+         if (targetDay) {
+            setActiveDate(initialDate);
+         }
+      }
+   }, [weekOffset, stripDays, initialDate]);
    const [tasks, setTasks] = useState([]);
    const [rawTasks, setRawTasks] = useState([]); // Сохраняем оригинальные данные задач
    const [isLoading, setIsLoading] = useState(true);
+   const [refreshing, setRefreshing] = useState(false);
    const [searchQuery, setSearchQuery] = useState('');
    const [selectedTags, setSelectedTags] = useState([]);
    const [selectedEvent, setSelectedEvent] = useState(null);
@@ -157,7 +212,18 @@ export default function UserCalendar({ navigation, route }) {
       }
 
       setIsLoading(true);
+      let isFirstLoadForDate = true;
       const unsubscribe = subscribeToTasksByDate(activeDate, async (loadedTasks) => {
+         // Автоматически отмечаем просроченные задачи только при первой загрузке для этой даты
+         if (isFirstLoadForDate) {
+            isFirstLoadForDate = false;
+            try {
+               await autoMarkUncompletedTasks();
+            } catch (error) {
+               console.error('Error auto-marking uncompleted tasks:', error);
+            }
+         }
+         
          setRawTasks(loadedTasks); // Сохраняем оригинальные данные
          // Применяем фильтры
          const filteredTasks = applyTaskFilters(loadedTasks, searchQuery, selectedTags);
@@ -259,6 +325,9 @@ export default function UserCalendar({ navigation, route }) {
             name: fullTask.name,
             description: fullTask.description,
             isGlobal: fullTask.isGlobal || false,
+            timeDilation: fullTask.timeDilation || false,
+            fromTime: fullTask.fromTime || null,
+            toTime: fullTask.toTime || null,
          });
          setIsModalVisible(true);
       }
@@ -278,9 +347,47 @@ export default function UserCalendar({ navigation, route }) {
       }
    };
 
+   const onRefresh = async () => {
+      setRefreshing(true);
+      try {
+         // Перекидаємо на поточний тиждень
+         setWeekOffset(0);
+         const today = new Date();
+         const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
+         setActiveDate(todayDateString);
+         
+         // Очищаємо фільтри
+         setSearchQuery('');
+         setSelectedTags([]);
+         
+         // Очищаємо кеш учасників
+         setParticipantsData({});
+         
+         // Оновлюємо задачі
+         await autoMarkUncompletedTasks();
+         // Дані оновляться автоматично через subscribeToTasksByDate
+      } catch (error) {
+         console.error('Error refreshing tasks:', error);
+      } finally {
+         setRefreshing(false);
+      }
+   };
+
    return (
       <View style={styles.screen} {...panResponder.panHandlers}>
-         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+         <ScrollView 
+            contentContainerStyle={styles.scroll} 
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+               <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#2f7cff']}
+                  tintColor="#2f7cff"
+                  progressViewOffset={Platform.OS === 'ios' ? 100 : 0}
+               />
+            }
+         >
             <View style={styles.headerRow}>
                <View>
                   <Text style={styles.dateOverline}>{formatDateForDisplay(activeDate, t)}</Text>

@@ -7,6 +7,7 @@ import Login from './components/auth/LoginScreen';
 import Register from './components/auth/RegisterScreen';
 import Main from './components/screens/Main/MainScreen';
 import UserCalendar from './components/screens/UserCalendar/UserCalendarScreen';
+import CompletedTasks from './components/screens/CompletedTasks/CompletedTasksScreen';
 import Alerts from './components/screens/Alerts/AlertsScreen';
 import Settings from './components/screens/Settings/SettingsScreen';
 import AddTask from './components/screens/AddTask/AddTaskScreen';
@@ -28,6 +29,7 @@ export default function App() {
           <Stack.Screen name="Register" component={Register} />
           <Stack.Screen name="Main" component={Main} />
           <Stack.Screen name="UserCalendar" component={UserCalendar} />
+          <Stack.Screen name="CompletedTasks" component={CompletedTasks} />
           <Stack.Screen name="Alerts" component={Alerts} />
           <Stack.Screen name="Settings" component={Settings} />
           <Stack.Screen name="Language" component={LanguageScreen} />

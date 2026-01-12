@@ -14,11 +14,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount, isAdmin } from '../../services/tasksService';
+import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount, isAdmin, markTaskAsCompleted, markTaskAsUncompleted, canMarkTaskAsCompleted, canJoinEvent, parseDate, parseTime } from '../../services/tasksService';
 import { getUsersDataByIds, getUserDataById } from '../../services/userService';
 import { useI18n } from '../../i18n/I18nContext';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../FireBaseConfig';
+import { db, auth } from '../../FireBaseConfig';
 
 
 function formatTimeForDisplay(timeString) {
@@ -56,15 +56,75 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
    const [isParticipantsExpanded, setIsParticipantsExpanded] = useState(false);
    const [participantsList, setParticipantsList] = useState([]);
    const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+   const [isMarkingTask, setIsMarkingTask] = useState(false);
+   const [taskCompletionStatus, setTaskCompletionStatus] = useState(null); // 'completed', 'uncompleted', null
+   const [canJoin, setCanJoin] = useState(true); // Можна приєднатись до глобального таску
    const userIsAdmin = isAdmin();
 
    useEffect(() => {
       if (visible && event) {
          loadEventStatus();
+         loadTaskCompletionStatus();
          setIsParticipantsExpanded(false);
          setParticipantsList([]);
+         
+         // Перевіряємо, чи можна приєднатись до глобального таску
+         if (event.isGlobal && !isJoined) {
+            const taskData = {
+               date: event.date,
+               time: event.time,
+               timeDilation: event.timeDilation,
+               fromTime: event.fromTime,
+               toTime: event.toTime,
+            };
+            const canJoinResult = canJoinEvent(taskData);
+            setCanJoin(canJoinResult.canJoin);
+         } else {
+            setCanJoin(true);
+         }
       }
-   }, [visible, event]);
+   }, [visible, event, isJoined]);
+   
+   const loadTaskCompletionStatus = async () => {
+      if (!event?.id) return;
+      
+      try {
+         const taskRef = doc(db, 'tasks', event.id);
+         const taskSnap = await getDoc(taskRef);
+         
+         if (taskSnap.exists()) {
+            const taskData = taskSnap.data();
+            const user = auth.currentUser;
+            
+            if (taskData.isGlobal && taskData.userCompletions && user) {
+               // Для глобальных задач проверяем статус пользователя
+               const userCompletion = taskData.userCompletions[user.uid];
+               if (userCompletion) {
+                  if (userCompletion.isCompleted === true) {
+                     setTaskCompletionStatus('completed');
+                  } else if (userCompletion.isUncompleted === true) {
+                     setTaskCompletionStatus('uncompleted');
+                  } else {
+                     setTaskCompletionStatus(null);
+                  }
+               } else {
+                  setTaskCompletionStatus(null);
+               }
+            } else {
+               // Для обычных задач проверяем общий статус
+               if (taskData.isCompleted === true) {
+                  setTaskCompletionStatus('completed');
+               } else if (taskData.isUncompleted === true) {
+                  setTaskCompletionStatus('uncompleted');
+               } else {
+                  setTaskCompletionStatus(null);
+               }
+            }
+         }
+      } catch (error) {
+         console.error('Error loading task completion status:', error);
+      }
+   };
 
    const loadEventStatus = async () => {
       if (!event?.id) return;
@@ -168,6 +228,94 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
          Alert.alert(t('event.error'), t('event.errorMessage'));
       } finally {
          setIsLoading(false);
+      }
+   };
+   
+   const handleMarkTaskCompletion = async () => {
+      if (!event?.id) return;
+      
+      setIsMarkingTask(true);
+      try {
+         // Загружаем полные данные задачи для проверки
+         const taskRef = doc(db, 'tasks', event.id);
+         const taskSnap = await getDoc(taskRef);
+         
+         if (!taskSnap.exists()) {
+            Alert.alert(t('event.error'), t('event.errorMessage'));
+            return;
+         }
+         
+         const taskData = { id: taskSnap.id, ...taskSnap.data() };
+         
+         // Определяем текущий статус
+         const user = auth.currentUser;
+         let currentStatus = null;
+         if (taskData.isGlobal && taskData.userCompletions && user) {
+            const userCompletion = taskData.userCompletions[user.uid];
+            if (userCompletion) {
+               if (userCompletion.isCompleted === true) {
+                  currentStatus = 'completed';
+               } else if (userCompletion.isUncompleted === true) {
+                  currentStatus = 'uncompleted';
+               }
+            }
+         } else {
+            if (taskData.isCompleted === true) {
+               currentStatus = 'completed';
+            } else if (taskData.isUncompleted === true) {
+               currentStatus = 'uncompleted';
+            }
+         }
+         
+         // Переключаем статус
+         if (currentStatus === 'completed') {
+            // Если выполнена - отмечаем как невыполненную (можно всегда переключить)
+            await markTaskAsUncompleted(event.id);
+            setTaskCompletionStatus('uncompleted');
+            Alert.alert(t('event.success'), t('completed.markedUncompleted'));
+         } else if (currentStatus === 'uncompleted') {
+            // Если невыполнена - можно переключить обратно на выполненную, если в пределах времени
+            const canMark = canMarkTaskAsCompleted(taskData);
+            if (!canMark.canMark) {
+               if (canMark.reason === 'too_early') {
+                  Alert.alert(t('event.info'), t('completed.canMarkAfterStart'));
+               } else if (canMark.reason === 'expired') {
+                  Alert.alert(t('event.info'), t('completed.timeWindowExpired'));
+               } else {
+                  Alert.alert(t('event.info'), t('event.errorMessage'));
+               }
+               return;
+            }
+            
+            await markTaskAsCompleted(event.id);
+            setTaskCompletionStatus('completed');
+            Alert.alert(t('event.success'), t('completed.markedCompleted'));
+         } else {
+            // Если не отмечена - проверяем, можно ли отметить как выполненную
+            const canMark = canMarkTaskAsCompleted(taskData);
+            if (!canMark.canMark) {
+               if (canMark.reason === 'too_early') {
+                  Alert.alert(t('event.info'), t('completed.canMarkAfterStart'));
+               } else if (canMark.reason === 'expired') {
+                  Alert.alert(t('event.info'), t('completed.timeWindowExpired'));
+               } else {
+                  Alert.alert(t('event.info'), t('event.errorMessage'));
+               }
+               return;
+            }
+            
+            await markTaskAsCompleted(event.id);
+            setTaskCompletionStatus('completed');
+            Alert.alert(t('event.success'), t('completed.markedCompleted'));
+         }
+         
+         // Перезагружаем статус
+         await loadTaskCompletionStatus();
+      } catch (error) {
+         console.error('Error marking task:', error);
+         Alert.alert(t('event.error'), error.message || t('event.errorMessage'));
+      } finally {
+         setIsMarkingTask(false);
       }
    };
 
@@ -277,8 +425,120 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                               {event.tone === 'highlight' ? t('event.activeNow') : t('event.scheduled')}
                            </Text>
                         </View>
+                        {taskCompletionStatus && (
+                           <View style={[
+                              styles.statusBadge,
+                              taskCompletionStatus === 'completed' ? styles.statusCompleted : styles.statusUncompleted,
+                              { marginTop: 8 }
+                           ]}>
+                              <View style={[
+                                 styles.statusDot,
+                                 taskCompletionStatus === 'completed' ? styles.statusDotCompleted : styles.statusDotUncompleted
+                              ]} />
+                              <Text style={[
+                                 styles.statusText,
+                                 taskCompletionStatus === 'completed' ? styles.statusTextCompleted : styles.statusTextUncompleted
+                              ]}>
+                                 {taskCompletionStatus === 'completed' 
+                                    ? t('completed.completed') 
+                                    : t('completed.uncompleted')}
+                              </Text>
+                           </View>
+                        )}
                      </View>
                   </View>
+                  
+                  {/* Task Completion Actions - только для неглобальных задач */}
+                  {!event.isGlobal && (() => {
+                     // Проверяем, можно ли показывать кнопку и активна ли она
+                     let canShowButton = false;
+                     let isButtonDisabled = false;
+                     
+                     try {
+                        // Используем данные из event для проверки
+                        const taskData = {
+                           date: event.date,
+                           time: event.time,
+                           timeDilation: event.timeDilation,
+                           fromTime: event.fromTime,
+                           toTime: event.toTime,
+                        };
+                        const canMark = canMarkTaskAsCompleted(taskData);
+                        
+                        // Перевіряємо, чи час пройшов (30 хв після закінчення)
+                        const now = new Date();
+                        let timePassed = false;
+                        
+                        if (taskData.timeDilation && taskData.fromTime && taskData.toTime) {
+                           const taskDate = parseDate(taskData.date);
+                           const toTime = parseTime(taskData.toTime, taskDate);
+                           const deadline = new Date(toTime);
+                           deadline.setMinutes(deadline.getMinutes() + 30);
+                           timePassed = now > deadline;
+                        } else if (taskData.time) {
+                           const taskDate = parseDate(taskData.date);
+                           const taskTime = parseTime(taskData.time, taskDate);
+                           const deadline = new Date(taskTime);
+                           deadline.setMinutes(deadline.getMinutes() + 30);
+                           timePassed = now > deadline;
+                        }
+                        
+                        if (taskCompletionStatus === 'completed') {
+                           // Если выполнена - можно переключить на невыполненную только в пределах времени
+                           canShowButton = true;
+                           // Кнопка неактивна, якщо час пройшов
+                           isButtonDisabled = !canMark.canMark || timePassed;
+                        } else if (taskCompletionStatus === 'uncompleted') {
+                           // Если невыполнена - можно переключить обратно только в пределах времени
+                           canShowButton = true;
+                           isButtonDisabled = !canMark.canMark;
+                        } else {
+                           // Если не отмечена - показываем только в пределах времени
+                           canShowButton = canMark.canMark;
+                           isButtonDisabled = !canMark.canMark;
+                        }
+                     } catch (error) {
+                        // Если ошибка - не показываем кнопку
+                        canShowButton = false;
+                     }
+                     
+                     if (!canShowButton) return null;
+                     
+                     return (
+                        <View style={styles.actionSection}>
+                           <Pressable 
+                              style={({ pressed }) => [
+                                 styles.completionButton,
+                                 { 
+                                    backgroundColor: taskCompletionStatus === 'completed' ? '#f44336' : '#4caf50',
+                                    opacity: isButtonDisabled ? 0.5 : 1
+                                 },
+                                 pressed && styles.completionButtonPressed,
+                                 (isMarkingTask || isButtonDisabled) && styles.completionButtonDisabled
+                              ]}
+                              onPress={handleMarkTaskCompletion}
+                              disabled={isMarkingTask || isButtonDisabled}
+                           >
+                              {isMarkingTask ? (
+                                 <ActivityIndicator size="small" color="#fff" />
+                              ) : (
+                                 <>
+                                    <Ionicons 
+                                       name={taskCompletionStatus === 'completed' ? "close-circle" : "checkmark-circle"} 
+                                       size={22} 
+                                       color="#fff" 
+                                    />
+                                    <Text style={styles.completionButtonText}>
+                                       {taskCompletionStatus === 'completed' 
+                                          ? t('completed.markUncompleted') 
+                                          : t('completed.markCompleted')}
+                                    </Text>
+                                 </>
+                              )}
+                           </Pressable>
+                        </View>
+                     );
+                  })()}
 
                   {/* Participants */}
                   {event.isGlobal && (
@@ -343,12 +603,15 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                         <Pressable 
                            style={({ pressed }) => [
                               styles.joinButton,
-                              { backgroundColor: isJoined ? '#4caf50' : (event.color || '#2f7cff') },
+                              { 
+                                 backgroundColor: isJoined ? '#4caf50' : (event.color || '#2f7cff'),
+                                 opacity: (!canJoin) ? 0.5 : 1
+                              },
                               pressed && styles.joinButtonPressed,
-                              isLoading && styles.joinButtonDisabled
+                              (isLoading || !canJoin) && styles.joinButtonDisabled
                            ]}
                            onPress={handleJoinEvent}
-                           disabled={isLoading}
+                           disabled={isLoading || !canJoin}
                         >
                            {isLoading ? (
                               <ActivityIndicator size="small" color="#fff" />
@@ -665,5 +928,49 @@ const styles = StyleSheet.create({
       color: '#fff',
       flex: 1,
       textAlign: 'center',
+   },
+   statusCompleted: {
+      backgroundColor: '#e8f5e9',
+   },
+   statusUncompleted: {
+      backgroundColor: '#ffebee',
+   },
+   statusDotCompleted: {
+      backgroundColor: '#4caf50',
+   },
+   statusDotUncompleted: {
+      backgroundColor: '#f44336',
+   },
+   statusTextCompleted: {
+      color: '#2e7d32',
+   },
+   statusTextUncompleted: {
+      color: '#c62828',
+   },
+   completionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 16,
+      gap: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+   },
+   completionButtonPressed: {
+      opacity: 0.8,
+      transform: [{ scale: 0.98 }],
+   },
+   completionButtonDisabled: {
+      opacity: 0.6,
+   },
+   completionButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#fff',
    },
 });

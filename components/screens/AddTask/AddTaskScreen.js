@@ -354,7 +354,12 @@ export default function AddTaskScreen({ navigation, route }) {
                      style={[styles.modeBtn, mode === 'build' && styles.modeBtnActive]}
                      onPress={() => setMode('build')}
                   >
-                     <Text style={[styles.modeText, mode === 'build' && styles.modeTextActive]}>
+                     <Text 
+                        style={[styles.modeText, mode === 'build' && styles.modeTextActive]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit={true}
+                        minimumFontScale={0.8}
+                     >
                         {t('task.build')}
                      </Text>
                   </Pressable>
@@ -363,7 +368,12 @@ export default function AddTaskScreen({ navigation, route }) {
                      style={[styles.modeBtn, mode === 'change' && styles.modeBtnActive]}
                      onPress={() => setMode('change')}
                   >
-                     <Text style={[styles.modeText, mode === 'change' && styles.modeTextActive]}>
+                     <Text 
+                        style={[styles.modeText, mode === 'change' && styles.modeTextActive]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit={true}
+                        minimumFontScale={0.8}
+                     >
                         {t('task.change')}
                      </Text>
                   </Pressable>
@@ -992,7 +1002,6 @@ const styles = StyleSheet.create({
    },
    modeSelector: {
       alignSelf: 'center',
-      width: '60%',
       flexDirection: 'row',
       borderRadius: 40,
       padding: 5,
@@ -1001,13 +1010,13 @@ const styles = StyleSheet.create({
       minHeight: 50,
    },
    modeBtn: {
-      flex: 1,
       paddingVertical: 10,
-      paddingHorizontal: 8,
+      paddingHorizontal: 16,
       borderRadius: 35,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'transparent',
+      minWidth: 100,
    },
    modeBtnActive: {
       backgroundColor: '#FFFFFF',

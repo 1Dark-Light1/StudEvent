@@ -30,10 +30,19 @@ service cloud.firestore {
       
       // Разрешаем обновление задач, если:
       // 1. Пользователь является владельцем задачи (может обновлять всё), или
-      // 2. Пользователь обновляет только поле participants (для join/leave)
+      // 2. Пользователь обновляет только поле participants (для join/leave), или
+      // 3. Пользователь обновляет только поле userCompletions для глобальных задач
+      //    (для автоматического отметки выполнения/невыполнения, даже если не участник)
+      //    Логика в коде гарантирует, что каждый пользователь обновляет только свой ключ
+      // 4. Пользователь обновляет поля completedBy, completedAt для глобальных задач, если он участник
       allow update: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])) ||
+        (resource.data.get('isGlobal', false) == true && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userCompletions'])) ||
+        (resource.data.get('isGlobal', false) == true && 
+         request.auth.uid in resource.data.get('participants', []) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userCompletions', 'completedBy', 'completedAt']))
       );
       
       // Разрешаем удаление только владельцу задачи

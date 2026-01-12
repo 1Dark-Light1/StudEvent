@@ -12,7 +12,7 @@ export const translations = {
     // Navigation
     'nav.home': 'Home',
     'nav.calendar': 'Calendar',
-    'nav.alerts': 'Alerts',
+    'nav.completed': 'Tasks',
     'nav.settings': 'Settings',
 
     // Settings
@@ -23,6 +23,9 @@ export const translations = {
     'settings.language': 'Language',
     'settings.theme': 'Theme',
     'settings.accounts': 'Accounts',
+    'settings.clearCache': 'Clear cache',
+    'settings.clearCache.confirm': 'Clear all cached data? This will improve app performance.',
+    'settings.clearCache.success': 'Cache cleared successfully',
     'settings.logout.title': 'Log out',
     'settings.logout.confirm': 'Are you sure you want to log out?',
     'settings.logout.cancel': 'Cancel',
@@ -185,9 +188,20 @@ export const translations = {
     'event.error': 'Error',
     'event.errorMessage': 'Failed to process request. Please try again.',
 
-    // AlertsScreen
-    'alerts.title': 'Alerts',
-    'alerts.caughtUp': 'You are all caught up for today.',
+    // CompletedTasksScreen
+    'completed.title': 'Tasks',
+    'completed.completed': 'Completed',
+    'completed.uncompleted': 'Uncompleted',
+    'completed.loading': 'Loading tasks...',
+    'completed.noCompletedTasks': 'No completed tasks',
+    'completed.noUncompletedTasks': 'No uncompleted tasks',
+    'completed.noDate': 'No date',
+    'completed.markCompleted': 'Mark as completed',
+    'completed.markUncompleted': 'Mark as uncompleted',
+    'completed.markedCompleted': 'Task marked as completed',
+    'completed.markedUncompleted': 'Task marked as uncompleted',
+    'completed.canMarkAfterStart': 'You can mark this task as completed from the start time until 30 minutes after it ends',
+    'completed.timeWindowExpired': 'The time window for marking this task as completed has expired',
 
     // HomeScreen
     'home.start': 'Start',
@@ -215,7 +229,7 @@ export const translations = {
     // Navigation
     'nav.home': 'Головна',
     'nav.calendar': 'Календар',
-    'nav.alerts': 'Сповіщення',
+    'nav.completed': 'Задачі',
     'nav.settings': 'Налаштування',
 
     // Settings
@@ -226,6 +240,9 @@ export const translations = {
     'settings.language': 'Мова',
     'settings.theme': 'Тема',
     'settings.accounts': 'Акаунти',
+    'settings.clearCache': 'Очистити кеш',
+    'settings.clearCache.confirm': 'Очистити всі кешовані дані? Це покращить швидкість роботи програми.',
+    'settings.clearCache.success': 'Кеш успішно очищено',
     'settings.logout.title': 'Вийти',
     'settings.logout.confirm': 'Ви впевнені, що хочете вийти?',
     'settings.logout.cancel': 'Скасувати',
@@ -388,9 +405,20 @@ export const translations = {
     'event.error': 'Помилка',
     'event.errorMessage': 'Не вдалося обробити запит. Спробуйте ще раз.',
 
-    // AlertsScreen
-    'alerts.title': 'Сповіщення',
-    'alerts.caughtUp': 'Ви встигли все на сьогодні.',
+    // CompletedTasksScreen
+    'completed.title': 'Задачі',
+    'completed.completed': 'Виконані',
+    'completed.uncompleted': 'Невиконані',
+    'completed.loading': 'Завантаження задач...',
+    'completed.noCompletedTasks': 'Немає виконаних задач',
+    'completed.noUncompletedTasks': 'Немає невиконаних задач',
+    'completed.noDate': 'Без дати',
+    'completed.markCompleted': 'Відмітити як виконану',
+    'completed.markUncompleted': 'Відмітити як невиконану',
+    'completed.markedCompleted': 'Задачу відмічено як виконану',
+    'completed.markedUncompleted': 'Задачу відмічено як невиконану',
+    'completed.canMarkAfterStart': 'Ви можете відмітити цю задачу як виконану від початку виконання до 30 хвилин після закінчення',
+    'completed.timeWindowExpired': 'Час для відмітки цієї задачі як виконаної минув',
 
     // HomeScreen
     'home.start': 'Почати',
@@ -418,7 +446,7 @@ export const translations = {
     // Navigation
     'nav.home': 'Strona główna',
     'nav.calendar': 'Kalendarz',
-    'nav.alerts': 'Powiadomienia',
+    'nav.completed': 'Zadania',
     'nav.settings': 'Ustawienia',
 
     // Settings
@@ -429,6 +457,9 @@ export const translations = {
     'settings.language': 'Język',
     'settings.theme': 'Motyw',
     'settings.accounts': 'Konta',
+    'settings.clearCache': 'Wyczyść pamięć podręczną',
+    'settings.clearCache.confirm': 'Wyczyścić wszystkie dane w pamięci podręcznej? To poprawi wydajność aplikacji.',
+    'settings.clearCache.success': 'Pamięć podręczna została wyczyszczona',
     'settings.logout.title': 'Wyloguj się',
     'settings.logout.confirm': 'Na pewno chcesz się wylogować?',
     'settings.logout.cancel': 'Anuluj',
@@ -591,9 +622,20 @@ export const translations = {
     'event.error': 'Błąd',
     'event.errorMessage': 'Nie udało się przetworzyć żądania. Spróbuj ponownie.',
 
-    // AlertsScreen
-    'alerts.title': 'Powiadomienia',
-    'alerts.caughtUp': 'Jesteś na bieżąco na dziś.',
+    // CompletedTasksScreen
+    'completed.title': 'Zadania',
+    'completed.completed': 'Ukończone',
+    'completed.uncompleted': 'Nieukończone',
+    'completed.loading': 'Ładowanie zadań...',
+    'completed.noCompletedTasks': 'Brak ukończonych zadań',
+    'completed.noUncompletedTasks': 'Brak nieukończonych zadań',
+    'completed.noDate': 'Bez daty',
+    'completed.markCompleted': 'Oznacz jako ukończone',
+    'completed.markUncompleted': 'Oznacz jako nieukończone',
+    'completed.markedCompleted': 'Zadanie oznaczone jako ukończone',
+    'completed.markedUncompleted': 'Zadanie oznaczone jako nieukończone',
+    'completed.canMarkAfterStart': 'Możesz oznaczyć to zadanie jako ukończone od początku wykonania do 30 minut po zakończeniu',
+    'completed.timeWindowExpired': 'Okno czasowe na oznaczenie tego zadania jako ukończone minęło',
 
     // HomeScreen
     'home.start': 'Start',
