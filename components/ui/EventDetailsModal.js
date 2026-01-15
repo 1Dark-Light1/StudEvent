@@ -493,9 +493,24 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                            canShowButton = true;
                            isButtonDisabled = !canMark.canMark;
                         } else {
-                           // Если не отмечена - показываем только в пределах времени
-                           canShowButton = canMark.canMark;
-                           isButtonDisabled = !canMark.canMark;
+                           // Если не отмечена - показываем кнопку якщо:
+                           // 1. Задача на сьогодні або в минулому
+                           // 2. Або немає часу (можна відмітити в будь-який момент)
+                           const taskDate = parseDate(taskData.date);
+                           const today = new Date();
+                           today.setHours(0, 0, 0, 0);
+                           const taskDateOnly = new Date(taskDate);
+                           taskDateOnly.setHours(0, 0, 0, 0);
+                           
+                           // Якщо немає часу - завжди показуємо кнопку для задач на сьогодні або в минулому
+                           if (!taskData.time && !taskData.timeDilation) {
+                              canShowButton = taskDateOnly <= today;
+                              isButtonDisabled = false;
+                           } else {
+                              // Якщо є час - показуємо тільки якщо можна відмітити
+                              canShowButton = canMark.canMark;
+                              isButtonDisabled = !canMark.canMark;
+                           }
                         }
                      } catch (error) {
                         // Если ошибка - не показываем кнопку

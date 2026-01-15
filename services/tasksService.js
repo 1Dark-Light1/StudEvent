@@ -17,6 +17,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '../FireBaseConfig';
 import { auth } from '../FireBaseConfig';
+import {
+   scheduleUserTaskNotifications,
+   scheduleGlobalTaskCreatedNotification,
+   scheduleGlobalTaskJoinedNotifications,
+   cancelTaskNotifications,
+   updateTaskNotifications,
+} from './notificationsService';
 
 /**
  * Проверяет, является ли текущий пользователь админом
@@ -159,6 +166,20 @@ export async function addTask(taskData) {
 
          const docRef = await addDoc(collection(db, 'tasks'), taskDoc);
          createdIds.push(docRef.id);
+         
+         // Плануємо повідомлення
+         const createdTask = { id: docRef.id, ...taskDoc };
+         if (admin) {
+            // Для глобальних задач - повідомлення про створення для всіх
+            scheduleGlobalTaskCreatedNotification(createdTask).catch(err => 
+               console.error('Error scheduling global task notification:', err)
+            );
+         } else {
+            // Для звичайних задач - нагадування користувача
+            scheduleUserTaskNotifications(createdTask).catch(err => 
+               console.error('Error scheduling user task notification:', err)
+            );
+         }
       }
 
       return createdIds;
@@ -265,7 +286,7 @@ export function subscribeToUserTasks(callback) {
    let userTasksLoaded = false;
    let globalTasksLoaded = false;
 
-   const mergeAndSortTasks = () => {
+   const mergeAndSortTasks = async () => {
       // Объединяем задачи и убираем дубликаты
       const allTasks = [...userTasks];
       globalTasks.forEach(globalTask => {
@@ -287,6 +308,24 @@ export function subscribeToUserTasks(callback) {
          return timeA.localeCompare(timeB);
       });
 
+      // Плануємо повідомлення для задач
+      for (const task of sorted) {
+         try {
+            if (task.isGlobal) {
+               // Для глобальних задач - перевіряємо, чи користувач приєднався
+               const participants = task.participants || [];
+               if (participants.includes(user.uid)) {
+                  await scheduleGlobalTaskJoinedNotifications(task);
+               }
+            } else {
+               // Для звичайних задач користувача
+               await scheduleUserTaskNotifications(task);
+            }
+         } catch (error) {
+            console.error('Error scheduling notifications for task:', task.id, error);
+         }
+      }
+
       // Викликаємо callback після того, як хоча б один з запитів завантажився
       // Це гарантує, що глобальні таски будуть показані навіть якщо своїх тасків немає
       if (userTasksLoaded || globalTasksLoaded) {
@@ -300,7 +339,7 @@ export function subscribeToUserTasks(callback) {
          ...doc.data(),
       }));
       userTasksLoaded = true;
-      mergeAndSortTasks();
+      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err));
    }, (error) => {
       console.error('Error subscribing to user tasks:', error);
       userTasksLoaded = true; // Помечаем как загруженное даже при ошибке
@@ -313,11 +352,11 @@ export function subscribeToUserTasks(callback) {
          ...doc.data(),
       }));
       globalTasksLoaded = true;
-      mergeAndSortTasks();
+      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err));
    }, (error) => {
       console.error('Error subscribing to global tasks:', error);
       globalTasksLoaded = true; // Помечаем как загруженное даже при ошибке
-      mergeAndSortTasks(); // Все равно вызываем merge, чтобы показать хотя бы свои задачи
+      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err)); // Все равно вызываем merge, чтобы показать хотя бы свои задачи
    });
 
    return () => {
@@ -328,7 +367,8 @@ export function subscribeToUserTasks(callback) {
 
 /**
  * Подписывается на изменения задач по дате в реальном времени
- * Включает собственные задачи пользователя и глобальные задачи админа
+ * Включает собственные задачи пользователя и глобальные задачи админа,
+ * до которых поточний користувач приєднався
  */
 export function subscribeToTasksByDate(dateString, callback) {
    const user = auth.currentUser;
@@ -344,11 +384,12 @@ export function subscribeToTasksByDate(dateString, callback) {
       where('date', '==', dateString)
    );
 
-   // Запрос для глобальных задач по дате
+   // Запрос для глобальных задач по дате, к которым пользователь приєднався
    const globalTasksQuery = query(
       collection(db, 'tasks'),
       where('isGlobal', '==', true),
-      where('date', '==', dateString)
+      where('date', '==', dateString),
+      where('participants', 'array-contains', user.uid)
    );
 
    let userTasksUnsubscribe;
@@ -359,8 +400,16 @@ export function subscribeToTasksByDate(dateString, callback) {
    let globalTasksLoaded = false;
 
    const mergeAndSortTasks = () => {
+      // Фільтруємо глобальні таски зі своїх задач (для адміна - його глобальні таски
+      // повинні відображатись тільки якщо він приєднався, тобто вони будуть в globalTasks)
+      const filteredUserTasks = userTasks.filter(task => {
+         // Якщо це глобальна задача, виключаємо її зі своїх задач
+         // Вона з'явиться тільки якщо користувач приєднався (через globalTasks)
+         return !task.isGlobal;
+      });
+      
       // Объединяем задачи и убираем дубликаты
-      const allTasks = [...userTasks];
+      const allTasks = [...filteredUserTasks];
       globalTasks.forEach(globalTask => {
          if (!allTasks.find(t => t.id === globalTask.id)) {
             allTasks.push(globalTask);
@@ -501,6 +550,15 @@ export async function deleteTask(taskId) {
          throw new Error('User not authenticated');
       }
 
+      // Видаляємо повідомлення перед видаленням задачі
+      await cancelTaskNotifications(taskId);
+      
+      // Видаляємо повідомлення з Firestore
+      const { deleteMessagesByTaskId } = await import('./messagesService');
+      await deleteMessagesByTaskId(taskId).catch(err => 
+         console.error('Error deleting messages for task:', err)
+      );
+      
       await deleteDoc(doc(db, 'tasks', taskId));
       return true;
    } catch (error) {
@@ -548,6 +606,12 @@ export async function joinEvent(taskId) {
                completedAt: Timestamp.now(),
             }
          });
+         
+         // Плануємо повідомлення для приєднаного користувача
+         const updatedTask = { id: taskId, ...taskData, participants: [...participants, user.uid] };
+         scheduleGlobalTaskJoinedNotifications(updatedTask).catch(err => 
+            console.error('Error scheduling joined notifications:', err)
+         );
       }
 
       return { success: true, message: 'Pomyślnie dołączono do wydarzenia!' };
@@ -582,6 +646,13 @@ export async function leaveEvent(taskId) {
       await updateDoc(taskRef, {
          participants: arrayRemove(user.uid)
       });
+
+      // Видаляємо повідомлення для глобальних задач після від'єднання
+      if (isTaskGlobal) {
+         cancelTaskNotifications(taskId).catch(err => 
+            console.error('Error canceling notifications:', err)
+         );
+      }
 
       // Для глобальных задач обрабатываем статус выполнения
       if (isTaskGlobal) {
@@ -710,6 +781,19 @@ export async function updateTask(taskId, taskData) {
       };
 
       await updateDoc(taskRef, updateData);
+      
+      // Видаляємо старі повідомлення з Firestore та оновлюємо заплановані
+      const { updateMessagesForTask } = await import('./messagesService');
+      await updateMessagesForTask(taskId).catch(err => 
+         console.error('Error updating messages for task:', err)
+      );
+      
+      // Оновлюємо повідомлення
+      const updatedTask = { id: taskId, ...taskDataFromDb, ...updateData };
+      updateTaskNotifications(updatedTask).catch(err => 
+         console.error('Error updating task notifications:', err)
+      );
+      
       return true;
    } catch (error) {
       console.error('Error updating task:', error);

@@ -223,6 +223,30 @@ export const translations = {
     'common.ok': 'OK',
     'common.success': 'Success',
     'common.error': 'Error',
+
+    // Alerts
+    'alerts.title': 'Notifications',
+    'alerts.subtitle': 'Scheduled reminders',
+    'alerts.caughtUp': 'All caught up!',
+    'alerts.loading': 'Loading notifications...',
+    'alerts.noNotifications': 'No notifications',
+    'alerts.noNotificationsDesc': 'You don\'t have any scheduled notifications',
+
+    // Notifications
+    'notifications.settings.title': 'Notification Settings',
+    'notifications.settings.enable': 'Enable notifications',
+    'notifications.settings.enableDesc': 'Receive notifications about your tasks',
+    'notifications.settings.sound': 'Sound',
+    'notifications.settings.soundDesc': 'Play sound when notification arrives',
+    'notifications.settings.reminders': 'Reminders',
+    'notifications.settings.remindersDesc': 'Receive reminder notifications',
+    'notifications.settings.info': 'Notifications help you stay on track with your tasks and events.',
+    'notifications.type.userReminder1h': 'Reminder (1 hour before)',
+    'notifications.type.userExpired': 'Time expired',
+    'notifications.type.globalCreated': 'New global task',
+    'notifications.type.globalReminder1d': 'Reminder (1 day before)',
+    'notifications.type.globalReminder1h': 'Reminder (1 hour before)',
+    'notifications.type.reminder': 'Reminder',
   },
 
   uk: {
@@ -440,6 +464,30 @@ export const translations = {
     'common.ok': 'ОК',
     'common.success': 'Успіх',
     'common.error': 'Помилка',
+
+    // Alerts
+    'alerts.title': 'Сповіщення',
+    'alerts.subtitle': 'Заплановані нагадування',
+    'alerts.caughtUp': 'Все готово!',
+    'alerts.loading': 'Завантаження сповіщень...',
+    'alerts.noNotifications': 'Немає сповіщень',
+    'alerts.noNotificationsDesc': 'У вас немає запланованих сповіщень',
+
+    // Notifications
+    'notifications.settings.title': 'Налаштування сповіщень',
+    'notifications.settings.enable': 'Увімкнути сповіщення',
+    'notifications.settings.enableDesc': 'Отримувати сповіщення про ваші задачі',
+    'notifications.settings.sound': 'Звук',
+    'notifications.settings.soundDesc': 'Відтворювати звук при отриманні сповіщення',
+    'notifications.settings.reminders': 'Нагадування',
+    'notifications.settings.remindersDesc': 'Отримувати нагадування',
+    'notifications.settings.info': 'Сповіщення допомагають вам не забувати про ваші задачі та події.',
+    'notifications.type.userReminder1h': 'Нагадування (за 1 годину)',
+    'notifications.type.userExpired': 'Час вийшов',
+    'notifications.type.globalCreated': 'Новий глобальний таск',
+    'notifications.type.globalReminder1d': 'Нагадування (за 1 день)',
+    'notifications.type.globalReminder1h': 'Нагадування (за 1 годину)',
+    'notifications.type.reminder': 'Нагадування',
   },
 
   pl: {
@@ -657,6 +705,30 @@ export const translations = {
     'common.ok': 'OK',
     'common.success': 'Sukces',
     'common.error': 'Błąd',
+
+    // Alerts
+    'alerts.title': 'Powiadomienia',
+    'alerts.subtitle': 'Zaplanowane przypomnienia',
+    'alerts.caughtUp': 'Wszystko gotowe!',
+    'alerts.loading': 'Ładowanie powiadomień...',
+    'alerts.noNotifications': 'Brak powiadomień',
+    'alerts.noNotificationsDesc': 'Nie masz zaplanowanych powiadomień',
+
+    // Notifications
+    'notifications.settings.title': 'Ustawienia powiadomień',
+    'notifications.settings.enable': 'Włącz powiadomienia',
+    'notifications.settings.enableDesc': 'Otrzymuj powiadomienia o swoich zadaniach',
+    'notifications.settings.sound': 'Dźwięk',
+    'notifications.settings.soundDesc': 'Odtwarzaj dźwięk przy otrzymaniu powiadomienia',
+    'notifications.settings.reminders': 'Przypomnienia',
+    'notifications.settings.remindersDesc': 'Otrzymuj powiadomienia przypominające',
+    'notifications.settings.info': 'Powiadomienia pomagają Ci nie zapomnieć o swoich zadaniach i wydarzeniach.',
+    'notifications.type.userReminder1h': 'Przypomnienie (1 godzina przed)',
+    'notifications.type.userExpired': 'Czas minął',
+    'notifications.type.globalCreated': 'Nowe globalne zadanie',
+    'notifications.type.globalReminder1d': 'Przypomnienie (1 dzień przed)',
+    'notifications.type.globalReminder1h': 'Przypomnienie (1 godzina przed)',
+    'notifications.type.reminder': 'Przypomnienie',
   },
 };
 

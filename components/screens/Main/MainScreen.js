@@ -10,10 +10,11 @@ import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
-import { subscribeToUserTasks, isTaskActive, applyTaskFilters, autoMarkUncompletedTasks } from '../../../services/tasksService';
+import { subscribeToUserTasks, isTaskActive, applyTaskFilters, autoMarkUncompletedTasks, deleteTask } from '../../../services/tasksService';
 import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
+import EventDetailsModal from '../../ui/EventDetailsModal';
 
 /**
  * Builds a 7-column grid that includes leading/trailing muted days so layout never shifts.
@@ -198,6 +199,8 @@ export default function Main({ navigation, route }) {
    const [selectedTags, setSelectedTags] = useState([]);
    const [participantsData, setParticipantsData] = useState({}); // Кэш данных участников по taskId
    const [refreshing, setRefreshing] = useState(false);
+   const [selectedEvent, setSelectedEvent] = useState(null);
+   const [isModalVisible, setIsModalVisible] = useState(false);
    const activeRoute = route?.name ?? 'Main';
 
    const activeMonth = getMonthData(currentYear, currentMonth, tasks, t);
@@ -347,6 +350,45 @@ export default function Main({ navigation, route }) {
          console.error('Error refreshing tasks:', error);
       } finally {
          setRefreshing(false);
+      }
+   };
+
+   const handleEventPress = (item) => {
+      // Знаходимо повну задачу за id
+      const fullTask = rawTasks.find(t => t.id === item.id);
+      if (!fullTask) return;
+
+      const isActive = isTaskActive(fullTask);
+
+      setSelectedEvent({
+         id: fullTask.id,
+         title: fullTask.name,
+         subtitle: fullTask.description,
+         time: item.time,
+         color: fullTask.taskColor || item.color,
+         tone: isActive ? 'highlight' : 'frost',
+         date: fullTask.date,
+         tagText: fullTask.tagText,
+         name: fullTask.name,
+         description: fullTask.description,
+         isGlobal: fullTask.isGlobal || false,
+         timeDilation: fullTask.timeDilation || false,
+         fromTime: fullTask.fromTime || null,
+         toTime: fullTask.toTime || null,
+      });
+      setIsModalVisible(true);
+   };
+
+   const handleCloseModal = () => {
+      setIsModalVisible(false);
+      setSelectedEvent(null);
+   };
+
+   const handleDeleteEvent = async (eventId) => {
+      try {
+         await deleteTask(eventId);
+      } catch (error) {
+         console.error('Error deleting task from main calendar:', error);
       }
    };
 
@@ -503,21 +545,11 @@ export default function Main({ navigation, route }) {
                            // Для обводки используем цвет с добавлением белого через opacity
                            const lightBorderColor = isGlobal ? adminTagColor + 'CC' : null;
                            
-                           // Знаходимо повну задачу для навігації
-                           const fullTask = rawTasks.find(t => t.id === item.id);
-                           
                            return (
                               <Pressable
                                  key={`${block.day}-${item.time}-${item.title}-${item.id}`}
                                  style={styles.agendaRow}
-                                 onPress={() => {
-                                    if (fullTask) {
-                                       // Навігація до UserCalendar з датою задачі
-                                       navigation.navigate('UserCalendar', {
-                                          initialDate: fullTask.date
-                                       });
-                                    }
-                                 }}
+                                 onPress={() => handleEventPress(item)}
                               >
                                  <Text style={styles.timeText}>{item.time}</Text>
                                  <View style={styles.timeline}>
@@ -592,6 +624,13 @@ export default function Main({ navigation, route }) {
          <BottomNav navigation={navigation} activeRoute={activeRoute} />
 
          <FloatingActionButton onPress={() => navigation.navigate('AddTask')} />
+
+         <EventDetailsModal
+            visible={isModalVisible}
+            event={selectedEvent}
+            onClose={handleCloseModal}
+            onDelete={handleDeleteEvent}
+         />
       </View>
    );
 }

@@ -49,6 +49,21 @@ service cloud.firestore {
       allow delete: if request.auth != null && 
                       resource.data.userId == request.auth.uid;
     }
+    
+    // Правила для коллекции messages
+    match /messages/{messageId} {
+      // Разрешаем чтение только своих сообщений
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      
+      // Разрешаем создание только своих сообщений
+      allow create: if request.auth != null && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Разрешаем удаление только своих сообщений
+      allow delete: if request.auth != null && 
+                      resource.data.userId == request.auth.uid;
+    }
   }
 }
 
