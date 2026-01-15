@@ -37,14 +37,14 @@ export default function AddTaskScreen({ navigation, route }) {
    const [tagText, setTagText] = useState('');
    const [showColorPicker, setShowColorPicker] = useState(false);
    const [frequency, setFrequency] = useState('once'); // 'once', 'weekly', 'custom'
-   const [customDates, setCustomDates] = useState([]); // Массив дат для Custom frequency
-   const [customDateInput, setCustomDateInput] = useState(''); // Временный ввод даты
+   const [customDates, setCustomDates] = useState([]); // Array of dates for Custom frequency
+   const [customDateInput, setCustomDateInput] = useState(''); // Temporary date input
    const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
    const [isLoading, setIsLoading] = useState(false);
    const [showTagPicker, setShowTagPicker] = useState(false);
    const [customTagInput, setCustomTagInput] = useState('');
    
-   // Для режима редактирования
+   // For edit mode
    const [allTasks, setAllTasks] = useState([]);
    const [filteredTasks, setFilteredTasks] = useState([]);
    const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +53,7 @@ export default function AddTaskScreen({ navigation, route }) {
 
    const activeRoute = route?.name ?? 'AddTask';
 
-   // Предустановленные теги
+   // Predefined tags
    const predefinedTags = [
       'Work',
       'Study',
@@ -84,7 +84,7 @@ export default function AddTaskScreen({ navigation, route }) {
          setIsTasksLoading(true);
          const unsubscribe = subscribeToUserTasks((loadedTasks) => {
             const userIsAdmin = isAdmin();
-            // Если пользователь не админ, фильтруем админские задачи
+            // If user is not admin, filter out admin tasks
             const tasksToShow = userIsAdmin 
                ? loadedTasks 
                : loadedTasks.filter(task => !task.isGlobal || task.userId === auth.currentUser?.uid);
@@ -99,12 +99,12 @@ export default function AddTaskScreen({ navigation, route }) {
       }
    }, [mode]);
 
-   // Фильтрация тасков по поиску
+   // Filter tasks by search
    useEffect(() => {
       const userIsAdmin = isAdmin();
       let tasksToFilter = allTasks;
       
-      // Если пользователь не админ, дополнительно фильтруем админские задачи
+      // If user is not admin, additionally filter admin tasks
       if (!userIsAdmin) {
          tasksToFilter = allTasks.filter(task => !task.isGlobal || task.userId === auth.currentUser?.uid);
       }
@@ -122,20 +122,20 @@ export default function AddTaskScreen({ navigation, route }) {
       }
    }, [searchQuery, allTasks]);
 
-   // Палітра кольорів
+   // Color palette
    const colorPalette = [
-      '#4CAF50', // зелений
-      '#2196F3', // синій
-      '#FF9800', // помаранчевий
-      '#F44336', // червоний
-      '#9C27B0', // фіолетовий
-      '#00BCD4', // бірюзовий
-      '#FFEB3B', // жовтий
-      '#795548', // коричневий
-      '#607D8B', // сіро-блакитний
-      '#E91E63', // рожевий
-      '#3F51B5', // індиго
-      '#009688', // теal
+      '#4CAF50', // green
+      '#2196F3', // blue
+      '#FF9800', // orange
+      '#F44336', // red
+      '#9C27B0', // purple
+      '#00BCD4', // turquoise
+      '#FFEB3B', // yellow
+      '#795548', // brown
+      '#607D8B', // gray-blue
+      '#E91E63', // pink
+      '#3F51B5', // indigo
+      '#009688', // teal
    ];
 
    const handleClear = () => {
@@ -152,7 +152,7 @@ export default function AddTaskScreen({ navigation, route }) {
       setSelectedTaskId(null);
    };
 
-   // Загрузка выбранного таска в форму для редактирования
+   // Load selected task into form for editing
    const handleSelectTask = (task) => {
       setSelectedTaskId(task.id);
       setName(task.name || '');
@@ -174,11 +174,11 @@ export default function AddTaskScreen({ navigation, route }) {
          setToTime('');
       }
       
-      // Прокручиваем вниз к форме
-      // ScrollView автоматически прокрутится когда форма станет активной
+      // Scroll down to the form
+      // ScrollView will automatically scroll when the form becomes active
    };
 
-   // Обработчики для поиска
+   // Search handlers
    const handleSearchChange = (text) => {
       setSearchQuery(text);
    };
@@ -188,7 +188,7 @@ export default function AddTaskScreen({ navigation, route }) {
    };
 
    const handleAdd = async () => {
-      // Проверка авторизации
+      // Authentication check
       if (!auth.currentUser) {
          Alert.alert(t('task.alert.authRequired'), t('task.alert.loginRequired'), [
             {
@@ -199,7 +199,7 @@ export default function AddTaskScreen({ navigation, route }) {
          return;
       }
 
-      // Валідація обов'язкових полів
+      // Validate required fields
       if (!name.trim()) {
          Alert.alert(t('task.alert.error'), t('task.alert.nameRequired'));
          return;
@@ -253,7 +253,7 @@ export default function AddTaskScreen({ navigation, route }) {
          };
 
          if (mode === 'change' && selectedTaskId) {
-            // Режим редактирования
+            // Edit mode
             await updateTask(selectedTaskId, taskData);
             
             Alert.alert(t('task.alert.success'), t('task.alert.updated'), [
@@ -266,7 +266,7 @@ export default function AddTaskScreen({ navigation, route }) {
                },
             ]);
          } else {
-            // Режим добавления
+            // Add mode
             await addTask(taskData);
             
             Alert.alert(t('task.alert.success'), t('task.alert.added'), [
@@ -315,15 +315,15 @@ export default function AddTaskScreen({ navigation, route }) {
       }
    };
 
-   // Форматування часу у формат ХХ:XX
+   // Format time to HH:MM format
    const formatTime = (text) => {
-      // Видаляємо всі символи, крім цифр
+      // Remove all characters except digits
       const numbers = text.replace(/\D/g, '');
 
-      // Обмежуємо до 4 цифр
+      // Limit to 4 digits
       const limited = numbers.slice(0, 4);
 
-      // Додаємо двокрапку після другої цифри
+      // Add colon after the second digit
       if (limited.length <= 2) {
          return limited;
       }
@@ -728,7 +728,7 @@ export default function AddTaskScreen({ navigation, route }) {
                            </Pressable>
                         </View>
                         
-                        {/* Список добавленных дат */}
+                        {/* List of added dates */}
                         {customDates.length > 0 && (
                            <View style={styles.customDatesList}>
                               {customDates.map((date, index) => (
@@ -1462,7 +1462,7 @@ const styles = StyleSheet.create({
    addCustomTagBtnDisabled: {
       backgroundColor: '#B0B8C4',
    },
-   // Стили для списка тасков
+   // Styles for task list
    tasksListContainer: {
       marginBottom: 24,
    },

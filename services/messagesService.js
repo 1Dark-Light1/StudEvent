@@ -6,23 +6,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const HIDDEN_MESSAGES_KEY = '@hidden_messages';
 
 /**
- * Зберігає повідомлення у Firestore (з перевіркою на дублікати)
+ * Saves message to Firestore (with duplicate check)
+ * @param {string} userId - Optional user ID (if not specified - current user is used)
  */
-export async function saveMessage(title, body, type, taskId = null) {
+export async function saveMessage(title, body, type, taskId = null, userId = null) {
    try {
-      const user = auth.currentUser;
-      if (!user) {
-         return null;
+      // If userId not provided, use current user
+      let targetUserId = userId;
+      if (!targetUserId) {
+         const user = auth.currentUser;
+         if (!user) {
+            return null;
+         }
+         targetUserId = user.uid;
       }
 
-      // Перевіряємо, чи не існує вже таке повідомлення
+      // Check if such message already exists
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
 
       const existingQuery = query(
          collection(db, 'messages'),
-         where('userId', '==', user.uid),
+         where('userId', '==', targetUserId),
          where('taskId', '==', taskId),
          where('type', '==', type),
          where('month', '==', currentMonth),
@@ -31,13 +37,13 @@ export async function saveMessage(title, body, type, taskId = null) {
 
       const existingSnapshot = await getDocs(existingQuery);
       
-      // Якщо вже є таке повідомлення за цей місяць - не створюємо дублікат
+      // If message already exists for this month - don't create duplicate
       if (!existingSnapshot.empty) {
          return existingSnapshot.docs[0].id;
       }
 
       const messageDoc = {
-         userId: user.uid,
+         userId: targetUserId,
          title,
          body,
          type,

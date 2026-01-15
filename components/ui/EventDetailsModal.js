@@ -1,5 +1,5 @@
 /**
- * EventDetailsModal - модальное окно для отображения полных деталей события
+ * EventDetailsModal - modal window for displaying full event details
  */
 import React, { useState, useEffect } from 'react';
 import {

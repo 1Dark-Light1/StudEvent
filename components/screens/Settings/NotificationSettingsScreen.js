@@ -60,7 +60,14 @@ export default function NotificationSettings({ navigation, route }) {
                <View style={styles.backButtonPlaceholder} />
             </View>
 
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+            <View style={[
+               styles.card, 
+               { 
+                  backgroundColor: colors.cardBackground,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.08)',
+               }
+            ]}>
                <View style={styles.settingRow}>
                   <View style={styles.settingLeft}>
                      <View style={[styles.settingIcon, { backgroundColor: colors.iconBg }]}>
@@ -81,7 +88,7 @@ export default function NotificationSettings({ navigation, route }) {
 
                <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-               <View style={styles.settingRow}>
+               <View style={[styles.settingRow, !settings.enabled && { opacity: 0.4 }]}>
                   <View style={styles.settingLeft}>
                      <View style={[styles.settingIcon, { backgroundColor: colors.iconBg }]}>
                         <Ionicons name="volume-high" size={22} color={colors.primary} />
@@ -102,7 +109,7 @@ export default function NotificationSettings({ navigation, route }) {
 
                <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-               <View style={styles.settingRow}>
+               <View style={[styles.settingRow, !settings.enabled && { opacity: 0.4 }]}>
                   <View style={styles.settingLeft}>
                      <View style={[styles.settingIcon, { backgroundColor: colors.iconBg }]}>
                         <Ionicons name="time" size={22} color={colors.primary} />
@@ -122,7 +129,14 @@ export default function NotificationSettings({ navigation, route }) {
                </View>
             </View>
 
-            <View style={[styles.infoCard, { backgroundColor: colors.iconBg }]}>
+            <View style={[
+               styles.infoCard, 
+               { 
+                  backgroundColor: colors.iconBg,
+                  borderWidth: 1,
+                  borderColor: 'rgba(90, 159, 255, 0.2)',
+               }
+            ]}>
                <Ionicons name="information-circle" size={20} color={colors.primary} />
                <Text style={[styles.infoText, { color: colors.primary }]}>{t('notifications.settings.info')}</Text>
             </View>

@@ -3,7 +3,7 @@ import { db } from '../FireBaseConfig';
 import { auth } from '../FireBaseConfig';
 
 /**
- * Получает данные пользователя из Firestore
+ * Gets user data from Firestore
  */
 export async function getUserData() {
    try {
@@ -19,7 +19,7 @@ export async function getUserData() {
          return userDoc.data();
       }
 
-      // Если данных нет в Firestore, пробуем получить из displayName
+      // If no data in Firestore, try to get from displayName
       if (user.displayName) {
          const nameParts = user.displayName.split(' ');
          return {
@@ -36,7 +36,7 @@ export async function getUserData() {
 }
 
 /**
- * Сохраняет данные пользователя в Firestore
+ * Saves user data to Firestore
  */
 export async function saveUserData(userData) {
    try {
@@ -59,7 +59,7 @@ export async function saveUserData(userData) {
 }
 
 /**
- * Получает данные пользователя по его UID
+ * Gets user data by their UID
  */
 export async function getUserDataById(userId) {
    try {
@@ -78,7 +78,7 @@ export async function getUserDataById(userId) {
 }
 
 /**
- * Получает данные нескольких пользователей по их UIDs
+ * Gets data for multiple users by their UIDs
  */
 export async function getUsersDataByIds(userIds) {
    try {
@@ -93,7 +93,7 @@ export async function getUsersDataByIds(userIds) {
 }
 
 /**
- * Подписывается на изменения данных пользователя в реальном времени
+ * Subscribes to real-time user data changes
  */
 export function subscribeToUserData(callback) {
    const user = auth.currentUser;
@@ -132,6 +132,30 @@ export function subscribeToUserData(callback) {
          callback(null);
       }
    });
+}
+
+/**
+ * Gets all users from the users collection
+ */
+export async function getAllUsers() {
+   try {
+      const { collection, getDocs } = await import('firebase/firestore');
+      const usersCollectionRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersCollectionRef);
+      
+      const users = [];
+      querySnapshot.forEach((doc) => {
+         users.push({
+            uid: doc.id,
+            ...doc.data()
+         });
+      });
+      
+      return users;
+   } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
+   }
 }
 
 

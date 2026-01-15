@@ -9,7 +9,7 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Конфиг из консоли Firebase (оставил твой)
+// Config from Firebase console
 const firebaseConfig = {
    apiKey: 'AIzaSyDmnjfOhA629stxePe7_gfHQzZbfHm0ZU0',
    authDomain: 'studeventbase.firebaseapp.com',
@@ -19,17 +19,17 @@ const firebaseConfig = {
    appId: '1:967372320018:web:46e5d4ae481d7891dcd7cb',
 };
 
-// Инициализация приложения
+// Initialize application
 export const app = initializeApp(firebaseConfig);
 
-// Отдельно настраиваем auth для web / native
+// Configure auth separately for web / native
 let auth;
 
 if (Platform.OS === 'web') {
-   // Для web
+   // For web
    auth = getAuth(app);
 } else {
-   // Для React Native
+   // For React Native
    auth = initializeAuth(app, {
       persistence: getReactNativePersistence(AsyncStorage),
    });
@@ -37,8 +37,8 @@ if (Platform.OS === 'web') {
 
 export { auth };
 
-// Инициализация Firestore
+// Initialize Firestore
 export const db = getFirestore(app);
 
-// Инициализация Firebase Storage
+// Initialize Firebase Storage
 export const storage = getStorage(app);

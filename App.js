@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { requestPermissions } from './services/notificationsService';
+import { requestPermissions, initializeNotificationListener, removeNotificationListener } from './services/notificationsService';
 
 import Login from './components/auth/LoginScreen';
 import Register from './components/auth/RegisterScreen';
@@ -48,10 +48,18 @@ function AppContent() {
 
 export default function App() {
   useEffect(() => {
-    // Запитуємо дозвіл на повідомлення при запуску додатку
+    // Request notification permissions on app startup
     requestPermissions().catch(err => {
       console.error('Error requesting notification permissions:', err);
     });
+
+    // Initialize notification listener for automatic saving to Firestore
+    initializeNotificationListener();
+
+    // Cleanup on unmount
+    return () => {
+      removeNotificationListener();
+    };
   }, []);
 
   return (

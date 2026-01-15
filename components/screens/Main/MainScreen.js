@@ -60,7 +60,7 @@ function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff
       const dayTasks = tasksByDay[day] || [];
       const isToday = isCurrentMonth && day === todayDay;
 
-      // Підсвічуємо поточний день легко синім кольором
+      // Highlight current day with light blue color
       if (isToday) {
          entry.todayHighlight = todayHighlightColor;
       }

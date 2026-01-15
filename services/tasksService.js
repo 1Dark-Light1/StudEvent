@@ -26,17 +26,17 @@ import {
 } from './notificationsService';
 
 /**
- * Проверяет, является ли текущий пользователь админом
+ * Checks if the current user is an admin
  */
 export function isAdmin() {
    const user = auth.currentUser;
    if (!user) return false;
-   // Проверяем по email
+   // Check by email
    return user.email === 'admin@gmail.com';
 }
 
 /**
- * Преобразует дату в формате DD.MM.YYYY в объект Date
+ * Converts a date in DD.MM.YYYY format to a Date object
  */
 export function parseDate(dateString) {
    const [day, month, year] = dateString.split('.');
@@ -44,7 +44,7 @@ export function parseDate(dateString) {
 }
 
 /**
- * Преобразует время в формате HH:MM в объект Date с указанной датой
+ * Converts time in HH:MM format to a Date object with the specified date
  */
 export function parseTime(timeString, date) {
    const [hours, minutes] = timeString.split(':');
@@ -54,13 +54,13 @@ export function parseTime(timeString, date) {
 }
 
 /**
- * Проверяет, идет ли задача сейчас
+ * Checks if the task is currently active
  */
 export function isTaskActive(task) {
    const now = new Date();
    const taskDate = parseDate(task.date);
    
-   // Проверяем, что задача на сегодня
+   // Check that the task is for today
    const today = new Date();
    const isToday = taskDate.getDate() === today.getDate() &&
                    taskDate.getMonth() === today.getMonth() &&
@@ -76,7 +76,7 @@ export function isTaskActive(task) {
       return now >= fromTime && now <= toTime;
    } else if (task.time) {
       const taskTime = parseTime(task.time, taskDate);
-      // Считаем задачу активной в течение часа после начала
+      // Consider the task active for an hour after start
       const oneHourLater = new Date(taskTime);
       oneHourLater.setHours(oneHourLater.getHours() + 1);
       return now >= taskTime && now <= oneHourLater;
@@ -86,7 +86,7 @@ export function isTaskActive(task) {
 }
 
 /**
- * Генерирует даты для Weekly frequency до конца месяца
+ * Generates dates for Weekly frequency until the end of the month
  */
 function generateWeeklyDates(startDateString) {
    const startDate = parseDate(startDateString);
@@ -94,14 +94,14 @@ function generateWeeklyDates(startDateString) {
    const startMonth = parseInt(month, 10) - 1;
    const startYear = parseInt(year, 10);
    
-   // Получаем последний день месяца
+   // Get the last day of the month
    const lastDayOfMonth = new Date(startYear, startMonth + 1, 0).getDate();
    const dates = [];
    
-   // Добавляем начальную дату
+   // Add the start date
    dates.push(startDateString);
    
-   // Добавляем каждую неделю до конца месяца
+   // Add each week until the end of the month
    let currentDate = new Date(startDate);
    currentDate.setDate(currentDate.getDate() + 7);
    
@@ -117,7 +117,7 @@ function generateWeeklyDates(startDateString) {
 }
 
 /**
- * Добавляет новую задачу в Firestore
+ * Adds a new task to Firestore
  */
 export async function addTask(taskData) {
    try {
@@ -129,22 +129,22 @@ export async function addTask(taskData) {
       const datesToAdd = [];
       
       if (taskData.frequency === 'weekly') {
-         // Генерируем даты для Weekly
+         // Generate dates for Weekly
          datesToAdd.push(...generateWeeklyDates(taskData.date));
       } else if (taskData.frequency === 'custom' && taskData.customDates && taskData.customDates.length > 0) {
-         // Используем кастомные даты
+         // Use custom dates
          datesToAdd.push(...taskData.customDates);
       } else {
-         // Одна дата для 'once'
+         // One date for 'once'
          datesToAdd.push(taskData.date);
       }
 
       const createdIds = [];
       
-      // Проверяем, является ли пользователь админом
+      // Check if the user is an admin
       const admin = isAdmin();
       
-      // Создаем задачу для каждой даты
+      // Create a task for each date
       for (const dateString of datesToAdd) {
          const taskDate = parseDate(dateString);
          const taskDoc = {
@@ -161,21 +161,27 @@ export async function addTask(taskData) {
             taskColor: taskData.taskColor || '#4CAF50',
             frequency: taskData.frequency || 'once',
             createdAt: Timestamp.now(),
-            ...(admin && { isGlobal: true, participants: [] }), // Для админа добавляем isGlobal и participants
+            ...(admin && { isGlobal: true, participants: [] }), // For admin, add isGlobal and participants
          };
 
          const docRef = await addDoc(collection(db, 'tasks'), taskDoc);
          createdIds.push(docRef.id);
          
-         // Плануємо повідомлення
+         // Schedule notifications
          const createdTask = { id: docRef.id, ...taskDoc };
          if (admin) {
-            // Для глобальних задач - повідомлення про створення для всіх
+            // For global tasks:
+            // 1. Notification about creation for all other users
             scheduleGlobalTaskCreatedNotification(createdTask).catch(err => 
                console.error('Error scheduling global task notification:', err)
             );
+            // 2. Automatically join admin and schedule their reminders
+            const taskWithParticipants = { ...createdTask, participants: [user.uid] };
+            scheduleGlobalTaskJoinedNotifications(taskWithParticipants).catch(err => 
+               console.error('Error scheduling admin reminders:', err)
+            );
          } else {
-            // Для звичайних задач - нагадування користувача
+            // For regular tasks - user reminders
             scheduleUserTaskNotifications(createdTask).catch(err => 
                console.error('Error scheduling user task notification:', err)
             );
@@ -190,7 +196,7 @@ export async function addTask(taskData) {
 }
 
 /**
- * Получает все задачи пользователя
+ * Gets all user tasks
  */
 export async function getUserTasks() {
    try {
@@ -207,7 +213,7 @@ export async function getUserTasks() {
          ...doc.data(),
       }));
 
-      // Сортируем по времени на клиенте
+      // Sort by time on the client
       return tasks.sort((a, b) => {
          // Сначала по дате
          const dateA = a.dateTimestamp?.toMillis() || 0;
@@ -215,7 +221,7 @@ export async function getUserTasks() {
          if (dateA !== dateB) {
             return dateA - dateB;
          }
-         // Затем по времени
+         // Then by time
          const timeA = a.timeDilation ? a.fromTime : a.time;
          const timeB = b.timeDilation ? b.fromTime : b.time;
          if (!timeA) return 1;
@@ -229,7 +235,7 @@ export async function getUserTasks() {
 }
 
 /**
- * Получает задачи пользователя по дате
+ * Gets user tasks by date
  */
 export async function getTasksByDate(dateString) {
    try {
@@ -250,7 +256,7 @@ export async function getTasksByDate(dateString) {
          ...doc.data(),
       }));
 
-      // Сортируем по времени
+      // Sort by time
       return tasks.sort((a, b) => {
          const timeA = a.timeDilation ? a.fromTime : a.time;
          const timeB = b.timeDilation ? b.fromTime : b.time;
@@ -275,7 +281,7 @@ export function subscribeToUserTasks(callback) {
       return () => {};
    }
 
-   // Подписываемся на свои задачи и глобальные задачи
+   // Subscribe to own tasks and global tasks
    const userTasksQuery = query(collection(db, 'tasks'), where('userId', '==', user.uid));
    const globalTasksQuery = query(collection(db, 'tasks'), where('isGlobal', '==', true));
 
@@ -287,16 +293,16 @@ export function subscribeToUserTasks(callback) {
    let globalTasksLoaded = false;
 
    const mergeAndSortTasks = async () => {
-      // Объединяем задачи и убираем дубликаты
+      // Merge tasks and remove duplicates
       const allTasks = [...userTasks];
       globalTasks.forEach(globalTask => {
-         // Не добавляем, если это уже есть в своих задачах
+         // Don't add if already in own tasks
          if (!allTasks.find(t => t.id === globalTask.id)) {
             allTasks.push(globalTask);
          }
       });
 
-      // Сортируем
+      // Sort
       const sorted = allTasks.sort((a, b) => {
          const dateA = a.dateTimestamp?.toMillis?.() || 0;
          const dateB = b.dateTimestamp?.toMillis?.() || 0;
@@ -308,17 +314,17 @@ export function subscribeToUserTasks(callback) {
          return timeA.localeCompare(timeB);
       });
 
-      // Плануємо повідомлення для задач
+      // Schedule notifications for tasks
       for (const task of sorted) {
          try {
             if (task.isGlobal) {
-               // Для глобальних задач - перевіряємо, чи користувач приєднався
+               // For global tasks - check if user has joined
                const participants = task.participants || [];
                if (participants.includes(user.uid)) {
                   await scheduleGlobalTaskJoinedNotifications(task);
                }
             } else {
-               // Для звичайних задач користувача
+               // For regular user tasks
                await scheduleUserTaskNotifications(task);
             }
          } catch (error) {
@@ -326,8 +332,8 @@ export function subscribeToUserTasks(callback) {
          }
       }
 
-      // Викликаємо callback після того, як хоча б один з запитів завантажився
-      // Це гарантує, що глобальні таски будуть показані навіть якщо своїх тасків немає
+      // Call callback after at least one query has loaded
+      // This ensures that global tasks will be shown even if there are no own tasks
       if (userTasksLoaded || globalTasksLoaded) {
          callback(sorted);
       }
@@ -342,7 +348,7 @@ export function subscribeToUserTasks(callback) {
       mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err));
    }, (error) => {
       console.error('Error subscribing to user tasks:', error);
-      userTasksLoaded = true; // Помечаем как загруженное даже при ошибке
+      userTasksLoaded = true; // Mark as loaded even on error
       callback([]);
    });
 
@@ -355,8 +361,8 @@ export function subscribeToUserTasks(callback) {
       mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err));
    }, (error) => {
       console.error('Error subscribing to global tasks:', error);
-      globalTasksLoaded = true; // Помечаем как загруженное даже при ошибке
-      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err)); // Все равно вызываем merge, чтобы показать хотя бы свои задачи
+      globalTasksLoaded = true; // Mark as loaded even on error
+      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err)); // Still call merge to show at least own tasks
    });
 
    return () => {
@@ -377,14 +383,14 @@ export function subscribeToTasksByDate(dateString, callback) {
       return () => {};
    }
 
-   // Запрос для своих задач по дате
+   // Query for own tasks by date
    const userTasksQuery = query(
       collection(db, 'tasks'),
       where('userId', '==', user.uid),
       where('date', '==', dateString)
    );
 
-   // Запрос для глобальных задач по дате, к которым пользователь приєднався
+   // Query for global tasks by date that the user has joined
    const globalTasksQuery = query(
       collection(db, 'tasks'),
       where('isGlobal', '==', true),
@@ -400,15 +406,15 @@ export function subscribeToTasksByDate(dateString, callback) {
    let globalTasksLoaded = false;
 
    const mergeAndSortTasks = () => {
-      // Фільтруємо глобальні таски зі своїх задач (для адміна - його глобальні таски
-      // повинні відображатись тільки якщо він приєднався, тобто вони будуть в globalTasks)
+      // Filter global tasks from own tasks (for admin - their global tasks
+      // should only appear if they joined, i.e., they will be in globalTasks)
       const filteredUserTasks = userTasks.filter(task => {
-         // Якщо це глобальна задача, виключаємо її зі своїх задач
-         // Вона з'явиться тільки якщо користувач приєднався (через globalTasks)
+         // If it's a global task, exclude it from own tasks
+         // It will only appear if the user has joined (via globalTasks)
          return !task.isGlobal;
       });
       
-      // Объединяем задачи и убираем дубликаты
+      // Merge tasks and remove duplicates
       const allTasks = [...filteredUserTasks];
       globalTasks.forEach(globalTask => {
          if (!allTasks.find(t => t.id === globalTask.id)) {
@@ -416,7 +422,7 @@ export function subscribeToTasksByDate(dateString, callback) {
          }
       });
 
-      // Сортируем по времени
+      // Sort by time
       const sortedTasks = allTasks.sort((a, b) => {
          const timeA = a.timeDilation ? a.fromTime : a.time;
          const timeB = b.timeDilation ? b.fromTime : b.time;
@@ -425,8 +431,8 @@ export function subscribeToTasksByDate(dateString, callback) {
          return timeA.localeCompare(timeB);
       });
 
-      // Викликаємо callback після того, як хоча б один з запитів завантажився
-      // Це гарантує, що глобальні таски будуть показані навіть якщо своїх тасків немає
+      // Call callback after at least one query has loaded
+      // This ensures that global tasks will be shown even if there are no own tasks
       if (userTasksLoaded || globalTasksLoaded) {
          callback(sortedTasks);
       }
@@ -441,7 +447,7 @@ export function subscribeToTasksByDate(dateString, callback) {
       mergeAndSortTasks();
    }, (error) => {
       console.error('Error subscribing to user tasks by date:', error);
-      userTasksLoaded = true; // Помечаем как загруженное даже при ошибке
+      userTasksLoaded = true; // Mark as loaded even on error
       callback([]);
    });
 
@@ -454,8 +460,8 @@ export function subscribeToTasksByDate(dateString, callback) {
       mergeAndSortTasks();
    }, (error) => {
       console.error('Error subscribing to global tasks by date:', error);
-      globalTasksLoaded = true; // Помечаем как загруженное даже при ошибке
-      mergeAndSortTasks(); // Все равно вызываем merge, чтобы показать хотя бы свои задачи
+      globalTasksLoaded = true; // Mark as loaded even on error
+      mergeAndSortTasks(); // Still call merge to show at least own tasks
    });
 
    return () => {
@@ -465,7 +471,7 @@ export function subscribeToTasksByDate(dateString, callback) {
 }
 
 /**
- * Форматирует задачу для отображения в календаре
+ * Formats a task for calendar display
  */
 export function formatTaskForCalendar(task) {
    const isActive = isTaskActive(task);
@@ -492,7 +498,7 @@ export function formatTaskForCalendar(task) {
 }
 
 /**
- * Фильтрует задачи по поисковому запросу (название или описание)
+ * Filters tasks by search query (title or description)
  */
 export function filterTasksBySearch(tasks, searchQuery) {
    if (!searchQuery || searchQuery.trim() === '') {
@@ -508,7 +514,7 @@ export function filterTasksBySearch(tasks, searchQuery) {
 }
 
 /**
- * Фильтрует задачи по выбранным тегам
+ * Filters tasks by selected tags
  */
 export function filterTasksByTags(tasks, selectedTags) {
    if (!selectedTags || selectedTags.length === 0) {
@@ -522,17 +528,17 @@ export function filterTasksByTags(tasks, selectedTags) {
 }
 
 /**
- * Применяет все фильтры к задачам
+ * Applies all filters to tasks
  */
 export function applyTaskFilters(tasks, searchQuery, selectedTags) {
    let filteredTasks = tasks;
 
-   // Применяем поиск
+   // Apply search
    if (searchQuery && searchQuery.trim() !== '') {
       filteredTasks = filterTasksBySearch(filteredTasks, searchQuery);
    }
 
-   // Применяем фильтры по тегам
+   // Apply filters by tags
    if (selectedTags && selectedTags.length > 0) {
       filteredTasks = filterTasksByTags(filteredTasks, selectedTags);
    }
@@ -541,7 +547,7 @@ export function applyTaskFilters(tasks, searchQuery, selectedTags) {
 }
 
 /**
- * Удаляет задачу по ID
+ * Deletes task by ID
  */
 export async function deleteTask(taskId) {
    try {
@@ -550,10 +556,10 @@ export async function deleteTask(taskId) {
          throw new Error('User not authenticated');
       }
 
-      // Видаляємо повідомлення перед видаленням задачі
+      // Delete notifications before deleting task
       await cancelTaskNotifications(taskId);
       
-      // Видаляємо повідомлення з Firestore
+      // Delete messages from Firestore
       const { deleteMessagesByTaskId } = await import('./messagesService');
       await deleteMessagesByTaskId(taskId).catch(err => 
          console.error('Error deleting messages for task:', err)
@@ -568,7 +574,7 @@ export async function deleteTask(taskId) {
 }
 
 /**
- * Добавляет текущего пользователя к участникам события
+ * Adds current user to event participants
  */
 export async function joinEvent(taskId) {
    try {
@@ -579,7 +585,7 @@ export async function joinEvent(taskId) {
 
       const taskRef = doc(db, 'tasks', taskId);
       
-      // Получаем данные события
+      // Get event data
       const taskSnap = await getDoc(taskRef);
       if (!taskSnap.exists()) {
          throw new Error('Event not found');
@@ -588,17 +594,17 @@ export async function joinEvent(taskId) {
       const taskData = taskSnap.data();
       const participants = taskData.participants || [];
       
-      // Проверяем, не присоединен ли уже пользователь
+      // Check if user is already joined
       if (participants.includes(user.uid)) {
          return { success: false, message: 'Już dołączyłeś do tego wydarzenia' };
       }
 
-      // Добавляем пользователя в участники
+      // Add user to participants
       await updateDoc(taskRef, {
          participants: arrayUnion(user.uid)
       });
       
-      // Для глобальных задач автоматически отмечаем как выполненную для этого пользователя
+      // For global tasks automatically mark as completed for this user
       if (taskData.isGlobal === true) {
          await updateDoc(taskRef, {
             [`userCompletions.${user.uid}`]: {
@@ -607,7 +613,7 @@ export async function joinEvent(taskId) {
             }
          });
          
-         // Плануємо повідомлення для приєднаного користувача
+         // Schedule notifications for joined user
          const updatedTask = { id: taskId, ...taskData, participants: [...participants, user.uid] };
          scheduleGlobalTaskJoinedNotifications(updatedTask).catch(err => 
             console.error('Error scheduling joined notifications:', err)
@@ -622,8 +628,8 @@ export async function joinEvent(taskId) {
 }
 
 /**
- * Удаляет текущего пользователя из участников события
- * Для глобальных задач: если время прошло - отмечает как невыполненную, иначе просто удаляет userCompletions
+ * Removes the current user from event participants
+ * For global tasks: if time has passed - marks as incomplete, otherwise just removes userCompletions
  */
 export async function leaveEvent(taskId) {
    try {
@@ -642,25 +648,25 @@ export async function leaveEvent(taskId) {
       const taskData = taskSnap.data();
       const isTaskGlobal = taskData.isGlobal === true;
       
-      // Удаляем пользователя из участников
+      // Remove user from participants
       await updateDoc(taskRef, {
          participants: arrayRemove(user.uid)
       });
 
-      // Видаляємо повідомлення для глобальних задач після від'єднання
+      // Delete notifications for global tasks after disconnection
       if (isTaskGlobal) {
          cancelTaskNotifications(taskId).catch(err => 
             console.error('Error canceling notifications:', err)
          );
       }
 
-      // Для глобальных задач обрабатываем статус выполнения
+      // For global tasks, process completion status
       if (isTaskGlobal) {
          const now = new Date();
          const shouldMarkAsUncompleted = shouldMarkTaskAsUncompleted(taskData, now);
          
          if (shouldMarkAsUncompleted) {
-            // Время прошло - отмечаем как невыполненную
+            // Time has passed - mark as uncompleted
             await updateDoc(taskRef, {
                [`userCompletions.${user.uid}`]: {
                   isCompleted: false,
@@ -669,7 +675,7 @@ export async function leaveEvent(taskId) {
                }
             });
          } else {
-            // Время еще не прошло - просто удаляем userCompletions (задача пропадет из виконаних)
+            // Time has not passed yet - just remove userCompletions (task will disappear from completed)
             await updateDoc(taskRef, {
                [`userCompletions.${user.uid}`]: deleteField()
             });
@@ -684,7 +690,7 @@ export async function leaveEvent(taskId) {
 }
 
 /**
- * Проверяет, является ли текущий пользователь участником события
+ * Checks if the current user is a participant in the event
  */
 export async function isUserJoined(taskId) {
    try {
@@ -711,7 +717,7 @@ export async function isUserJoined(taskId) {
 }
 
 /**
- * Получает количество участников события
+ * Gets the number of event participants
  */
 export async function getParticipantsCount(taskId) {
    try {
@@ -733,7 +739,7 @@ export async function getParticipantsCount(taskId) {
 }
 
 /**
- * Обновляет существующую задачу
+ * Updates existing task
  */
 export async function updateTask(taskId, taskData) {
    try {
@@ -744,7 +750,7 @@ export async function updateTask(taskId, taskData) {
 
       const taskRef = doc(db, 'tasks', taskId);
       
-      // Проверяем существование задачи
+      // Check task existence
       const taskSnap = await getDoc(taskRef);
       if (!taskSnap.exists()) {
          throw new Error('Task not found');
@@ -754,17 +760,17 @@ export async function updateTask(taskId, taskData) {
       const isTaskGlobal = taskDataFromDb.isGlobal === true;
       const userIsAdmin = isAdmin();
 
-      // Если задача админская, только админ может её редактировать
+      // If task is admin's, only admin can edit it
       if (isTaskGlobal && !userIsAdmin) {
          throw new Error('Only admin can edit global tasks');
       }
 
-      // Если задача не админская, проверяем, что пользователь является владельцем
+      // If task is not admin's, check that user is the owner
       if (!isTaskGlobal && taskDataFromDb.userId !== user.uid) {
          throw new Error('You can only edit your own tasks');
       }
 
-      // Обновляем данные
+      // Update data
       const taskDate = parseDate(taskData.date);
       const updateData = {
          name: taskData.name,
@@ -782,13 +788,13 @@ export async function updateTask(taskId, taskData) {
 
       await updateDoc(taskRef, updateData);
       
-      // Видаляємо старі повідомлення з Firestore та оновлюємо заплановані
+      // Delete old messages from Firestore and update scheduled ones
       const { updateMessagesForTask } = await import('./messagesService');
       await updateMessagesForTask(taskId).catch(err => 
          console.error('Error updating messages for task:', err)
       );
       
-      // Оновлюємо повідомлення
+      // Update notifications
       const updatedTask = { id: taskId, ...taskDataFromDb, ...updateData };
       updateTaskNotifications(updatedTask).catch(err => 
          console.error('Error updating task notifications:', err)
@@ -802,14 +808,14 @@ export async function updateTask(taskId, taskData) {
 }
 
 /**
- * Проверяет, можно ли отметить задачу как выполненную
- * Можно отметить от начала выполнения до 30 минут после окончания
+ * Checks if task can be marked as completed
+ * Can be marked from start of execution to 30 minutes after end
  */
 export function canMarkTaskAsCompleted(task) {
    const now = new Date();
    const taskDate = parseDate(task.date);
    
-   // Проверяем, что задача на сегодня или в прошлом
+   // Check that task is today or in the past
    const today = new Date();
    today.setHours(0, 0, 0, 0);
    const taskDateOnly = new Date(taskDate);
@@ -823,7 +829,7 @@ export function canMarkTaskAsCompleted(task) {
       const fromTime = parseTime(task.fromTime, taskDate);
       const toTime = parseTime(task.toTime, taskDate);
       
-      // Можно отметить от начала до 30 минут после окончания
+      // Can be marked from start to 30 minutes after end
       const deadline = new Date(toTime);
       deadline.setMinutes(deadline.getMinutes() + 30);
       
@@ -838,13 +844,13 @@ export function canMarkTaskAsCompleted(task) {
       return { canMark: true };
    } else if (task.time) {
       const taskTime = parseTime(task.time, taskDate);
-      // Считаем час на выполнение
+      // Count one hour for execution
       const taskEndTime = new Date(taskTime);
       taskEndTime.setHours(taskEndTime.getHours() + 1);
       const deadline = new Date(taskEndTime);
       deadline.setMinutes(deadline.getMinutes() + 30);
       
-      // Можно отметить от начала до 30 минут после окончания
+      // Can be marked from start to 30 minutes after end
       if (now < taskTime) {
          return { canMark: false, reason: 'too_early', timeLeft: taskTime - now };
       }
@@ -856,12 +862,12 @@ export function canMarkTaskAsCompleted(task) {
       return { canMark: true };
    }
    
-   // Если нет времени, можно отметить в любой момент в день задачи или позже
+   // If no time, can be marked any moment on task day or later
    return { canMark: true };
 }
 
 /**
- * Отмечает задачу как выполненную
+ * Marks task as completed
  */
 export async function markTaskAsCompleted(taskId) {
    try {
@@ -888,19 +894,19 @@ export async function markTaskAsCompleted(taskId) {
             throw new Error('You must join the event first');
          }
       } else {
-         // Для обычных задач проверяем владельца
+         // For regular tasks, check the owner
          if (taskData.userId !== user.uid) {
             throw new Error('You can only mark your own tasks');
          }
       }
       
-      // Проверяем, можно ли отметить
+      // Check if can be marked
       const canMark = canMarkTaskAsCompleted(taskData);
       if (!canMark.canMark) {
          throw new Error(canMark.reason);
       }
 
-      // Для глобальных задач обновляем в массиве completedBy
+      // For global tasks, update in completedBy array
       if (isTaskGlobal) {
          const completedBy = taskData.completedBy || [];
          if (!completedBy.includes(user.uid)) {
@@ -909,8 +915,8 @@ export async function markTaskAsCompleted(taskId) {
                completedAt: Timestamp.now(),
             });
          }
-         // Также отмечаем как выполненную для текущего пользователя
-         // Используем отдельное поле для отслеживания статуса пользователя
+         // Also mark as completed for current user
+         // Use separate field to track user status
          await updateDoc(taskRef, {
             [`userCompletions.${user.uid}`]: {
                isCompleted: true,
@@ -934,7 +940,7 @@ export async function markTaskAsCompleted(taskId) {
 }
 
 /**
- * Отмечает задачу как невыполненную
+ * Marks task as uncompleted
  */
 export async function markTaskAsUncompleted(taskId) {
    try {
@@ -960,7 +966,7 @@ export async function markTaskAsUncompleted(taskId) {
          if (!participants.includes(user.uid)) {
             throw new Error('You must join the event first');
          }
-         // Обновляем статус для текущего пользователя
+         // Update status for current user
          await updateDoc(taskRef, {
             [`userCompletions.${user.uid}`]: {
                isCompleted: false,
@@ -969,7 +975,7 @@ export async function markTaskAsUncompleted(taskId) {
             }
          });
       } else {
-         // Для обычных задач проверяем владельца
+         // For regular tasks, check the owner
          if (taskData.userId !== user.uid) {
             throw new Error('You can only mark your own tasks');
          }
@@ -987,14 +993,14 @@ export async function markTaskAsUncompleted(taskId) {
    }
 }
 
-// Кэш для отслеживания последнего вызова autoMarkUncompletedTasks
+// Cache for tracking the last call to autoMarkUncompletedTasks
 let lastAutoMarkCall = 0;
-const AUTO_MARK_COOLDOWN = 60000; // 1 минута между вызовами
+const AUTO_MARK_COOLDOWN = 60000; // 1 minute between calls
 
 /**
- * Автоматически отмечает задачи как невыполненные, если прошло более 30 минут после окончания
- * Эта функция должна вызываться периодически или при загрузке задач
- * Для глобальных задач проверяет, является ли пользователь участником
+ * Automatically marks tasks as uncompleted if more than 30 minutes have passed after the end
+ * This function should be called periodically or when loading tasks
+ * For global tasks checks if the user is a participant
  */
 export async function autoMarkUncompletedTasks() {
    try {
@@ -1003,7 +1009,7 @@ export async function autoMarkUncompletedTasks() {
          return;
       }
 
-      // Предотвращаем слишком частые вызовы
+      // Prevent too frequent calls
       const now = Date.now();
       if (now - lastAutoMarkCall < AUTO_MARK_COOLDOWN) {
          return { success: true, marked: 0, skipped: true };
@@ -1013,7 +1019,7 @@ export async function autoMarkUncompletedTasks() {
       const nowDate = new Date();
       const batch = [];
       
-      // Получаем все задачи пользователя
+      // Get all user tasks
       const userTasksQuery = query(
          collection(db, 'tasks'),
          where('userId', '==', user.uid)
@@ -1024,22 +1030,22 @@ export async function autoMarkUncompletedTasks() {
       userTasksSnapshot.forEach((docSnap) => {
          const task = { id: docSnap.id, ...docSnap.data() };
          
-         // Проверяем, что задача принадлежит пользователю (для безопасности)
+         // Check that task belongs to user (for security)
          if (task.userId !== user.uid) {
             return;
          }
          
-         // Пропускаем уже отмеченные как выполненные задачи
+         // Skip already marked as completed tasks
          if (task.isCompleted === true) {
             return;
          }
          
-         // Если уже отмечена как невыполненная - пропускаем
+         // If already marked as uncompleted - skip
          if (task.isUncompleted === true) {
             return;
          }
          
-         // Проверяем, прошло ли 30 минут после окончания
+         // Check if 30 minutes have passed after the end
          const shouldMark = shouldMarkTaskAsUncompleted(task, nowDate);
          if (shouldMark) {
             batch.push({
@@ -1052,7 +1058,7 @@ export async function autoMarkUncompletedTasks() {
          }
       });
       
-      // Получаем глобальные задачи, к которым присоединился пользователь
+      // Get global tasks that the user has joined
       const globalTasksQuery = query(
          collection(db, 'tasks'),
          where('isGlobal', '==', true)
@@ -1063,16 +1069,16 @@ export async function autoMarkUncompletedTasks() {
       globalTasksSnapshot.forEach((docSnap) => {
          const task = { id: docSnap.id, ...docSnap.data() };
          
-         // Проверяем, присоединен ли пользователь
+         // Check if user has joined
          const participants = task.participants || [];
          const isUserParticipant = participants.includes(user.uid);
          
-         // Если пользователь не присоединился, отмечаем как невыполненную через 30 минут после окончания
+         // If user has not joined, mark as uncompleted after 30 minutes of the end
          if (!isUserParticipant) {
-            // Проверяем, не отмечено ли уже
+            // Check if already marked
             const userCompletion = task.userCompletions?.[user.uid];
             if (userCompletion && userCompletion.isUncompleted === true) {
-               return; // Уже отмечено как невыполненная
+               return; // Already marked as uncompleted
             }
             
             const shouldMark = shouldMarkTaskAsUncompleted(task, nowDate);
@@ -1091,13 +1097,13 @@ export async function autoMarkUncompletedTasks() {
             return;
          }
          
-         // Если пользователь присоединился, проверяем его статус выполнения
+         // If user has joined, check their completion status
          const userCompletion = task.userCompletions?.[user.uid];
          if (userCompletion && (userCompletion.isCompleted === true || userCompletion.isUncompleted === true)) {
-            return; // Уже отмечено
+            return; // Already marked
          }
          
-         // Если присоединился, но не отмечено - не трогаем (присоединение = автоматически выполнено)
+         // If joined but not marked - don't touch (joining = automatically completed)
       });
       
       // Выполняем обновления батчами по 500 (лимит Firestore)
