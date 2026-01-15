@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount, isAdmin, markTaskAsCompleted, markTaskAsUncompleted, canMarkTaskAsCompleted, canJoinEvent, parseDate, parseTime } from '../../services/tasksService';
 import { getUsersDataByIds, getUserDataById } from '../../services/userService';
 import { useI18n } from '../../i18n/I18nContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../FireBaseConfig';
 
@@ -50,6 +51,7 @@ function formatDateForDisplay(dateString, t) {
 
 export default function EventDetailsModal({ visible, event, onClose, onDelete }) {
    const { t } = useI18n();
+   const { colors } = useTheme();
    const [isJoined, setIsJoined] = useState(false);
    const [participantsCount, setParticipantsCount] = useState(0);
    const [isLoading, setIsLoading] = useState(false);
@@ -327,27 +329,27 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
          onRequestClose={onClose}
       >
          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
+            <View style={[styles.modalContainer, { backgroundColor: colors.cardBackground }]}>
                {/* Header */}
-               <View style={styles.header}>
+               <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>
                   <View style={styles.headerTop}>
-                     <Pressable onPress={onClose} style={styles.closeButton}>
-                        <Ionicons name="close" size={28} color="#262c3b" />
+                     <Pressable onPress={onClose} style={[styles.closeButton, { backgroundColor: colors.iconBg }]}>
+                        <Ionicons name="close" size={28} color={colors.text} />
                      </Pressable>
-                     <Text style={styles.headerLabel}>{t('event.details')}</Text>
+                     <Text style={[styles.headerLabel, { color: colors.text }]}>{t('event.details')}</Text>
                      {(userIsAdmin || !event.isGlobal) && (
-                        <Pressable onPress={handleDelete} style={styles.deleteButton}>
-                           <Ionicons name="trash-outline" size={24} color="#f44336" />
+                        <Pressable onPress={handleDelete} style={[styles.deleteButton, { backgroundColor: colors.iconBg }]}>
+                           <Ionicons name="trash-outline" size={24} color={colors.error} />
                         </Pressable>
                      )}
                      {!userIsAdmin && event.isGlobal && <View style={styles.deleteButtonPlaceholder} />}
                   </View>
 
                   <View style={styles.headerContent}>
-                     <View style={[styles.iconCircle, { backgroundColor: event.color || '#2f7cff' }]}>
+                     <View style={[styles.iconCircle, { backgroundColor: event.color || colors.primary }]}>
                         <Ionicons name="calendar" size={32} color="#fff" />
                      </View>
-                     <Text style={styles.eventTitle}>{event.title}</Text>
+                     <Text style={[styles.eventTitle, { color: colors.text }]}>{event.title}</Text>
                   </View>
                </View>
 
@@ -361,28 +363,28 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   {event.subtitle && (
                      <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                           <Ionicons name="document-text-outline" size={22} color="#2f7cff" />
-                           <Text style={styles.sectionTitle}>{t('event.description')}</Text>
+                           <Ionicons name="document-text-outline" size={22} color={colors.primary} />
+                           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('event.description')}</Text>
                         </View>
-                        <Text style={styles.descriptionText}>{event.subtitle}</Text>
+                        <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>{event.subtitle}</Text>
                      </View>
                   )}
 
                   {/* Date & Time */}
                   <View style={styles.section}>
                      <View style={styles.sectionHeader}>
-                        <Ionicons name="time-outline" size={22} color="#2f7cff" />
-                        <Text style={styles.sectionTitle}>{t('event.dateTime')}</Text>
+                        <Ionicons name="time-outline" size={22} color={colors.primary} />
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('event.dateTime')}</Text>
                      </View>
                      <View style={styles.infoRow}>
                         <View style={styles.infoItem}>
-                           <Ionicons name="calendar-outline" size={18} color="#9aa7bd" />
-                           <Text style={styles.infoText}>{formatDateForDisplay(event.date, t)}</Text>
+                           <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+                           <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatDateForDisplay(event.date, t)}</Text>
                         </View>
                         {event.time && (
                            <View style={styles.infoItem}>
-                              <Ionicons name="time-outline" size={18} color="#9aa7bd" />
-                              <Text style={styles.infoText}>{formatTimeForDisplay(event.time)}</Text>
+                              <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+                              <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatTimeForDisplay(event.time)}</Text>
                            </View>
                         )}
                      </View>
@@ -666,7 +668,6 @@ const styles = StyleSheet.create({
       paddingHorizontal: 20,
    },
    modalContainer: {
-      backgroundColor: '#fff',
       borderRadius: 30,
       maxHeight: '80%',
       minHeight: '60%',
@@ -683,7 +684,6 @@ const styles = StyleSheet.create({
       paddingTop: 20,
       paddingBottom: 30,
       paddingHorizontal: 20,
-      backgroundColor: '#fff',
    },
    headerTop: {
       flexDirection: 'row',
@@ -695,20 +695,17 @@ const styles = StyleSheet.create({
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#f4f5fb',
       alignItems: 'center',
       justifyContent: 'center',
    },
    headerLabel: {
       fontSize: 16,
       fontWeight: '600',
-      color: '#262c3b',
    },
    deleteButton: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#ffebee',
       alignItems: 'center',
       justifyContent: 'center',
    },
@@ -735,7 +732,6 @@ const styles = StyleSheet.create({
    eventTitle: {
       fontSize: 26,
       fontWeight: '700',
-      color: '#262c3b',
       textAlign: 'center',
       paddingHorizontal: 20,
    },
@@ -758,13 +754,11 @@ const styles = StyleSheet.create({
    sectionTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: '#262c3b',
       marginLeft: 8,
    },
    descriptionText: {
       fontSize: 15,
       lineHeight: 24,
-      color: '#5a6477',
       paddingLeft: 30,
    },
    infoRow: {
@@ -777,7 +771,6 @@ const styles = StyleSheet.create({
    },
    infoText: {
       fontSize: 15,
-      color: '#5a6477',
       marginLeft: 10,
    },
    tagContainer: {

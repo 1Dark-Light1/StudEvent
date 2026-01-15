@@ -4,22 +4,33 @@
 import React from 'react';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function SearchBar({ value, onChangeText, onClear, placeholder = 'Search events...' }) {
+   const { colors } = useTheme();
    return (
-      <View style={styles.container}>
-         <Ionicons name="search" size={22} color="#2f7cff" style={styles.searchIcon} />
+      <View style={[
+         styles.container,
+         { 
+            backgroundColor: colors.cardBackground,
+            borderColor: colors.border 
+         }
+      ]}>
+         <Ionicons name="search" size={22} color={colors.primary} style={styles.searchIcon} />
          <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor="#a0a5ba"
+            placeholderTextColor={colors.textMuted}
             autoCorrect={false}
          />
          {value.length > 0 && (
-            <Pressable onPress={onClear} style={styles.clearButton}>
-               <Ionicons name="close-circle" size={20} color="#a0a5ba" />
+            <Pressable 
+               onPress={onClear} 
+               style={[styles.clearButton, { backgroundColor: colors.iconBg }]}
+            >
+               <Ionicons name="close-circle" size={20} color={colors.textMuted} />
             </Pressable>
          )}
       </View>
@@ -30,7 +41,6 @@ const styles = StyleSheet.create({
    container: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#fff',
       borderRadius: 16,
       paddingHorizontal: 16,
       paddingVertical: 14,
@@ -41,7 +51,6 @@ const styles = StyleSheet.create({
       shadowOffset: { width: 0, height: 4 },
       elevation: 3,
       borderWidth: 1,
-      borderColor: '#e8eaf2',
    },
    searchIcon: {
       marginRight: 12,
@@ -49,13 +58,11 @@ const styles = StyleSheet.create({
    input: {
       flex: 1,
       fontSize: 15,
-      color: '#262c3b',
       fontFamily: 'System',
       fontWeight: '500',
    },
    clearButton: {
       padding: 6,
-      backgroundColor: '#f4f5fb',
       borderRadius: 20,
       width: 32,
       height: 32,

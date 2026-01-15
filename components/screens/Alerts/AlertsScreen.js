@@ -3,9 +3,11 @@
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, RefreshControl, ActivityIndicator, Platform, Animated, PanResponder } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { getScheduledNotifications } from '../../../services/notificationsService';
 import { subscribeToCurrentMonthMessages, cleanupOldMessages, getHiddenMessages, hideMessage } from '../../../services/messagesService';
 import { doc as firestoreDoc, getDoc } from 'firebase/firestore';
@@ -33,8 +35,9 @@ function formatTimeForDisplay(date) {
 }
 
 export default function Alerts({ navigation, route }) {
-   const activeRoute = route?.name ?? 'Alerts';
-   const { t } = useI18n();
+  const activeRoute = route?.name ?? 'Alerts';
+  const { t } = useI18n();
+  const { colors } = useTheme();
    const [notifications, setNotifications] = useState([]);
    const [messages, setMessages] = useState([]);
    const [hiddenMessageIds, setHiddenMessageIds] = useState(new Set()); // Зберігаємо ID прихованих повідомлень
@@ -232,10 +235,10 @@ export default function Alerts({ navigation, route }) {
    };
 
    return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
          {/* Хедер подібний до CompletedTasksScreen */}
          <View style={styles.header}>
-            <Text style={styles.title}>{t('alerts.title')}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('alerts.title')}</Text>
          </View>
 
          <ScrollView
@@ -245,14 +248,14 @@ export default function Alerts({ navigation, route }) {
          >
             {loading ? (
                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#3b85ff" />
-                  <Text style={styles.loadingText}>{t('alerts.loading')}</Text>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('alerts.loading')}</Text>
                </View>
             ) : allMessages.sortedDates.length === 0 ? (
                <View style={styles.emptyContainer}>
-                  <Ionicons name="notifications-off-outline" size={64} color="#d0d8ec" />
-                  <Text style={styles.emptyTitle}>{t('alerts.noNotifications')}</Text>
-                  <Text style={styles.emptySubtitle}>{t('alerts.noNotificationsDesc')}</Text>
+                  <Ionicons name="notifications-off-outline" size={64} color={colors.textMuted} />
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('alerts.noNotifications')}</Text>
+                  <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>{t('alerts.noNotificationsDesc')}</Text>
                </View>
             ) : (
                <View style={styles.messagesContainer}>
@@ -263,18 +266,22 @@ export default function Alerts({ navigation, route }) {
                      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
                      return (
                         <View key={dateKey} style={styles.dateGroup}>
-                           <Text style={styles.dateLabel}>
+                           <Text style={[styles.dateLabel, { color: colors.textMuted }]}>
                               {formatDateForDisplay(dateObj, t)}
                            </Text>
-                           {dateMessages.map((message, index) => (
-                              <SwipeableMessageCard
-                                 key={message.identifier || index}
-                                 message={message}
-                                 onHide={handleHideMessage}
-                                 getNotificationTypeLabel={getNotificationTypeLabel}
-                                 t={t}
-                              />
-                           ))}
+                           {dateMessages.map((message, index) => {
+                              const isLast = index === dateMessages.length - 1;
+                              return (
+                                 <SwipeableMessageCard
+                                    key={message.identifier || index}
+                                    message={message}
+                                    onHide={handleHideMessage}
+                                    getNotificationTypeLabel={getNotificationTypeLabel}
+                                    t={t}
+                                    isLast={isLast}
+                                 />
+                              );
+                           })}
                         </View>
                      );
                   })}
@@ -288,7 +295,8 @@ export default function Alerts({ navigation, route }) {
 }
 
 // Компонент для повідомлення з можливістю свайпу
-function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t }) {
+function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, isLast = false }) {
+   const { colors } = useTheme();
    const translateX = new Animated.Value(0);
    const [isHidden, setIsHidden] = useState(false);
 
@@ -331,8 +339,15 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t }) 
 
    const triggerDate = message.trigger instanceof Date ? message.trigger : new Date(message.trigger);
    const task = message.task;
+   const isGlobal = task && task.isGlobal === true;
    const displayTitle = message.title || (getNotificationTypeLabel ? getNotificationTypeLabel(message.type) : 'Повідомлення');
    const displayBody = message.body || (task ? task.name : '');
+   
+   // Для глобальних задач використовуємо градієнт як на Home
+   const adminTagColor = isGlobal ? (task.taskColor || colors.primary) : colors.primary;
+   const adminGradientColors = isGlobal
+      ? [adminTagColor, `${adminTagColor}E6`, `${adminTagColor}CC`, `${adminTagColor}99`]
+      : null;
 
    return (
       <Animated.View
@@ -344,49 +359,52 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t }) 
          ]}
          {...panResponder.panHandlers}
       >
-         <View style={styles.messageCard}>
-            <View style={styles.messageContent}>
-               <View style={styles.messageHeader}>
-                  <Text style={styles.messageTitle}>{displayTitle}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#9aa7bd" />
-               </View>
-               {displayBody && (
-                  <Text style={styles.messageBody}>{displayBody}</Text>
-               )}
-               <View style={styles.messageMeta}>
-                  <View style={styles.messageMetaItem}>
-                     <Ionicons name="time-outline" size={14} color="#9aa8c2" />
-                     <Text style={styles.messageMetaText}>
-                        {formatTimeForDisplay(triggerDate)}
-                     </Text>
-                  </View>
-                  {task && task.date && (
-                     <>
-                        <View style={styles.messageMetaItem}>
-                           <Ionicons name="calendar-outline" size={14} color="#9aa8c2" />
-                           <Text style={styles.messageMetaText}>{task.date}</Text>
-                        </View>
-                        {task.timeDilation && task.fromTime && task.toTime && (
-                           <View style={styles.messageMetaItem}>
-                              <Text style={styles.messageMetaText}>
-                                 {task.fromTime} - {task.toTime}
-                              </Text>
-                           </View>
-                        )}
-                        {task.time && !task.timeDilation && (
-                           <View style={styles.messageMetaItem}>
-                              <Text style={styles.messageMetaText}>{task.time}</Text>
-                           </View>
-                        )}
-                        {task.tagText && (
-                           <View style={[styles.messageTag, { backgroundColor: task.taskColor || '#2f7cff' }]}>
-                              <Text style={styles.messageTagText}>{task.tagText}</Text>
-                           </View>
-                        )}
-                     </>
-                  )}
-               </View>
+         <View style={styles.messageRow}>
+            <Text style={[styles.messageTimeText, { color: colors.textMuted }]}>{formatTimeForDisplay(triggerDate)}</Text>
+            <View style={styles.messageTimeline}>
+               <View 
+                  style={[
+                     styles.messageBullet, 
+                     { backgroundColor: isGlobal ? adminTagColor : colors.primary },
+                     isGlobal && styles.messageBulletGlobal
+                  ]} 
+               />
+               {!isLast && <View style={[styles.messageTimelineLine, { backgroundColor: colors.border }]} />}
             </View>
+            {isGlobal ? (
+               <LinearGradient
+                  colors={adminGradientColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.messageCardGlobal}
+               >
+                  <View style={styles.messageContent}>
+                     <Text style={styles.messageTitleGlobal}>{displayTitle}</Text>
+                     {displayBody && (
+                        <Text style={styles.messageBodyGlobal}>{displayBody}</Text>
+                     )}
+                     {task && task.tagText && (
+                        <View style={[styles.messageTag, { backgroundColor: adminTagColor }]}>
+                           <Text style={styles.messageTagText}>{task.tagText}</Text>
+                        </View>
+                     )}
+                  </View>
+               </LinearGradient>
+            ) : (
+               <View style={[styles.messageCard, { backgroundColor: colors.cardBackground }]}>
+                  <View style={styles.messageContent}>
+                     <Text style={[styles.messageTitle, { color: colors.text }]}>{displayTitle}</Text>
+                     {displayBody && (
+                        <Text style={[styles.messageBody, { color: colors.textSecondary }]}>{displayBody}</Text>
+                     )}
+                     {task && task.tagText && (
+                        <View style={[styles.messageTag, { backgroundColor: task.taskColor || colors.primary }]}>
+                           <Text style={styles.messageTagText}>{task.tagText}</Text>
+                        </View>
+                     )}
+                  </View>
+               </View>
+            )}
          </View>
       </Animated.View>
    );
@@ -395,7 +413,6 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t }) 
 const styles = StyleSheet.create({
    screen: {
       flex: 1,
-      backgroundColor: '#f6f7fb',
    },
    scrollView: {
       flex: 1,
@@ -413,7 +430,6 @@ const styles = StyleSheet.create({
    title: {
       fontSize: 32,
       fontWeight: '700',
-      color: '#20283f',
       textAlign: 'center',
    },
    loadingContainer: {
@@ -423,7 +439,6 @@ const styles = StyleSheet.create({
    loadingText: {
       marginTop: 16,
       fontSize: 15,
-      color: '#7e889e',
    },
    emptyContainer: {
       alignItems: 'center',
@@ -433,12 +448,10 @@ const styles = StyleSheet.create({
       marginTop: 24,
       fontSize: 20,
       fontWeight: '600',
-      color: '#1f2b3f',
       marginBottom: 8,
    },
    emptySubtitle: {
       fontSize: 15,
-      color: '#7e889e',
       textAlign: 'center',
       paddingHorizontal: 40,
    },
@@ -451,58 +464,85 @@ const styles = StyleSheet.create({
    dateLabel: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#9aa8c2',
       marginBottom: 12,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
    },
    messageCardWrapper: {
-      marginBottom: 12,
+      marginBottom: 14,
+   },
+   messageRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+   },
+   messageTimeText: {
+      width: 52,
+      fontWeight: '600',
+   },
+   messageTimeline: {
+      alignItems: 'center',
+      marginRight: 12,
+      alignSelf: 'stretch',
+   },
+   messageBullet: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+   },
+   messageBulletGlobal: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+   },
+   messageTimelineLine: {
+      width: 2,
+      flex: 1,
+      marginTop: 4,
+      minHeight: 48,
    },
    messageCard: {
-      backgroundColor: '#fff',
-      borderRadius: 16,
-      padding: 16,
+      flex: 1,
+      borderRadius: 14,
+      padding: 14,
       shadowColor: '#000',
       shadowOpacity: 0.05,
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 },
    },
+   messageCardGlobal: {
+      flex: 1,
+      borderRadius: 14,
+      padding: 14,
+      paddingBottom: 16,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      minHeight: 70,
+   },
    messageContent: {
       flex: 1,
-   },
-   messageHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
    },
    messageTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: '#1a2c4f',
-      flex: 1,
+      marginBottom: 4,
+   },
+   messageTitleGlobal: {
+      fontSize: 15,
+      fontWeight: '600',
+      marginBottom: 6,
+      color: '#fff',
    },
    messageBody: {
-      fontSize: 14,
-      color: '#5a6477',
-      lineHeight: 20,
-      marginBottom: 12,
-   },
-   messageMeta: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: 12,
-   },
-   messageMetaItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-   },
-   messageMetaText: {
       fontSize: 12,
-      color: '#9aa8c2',
+      lineHeight: 18,
+      marginBottom: 8,
+   },
+   messageBodyGlobal: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.9)',
+      marginBottom: 8,
    },
    messageTag: {
       paddingHorizontal: 10,

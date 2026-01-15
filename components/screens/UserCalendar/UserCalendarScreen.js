@@ -15,6 +15,7 @@ import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive, applyTaskF
 import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 /**
@@ -119,6 +120,7 @@ function calculateWeekOffset(targetDateString) {
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
    const { t } = useI18n();
+   const { colors } = useTheme();
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
@@ -374,7 +376,7 @@ export default function UserCalendar({ navigation, route }) {
    };
 
    return (
-      <View style={styles.screen} {...panResponder.panHandlers}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]} {...panResponder.panHandlers}>
          <ScrollView 
             contentContainerStyle={styles.scroll} 
             showsVerticalScrollIndicator={false}
@@ -382,43 +384,55 @@ export default function UserCalendar({ navigation, route }) {
                <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  colors={['#2f7cff']}
-                  tintColor="#2f7cff"
+                  colors={[colors.primary]}
+                  tintColor={colors.primary}
                   progressViewOffset={Platform.OS === 'ios' ? 100 : 0}
                />
             }
          >
             <View style={styles.headerRow}>
                <View>
-                  <Text style={styles.dateOverline}>{formatDateForDisplay(activeDate, t)}</Text>
-                  <Text style={styles.title}>{headerLabel}</Text>
+                  <Text style={[styles.dateOverline, { color: colors.textMuted }]}>{formatDateForDisplay(activeDate, t)}</Text>
+                  <Text style={[styles.title, { color: colors.text }]}>{headerLabel}</Text>
                </View>
 
-               <View style={styles.avatar}>
+               <View style={[styles.avatar, { backgroundColor: colors.avatarBg }]}>
                   <Pressable     
                      onPress={() => navigation.navigate('Settings')}
                      style={({ pressed }) => ({opacity: pressed ? 0.5 : 1, })}
                   >
-                     <Ionicons name="person" size={24} color="#262c3b" />
+                     <Ionicons name="person" size={24} color={colors.text} />
                   </Pressable>
                </View>
 
             </View>
 
-            <View style={styles.dayStrip}>
+            <View style={[styles.dayStrip, { backgroundColor: colors.cardBackground }]}>
                {stripDays.map((day) => {
                   const isActive = day.dateString === activeDate;
                   const isTodayDate = day.dateString === todayDateString;
                   return (
                      <Pressable
                         key={day.dateString}
-                        style={[styles.dayChip, isActive && styles.dayChipActive]}
+                        style={[
+                           styles.dayChip,
+                           { backgroundColor: colors.cardBackground },
+                           isActive && [styles.dayChipActive, { backgroundColor: colors.primary }]
+                        ]}
                         onPress={() => setActiveDate(day.dateString)}
                      >
-                        <Text style={[styles.dayLabel, isActive && styles.dayLabelActive]}>{day.label}</Text>
-                        <Text style={[styles.dayNumber, isActive && styles.dayNumberActive]}>{day.date}</Text>
+                        <Text style={[
+                           styles.dayLabel,
+                           { color: colors.textSecondary },
+                           isActive && [styles.dayLabelActive, { color: '#fff' }]
+                        ]}>{day.label}</Text>
+                        <Text style={[
+                           styles.dayNumber,
+                           { color: colors.text },
+                           isActive && [styles.dayNumberActive, { color: '#fff' }]
+                        ]}>{day.date}</Text>
                         {isTodayDate && !isActive && (
-                           <View style={styles.todayIndicator} />
+                           <View style={[styles.todayIndicator, { backgroundColor: colors.primary }]} />
                         )}
                      </Pressable>
                   );
@@ -439,17 +453,17 @@ export default function UserCalendar({ navigation, route }) {
                onClearFilters={handleClearFilters}
             />
 
-            <View style={styles.timelineWrapper}>
+            <View style={[styles.timelineWrapper, { backgroundColor: colors.cardBackground }]}>
                {isLoading ? (
                   <View style={styles.loadingState}>
-                     <ActivityIndicator size="large" color="#2f7cff" />
-                     <Text style={styles.loadingText}>{t('calendar.loadingTasks')}</Text>
+                     <ActivityIndicator size="large" color={colors.primary} />
+                     <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('calendar.loadingTasks')}</Text>
                   </View>
                ) : tasks.length === 0 ? (
-                  <View style={styles.emptyState}>
-                     <Ionicons name="sunny" size={28} color="#d0d8ec" />
-                     <Text style={styles.emptyTitle}>{t('calendar.nothingPlanned')}</Text>
-                     <Text style={styles.emptySubtitle}>{t('calendar.addNewTask')}</Text>
+                  <View style={[styles.emptyState, { backgroundColor: colors.cardBackground }]}>
+                     <Ionicons name="sunny" size={28} color={colors.textMuted} />
+                     <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('calendar.nothingPlanned')}</Text>
+                     <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>{t('calendar.addNewTask')}</Text>
                   </View>
                ) : (
                   tasks.map((event, index) => {
@@ -465,7 +479,7 @@ export default function UserCalendar({ navigation, route }) {
 
                      return (
                         <View key={event.id} style={styles.eventRow}>
-                           <Text style={styles.eventTime}>{formatTimeForDisplay(event.time)}</Text>
+                           <Text style={[styles.eventTime, { color: colors.textMuted }]}>{formatTimeForDisplay(event.time)}</Text>
                            <View style={styles.nodeColumn}>
                               <View
                                  style={[
@@ -559,13 +573,13 @@ export default function UserCalendar({ navigation, route }) {
                            ) : (
                               // Обычная задача
                               <Pressable 
-                                 style={styles.eventCard}
+                                 style={[styles.eventCard, { backgroundColor: colors.surface }]}
                                  onPress={() => handleEventPress(event)}
                               >
-                                 <Text style={styles.eventTitle}>
+                                 <Text style={[styles.eventTitle, { color: colors.text }]}>
                                     {event.title}
                                  </Text>
-                                 <Text style={styles.eventSubtitle}>
+                                 <Text style={[styles.eventSubtitle, { color: colors.textSecondary }]}>
                                     {event.subtitle}
                                  </Text>
                               </Pressable>
@@ -594,7 +608,6 @@ export default function UserCalendar({ navigation, route }) {
 const styles = StyleSheet.create({
    screen: {
       flex: 1,
-      backgroundColor: '#f6f7fb',
    },
    scroll: {
       paddingTop: 60,
@@ -608,20 +621,17 @@ const styles = StyleSheet.create({
       marginBottom: 26,
    },
    dateOverline: {
-      color: '#a2aabf',
       fontSize: 14,
    },
    title: {
       fontSize: 36,
       fontWeight: '700',
-      color: '#20283f',
       marginTop: 4,
    },
    avatar: {
       width: 52,
       height: 52,
       borderRadius: 20,
-      backgroundColor: '#e7eaf5',
       alignItems: 'center',
       justifyContent: 'center',
    },
@@ -669,7 +679,6 @@ const styles = StyleSheet.create({
       fontSize: 20,
    },
    timelineWrapper: {
-      backgroundColor: '#fff',
       borderRadius: 34,
       paddingHorizontal: 22,
       paddingTop: 24,
@@ -721,7 +730,6 @@ const styles = StyleSheet.create({
    },
    eventCard: {
       flex: 1,
-      backgroundColor: '#f7f9fe',
       borderRadius: 20,
       padding: 18,
       shadowColor: '#000',
@@ -764,7 +772,6 @@ const styles = StyleSheet.create({
       flex: 1,
    },
    eventTitle: {
-      color: '#1f2b3f',
       fontWeight: '600',
       fontSize: 16,
       marginBottom: 6,
@@ -773,7 +780,6 @@ const styles = StyleSheet.create({
       color: '#fff',
    },
    eventSubtitle: {
-      color: '#9aa7bd',
       fontSize: 12,
       lineHeight: 18,
    },
@@ -855,18 +861,15 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       paddingVertical: 28,
       borderRadius: 20,
-      backgroundColor: '#f7f9fe',
       marginBottom: 12,
    },
    emptyTitle: {
       marginTop: 12,
       fontSize: 16,
       fontWeight: '600',
-      color: '#1f2b3f',
    },
    emptySubtitle: {
       marginTop: 4,
-      color: '#9aa7bd',
       fontSize: 12,
    },
    loadingState: {

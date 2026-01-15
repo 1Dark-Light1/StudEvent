@@ -18,9 +18,11 @@ import SearchBar from '../../ui/SearchBar';
 import { auth } from '../../../FireBaseConfig';
 import { addTask, updateTask, subscribeToUserTasks, isAdmin } from '../../../services/tasksService';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function AddTaskScreen({ navigation, route }) {
    const { t } = useI18n();
+   const { colors } = useTheme();
    const [mode, setMode] = useState('build'); // 'build' or 'change'
    const [name, setName] = useState('');
    const [description, setDescription] = useState('');
@@ -334,28 +336,32 @@ export default function AddTaskScreen({ navigation, route }) {
    };
 
    return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
          <ScrollView
             contentContainerStyle={styles.scroll}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
          >
             <View style={styles.container}>
-               <Text style={styles.title}>{t('task.add')}</Text>
+               <Text style={[styles.title, { color: colors.text }]}>{t('task.add')}</Text>
 
                {/* Mode selector */}
                <LinearGradient
-                  colors={['#2F7BFF', '#6AB7FF']}
+                  colors={colors.heroGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 0, y: 1 }}
                   style={styles.modeSelector}
                >
                   <Pressable
-                     style={[styles.modeBtn, mode === 'build' && styles.modeBtnActive]}
+                     style={[styles.modeBtn, mode === 'build' && [styles.modeBtnActive, { backgroundColor: colors.surface }]]}
                      onPress={() => setMode('build')}
                   >
                      <Text 
-                        style={[styles.modeText, mode === 'build' && styles.modeTextActive]}
+                        style={[
+                           styles.modeText,
+                           { color: mode === 'build' ? colors.text : '#fff' },
+                           mode === 'build' && styles.modeTextActive
+                        ]}
                         numberOfLines={1}
                         adjustsFontSizeToFit={true}
                         minimumFontScale={0.8}
@@ -365,11 +371,15 @@ export default function AddTaskScreen({ navigation, route }) {
                   </Pressable>
 
                   <Pressable
-                     style={[styles.modeBtn, mode === 'change' && styles.modeBtnActive]}
+                     style={[styles.modeBtn, mode === 'change' && [styles.modeBtnActive, { backgroundColor: colors.surface }]]}
                      onPress={() => setMode('change')}
                   >
                      <Text 
-                        style={[styles.modeText, mode === 'change' && styles.modeTextActive]}
+                        style={[
+                           styles.modeText,
+                           { color: mode === 'change' ? colors.text : '#fff' },
+                           mode === 'change' && styles.modeTextActive
+                        ]}
                         numberOfLines={1}
                         adjustsFontSizeToFit={true}
                         minimumFontScale={0.8}
@@ -409,14 +419,15 @@ export default function AddTaskScreen({ navigation, route }) {
                                  key={task.id}
                                  style={({ pressed }) => [
                                     styles.taskItem,
+                                    { backgroundColor: colors.cardBackground, borderColor: colors.border },
                                     pressed && styles.taskItemPressed
                                  ]}
                                  onPress={() => handleSelectTask(task)}
                               >
-                                 <View style={[styles.taskColorIndicator, { backgroundColor: task.taskColor || '#4CAF50' }]} />
+                                 <View style={[styles.taskColorIndicator, { backgroundColor: task.taskColor || colors.primary }]} />
                                  <View style={styles.taskInfo}>
-                                    <Text style={styles.taskName} numberOfLines={1}>{task.name}</Text>
-                                    <Text style={styles.taskDetails} numberOfLines={1}>
+                                    <Text style={[styles.taskName, { color: colors.text }]} numberOfLines={1}>{task.name}</Text>
+                                    <Text style={[styles.taskDetails, { color: colors.textSecondary }]} numberOfLines={1}>
                                        {task.date} {task.time && `\u2022 ${task.time}`}
                                     </Text>
                                     {task.tagText && (
@@ -427,7 +438,7 @@ export default function AddTaskScreen({ navigation, route }) {
                                        </View>
                                     )}
                                  </View>
-                                 <Ionicons name="chevron-forward" size={20} color="#9aa7bd" />
+                                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
                               </Pressable>
                            ))}
                         </View>
@@ -446,21 +457,21 @@ export default function AddTaskScreen({ navigation, route }) {
                               handleClear();
                            }}
                         >
-                           <Ionicons name="arrow-back" size={20} color="#2f7cff" />
-                           <Text style={styles.backToListText}>{t('task.backToList')}</Text>
+                           <Ionicons name="arrow-back" size={20} color={colors.primary} />
+                           <Text style={[styles.backToListText, { color: colors.primary }]}>{t('task.backToList')}</Text>
                         </Pressable>
                      )}
 
                      {/* Name field */}
                      <View style={styles.section}>
-                        <Text style={styles.label}>
-                           {t('task.name')} <Text style={styles.required}>{t('task.required')}</Text>
+                        <Text style={[styles.label, { color: colors.text }]}>
+                           {t('task.name')} <Text style={[styles.required, { color: colors.error }]}>{t('task.required')}</Text>
                         </Text>
-                        <View style={styles.inputContainer} pointerEvents="box-none">
+                        <View style={[styles.inputContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]} pointerEvents="box-none">
                            <TextInput
-                              style={styles.input}
+                              style={[styles.input, { color: colors.text }]}
                               placeholder={t('task.namePlaceholder')}
-                              placeholderTextColor="#6B7A8F"
+                              placeholderTextColor={colors.textMuted}
                               value={name}
                               onChangeText={setName}
                               editable={true}
@@ -471,14 +482,14 @@ export default function AddTaskScreen({ navigation, route }) {
 
                      {/* Description field */}
                      <View style={styles.section}>
-                  <Text style={styles.label}>
-                     {t('task.description')} <Text style={styles.required}>{t('task.required')}</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>
+                     {t('task.description')} <Text style={[styles.required, { color: colors.error }]}>{t('task.required')}</Text>
                   </Text>
-                  <View style={styles.inputContainer} pointerEvents="box-none">
+                  <View style={[styles.inputContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]} pointerEvents="box-none">
                      <TextInput
-                        style={[styles.input, styles.textArea]}
+                        style={[styles.input, styles.textArea, { color: colors.text }]}
                         placeholder={t('task.descriptionPlaceholder')}
-                        placeholderTextColor="#6B7A8F"
+                        placeholderTextColor={colors.textMuted}
                         value={description}
                         onChangeText={setDescription}
                         multiline
@@ -491,22 +502,23 @@ export default function AddTaskScreen({ navigation, route }) {
 
                {/* Time and Date */}
                <View style={styles.section}>
-                  <Text style={styles.label}>
-                     {t('task.timeDate')} <Text style={styles.required}>{t('task.required')}</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>
+                     {t('task.timeDate')} <Text style={[styles.required, { color: colors.error }]}>{t('task.required')}</Text>
                   </Text>
                   <View style={styles.row}>
                      <View
                         style={[
                            styles.inputContainer,
                            styles.halfWidth,
-                           timeDilation && styles.inputContainerDisabled
+                           { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                           timeDilation && [styles.inputContainerDisabled, { backgroundColor: colors.iconBg }]
                         ]}
                         pointerEvents={timeDilation ? "none" : "box-none"}
                      >
                         <TextInput
-                           style={[styles.input, timeDilation && styles.inputDisabled]}
+                           style={[styles.input, { color: colors.text }, timeDilation && styles.inputDisabled]}
                            placeholder={t('task.timePlaceholder')}
-                           placeholderTextColor={timeDilation ? "#B0B8C4" : "#6B7A8F"}
+                           placeholderTextColor={timeDilation ? colors.textMuted : colors.textMuted}
                            value={timeDilation ? "" : taskTime}
                            onChangeText={(text) => handleTimeChange(text, setTaskTime)}
                            editable={!timeDilation}
@@ -517,22 +529,22 @@ export default function AddTaskScreen({ navigation, route }) {
                         <Ionicons
                            name="time-outline"
                            size={20}
-                           color={timeDilation ? "#B0B8C4" : "#6B7A8F"}
+                           color={timeDilation ? colors.textMuted : colors.textMuted}
                            style={styles.inputIcon}
                         />
                      </View>
-                     <View style={[styles.inputContainer, styles.halfWidth]} pointerEvents="box-none">
+                     <View style={[styles.inputContainer, styles.halfWidth, { backgroundColor: colors.cardBackground, borderColor: colors.border }]} pointerEvents="box-none">
                         <TextInput
-                           style={styles.input}
+                           style={[styles.input, { color: colors.text }]}
                            placeholder={t('task.datePlaceholder')}
-                           placeholderTextColor="#6B7A8F"
+                           placeholderTextColor={colors.textMuted}
                            value={taskDate}
                            onChangeText={setTaskDate}
                            editable={false}
                            autoCorrect={false}
                         />
                         <Pressable onPress={showDatePickerModal} style={styles.iconButton}>
-                           <Ionicons name="calendar-outline" size={20} color="#6B7A8F" />
+                           <Ionicons name="calendar-outline" size={20} color={colors.textMuted} />
                         </Pressable>
                      </View>
                   </View>
@@ -541,21 +553,21 @@ export default function AddTaskScreen({ navigation, route }) {
                {/* Time dilation */}
                <View style={styles.section}>
                   <View style={styles.rowBetween}>
-                     <Text style={styles.label}>{t('task.timeDilation')}</Text>
+                     <Text style={[styles.label, { color: colors.text }]}>{t('task.timeDilation')}</Text>
                      <Pressable
-                        style={[styles.toggle, timeDilation && styles.toggleActive]}
+                        style={[styles.toggle, { backgroundColor: colors.border }, timeDilation && [styles.toggleActive, { backgroundColor: colors.primary }]]}
                         onPress={() => setTimeDilation(!timeDilation)}
                      >
-                        <View style={[styles.toggleThumb, timeDilation && styles.toggleThumbActive]} />
+                        <View style={[styles.toggleThumb, { backgroundColor: colors.surface }, timeDilation && styles.toggleThumbActive]} />
                      </Pressable>
                   </View>
                   {timeDilation && (
                      <View style={[styles.row, styles.timeDilationFields]}>
-                        <View style={[styles.inputContainer, styles.halfWidth]} pointerEvents="box-none">
+                        <View style={[styles.inputContainer, styles.halfWidth, { backgroundColor: colors.cardBackground, borderColor: colors.border }]} pointerEvents="box-none">
                            <TextInput
-                              style={styles.input}
+                              style={[styles.input, { color: colors.text }]}
                               placeholder={t('task.fromPlaceholder')}
-                              placeholderTextColor="#6B7A8F"
+                              placeholderTextColor={colors.textMuted}
                               value={fromTime}
                               onChangeText={(text) => handleTimeChange(text, setFromTime)}
                               editable={true}
@@ -563,13 +575,13 @@ export default function AddTaskScreen({ navigation, route }) {
                               keyboardType="numeric"
                               maxLength={5}
                            />
-                           <Ionicons name="time-outline" size={20} color="#6B7A8F" style={styles.inputIcon} />
+                           <Ionicons name="time-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
                         </View>
-                        <View style={[styles.inputContainer, styles.halfWidth]} pointerEvents="box-none">
+                        <View style={[styles.inputContainer, styles.halfWidth, { backgroundColor: colors.cardBackground, borderColor: colors.border }]} pointerEvents="box-none">
                            <TextInput
-                              style={styles.input}
+                              style={[styles.input, { color: colors.text }]}
                               placeholder={t('task.toPlaceholder')}
-                              placeholderTextColor="#6B7A8F"
+                              placeholderTextColor={colors.textMuted}
                               value={toTime}
                               onChangeText={(text) => handleTimeChange(text, setToTime)}
                               editable={true}
@@ -577,7 +589,7 @@ export default function AddTaskScreen({ navigation, route }) {
                               keyboardType="numeric"
                               maxLength={5}
                            />
-                           <Ionicons name="time-outline" size={20} color="#6B7A8F" style={styles.inputIcon} />
+                           <Ionicons name="time-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
                         </View>
                      </View>
                   )}
@@ -585,15 +597,15 @@ export default function AddTaskScreen({ navigation, route }) {
 
                {/* Tags */}
                <View style={styles.section}>
-                  <Text style={styles.label}>
-                     {t('task.tags')} <Text style={styles.required}>{t('task.required')}</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>
+                     {t('task.tags')} <Text style={[styles.required, { color: colors.error }]}>{t('task.required')}</Text>
                   </Text>
                   <Pressable
-                     style={styles.inputContainer}
+                     style={[styles.inputContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                      onPress={() => setShowTagPicker(true)}
                   >
                      <View style={[styles.colorDot, { backgroundColor: taskColor }]} />
-                     <Text style={[styles.input, !tagText && styles.placeholderText]}>
+                     <Text style={[styles.input, { color: colors.text }, !tagText && [styles.placeholderText, { color: colors.textMuted }]]}>
                         {tagText || t('task.selectTag')}
                      </Text>
                      <Pressable 
@@ -603,14 +615,14 @@ export default function AddTaskScreen({ navigation, route }) {
                            setShowColorPicker(true);
                         }}
                      >
-                        <Ionicons name="color-palette-outline" size={20} color="#2F7BFF" />
+                        <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
                      </Pressable>
                   </Pressable>
                   {tagText && (
-                     <View style={styles.selectedTagContainer}>
-                        <Text style={styles.selectedTagText}>{tagText}</Text>
+                     <View style={[styles.selectedTagContainer, { backgroundColor: colors.iconBg }]}>
+                        <Text style={[styles.selectedTagText, { color: colors.text }]}>{tagText}</Text>
                         <Pressable onPress={() => setTagText('')}>
-                           <Ionicons name="close-circle" size={20} color="#6B7A8F" />
+                           <Ionicons name="close-circle" size={20} color={colors.textMuted} />
                         </Pressable>
                      </View>
                   )}
@@ -618,15 +630,20 @@ export default function AddTaskScreen({ navigation, route }) {
 
                {/* Frequency */}
                <View style={styles.section}>
-                  <Text style={styles.label}>{t('task.frequency')}</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>{t('task.frequency')}</Text>
                   <View style={styles.frequencyRow}>
                      <Pressable
-                        style={[styles.frequencyBtn, frequency === 'once' && styles.frequencyBtnActive]}
+                        style={[
+                           styles.frequencyBtn,
+                           { backgroundColor: colors.iconBg },
+                           frequency === 'once' && [styles.frequencyBtnActive, { backgroundColor: colors.primary }]
+                        ]}
                         onPress={() => setFrequency('once')}
                      >
                         <Text
                            style={[
                               styles.frequencyText,
+                              { color: frequency === 'once' ? '#fff' : colors.textSecondary },
                               frequency === 'once' && styles.frequencyTextActive,
                            ]}
                         >
@@ -634,12 +651,17 @@ export default function AddTaskScreen({ navigation, route }) {
                         </Text>
                      </Pressable>
                      <Pressable
-                        style={[styles.frequencyBtn, frequency === 'weekly' && styles.frequencyBtnActive]}
+                        style={[
+                           styles.frequencyBtn,
+                           { backgroundColor: colors.iconBg },
+                           frequency === 'weekly' && [styles.frequencyBtnActive, { backgroundColor: colors.primary }]
+                        ]}
                         onPress={() => setFrequency('weekly')}
                      >
                         <Text
                            style={[
                               styles.frequencyText,
+                              { color: frequency === 'weekly' ? '#fff' : colors.textSecondary },
                               frequency === 'weekly' && styles.frequencyTextActive,
                            ]}
                         >
@@ -647,12 +669,17 @@ export default function AddTaskScreen({ navigation, route }) {
                         </Text>
                      </Pressable>
                      <Pressable
-                        style={[styles.frequencyBtn, frequency === 'custom' && styles.frequencyBtnActive]}
+                        style={[
+                           styles.frequencyBtn,
+                           { backgroundColor: colors.iconBg },
+                           frequency === 'custom' && [styles.frequencyBtnActive, { backgroundColor: colors.primary }]
+                        ]}
                         onPress={() => setFrequency('custom')}
                      >
                         <Text
                            style={[
                               styles.frequencyText,
+                              { color: frequency === 'custom' ? '#fff' : colors.textSecondary },
                               frequency === 'custom' && styles.frequencyTextActive,
                            ]}
                         >
@@ -664,13 +691,13 @@ export default function AddTaskScreen({ navigation, route }) {
                   {/* Custom dates input */}
                   {frequency === 'custom' && (
                      <View style={styles.customDatesSection}>
-                        <Text style={styles.label}>{t('task.addDates')}</Text>
+                        <Text style={[styles.label, { color: colors.text }]}>{t('task.addDates')}</Text>
                         <View style={styles.customDateInputRow}>
-                           <View style={[styles.inputContainer, styles.flex1]} pointerEvents="box-none">
+                           <View style={[styles.inputContainer, styles.flex1, { backgroundColor: colors.cardBackground, borderColor: colors.border }]} pointerEvents="box-none">
                               <TextInput
-                                 style={styles.input}
+                                 style={[styles.input, { color: colors.text }]}
                                  placeholder={t('task.dateFormat')}
-                                 placeholderTextColor="#6B7A8F"
+                                 placeholderTextColor={colors.textMuted}
                                  value={customDateInput}
                                  onChangeText={setCustomDateInput}
                                  editable={true}
@@ -684,11 +711,11 @@ export default function AddTaskScreen({ navigation, route }) {
                                  }} 
                                  style={styles.iconButton}
                               >
-                                 <Ionicons name="calendar-outline" size={20} color="#6B7A8F" />
+                                 <Ionicons name="calendar-outline" size={20} color={colors.textMuted} />
                               </Pressable>
                            </View>
                            <Pressable
-                              style={styles.addDateBtn}
+                              style={[styles.addDateBtn, { backgroundColor: colors.primary }]}
                               onPress={() => {
                                  const dateToAdd = customDateInput.trim() || formatDate(selectedDate);
                                  if (dateToAdd && !customDates.includes(dateToAdd)) {
@@ -697,7 +724,7 @@ export default function AddTaskScreen({ navigation, route }) {
                                  }
                               }}
                            >
-                              <Ionicons name="add" size={20} color="#2F7BFF" />
+                              <Ionicons name="add" size={20} color="#fff" />
                            </Pressable>
                         </View>
                         
@@ -705,15 +732,15 @@ export default function AddTaskScreen({ navigation, route }) {
                         {customDates.length > 0 && (
                            <View style={styles.customDatesList}>
                               {customDates.map((date, index) => (
-                                 <View key={index} style={styles.customDateTag}>
-                                    <Text style={styles.customDateText}>{date}</Text>
+                                 <View key={index} style={[styles.customDateTag, { backgroundColor: colors.iconBg }]}>
+                                    <Text style={[styles.customDateText, { color: colors.text }]}>{date}</Text>
                                     <Pressable
                                        onPress={() => {
                                           setCustomDates(customDates.filter((_, i) => i !== index));
                                        }}
                                        style={styles.removeDateBtn}
                                     >
-                                       <Ionicons name="close" size={16} color="#6B7A8F" />
+                                       <Ionicons name="close" size={16} color={colors.textMuted} />
                                     </Pressable>
                                  </View>
                               ))}
@@ -734,7 +761,7 @@ export default function AddTaskScreen({ navigation, route }) {
                   <Text style={styles.clearText}>{t('task.clear')}</Text>
                </Pressable>
                <Pressable 
-                  style={[styles.addBtn, isLoading && styles.addBtnDisabled]} 
+                  style={[styles.addBtn, { backgroundColor: colors.primary }, isLoading && styles.addBtnDisabled]} 
                   onPress={handleAdd}
                   disabled={isLoading}
                >
@@ -863,11 +890,11 @@ export default function AddTaskScreen({ navigation, route }) {
             onRequestClose={() => setShowColorPicker(false)}
          >
             <Pressable style={styles.colorModalOverlay} onPress={() => setShowColorPicker(false)}>
-               <View style={styles.colorModalContent} onStartShouldSetResponder={() => true}>
+               <View style={[styles.colorModalContent, { backgroundColor: colors.cardBackground }]} onStartShouldSetResponder={() => true}>
                   <View style={styles.colorModalHeader}>
-                     <Text style={styles.colorModalTitle}>{t('task.chooseColor')}</Text>
+                     <Text style={[styles.colorModalTitle, { color: colors.text }]}>{t('task.chooseColor')}</Text>
                      <Pressable onPress={() => setShowColorPicker(false)}>
-                        <Ionicons name="close" size={24} color="#1B2430" />
+                        <Ionicons name="close" size={24} color={colors.text} />
                      </Pressable>
                   </View>
                   <View style={styles.colorGrid}>
@@ -906,13 +933,13 @@ export default function AddTaskScreen({ navigation, route }) {
                onPress={() => setShowTagPicker(false)}
             >
                <View 
-                  style={styles.tagModalContent} 
+                  style={[styles.tagModalContent, { backgroundColor: colors.cardBackground }]} 
                   onStartShouldSetResponder={() => true}
                >
                   <View style={styles.tagModalHeader}>
-                     <Text style={styles.tagModalTitle}>{t('task.selectTag')}</Text>
+                     <Text style={[styles.tagModalTitle, { color: colors.text }]}>{t('task.selectTag')}</Text>
                      <Pressable onPress={() => setShowTagPicker(false)}>
-                        <Ionicons name="close" size={24} color="#1B2430" />
+                        <Ionicons name="close" size={24} color={colors.text} />
                      </Pressable>
                   </View>
                   
@@ -922,7 +949,8 @@ export default function AddTaskScreen({ navigation, route }) {
                            key={tag}
                            style={[
                               styles.tagOption,
-                              tagText === tag && styles.tagOptionSelected,
+                              { backgroundColor: colors.iconBg },
+                              tagText === tag && [styles.tagOptionSelected, { backgroundColor: colors.primary }],
                            ]}
                            onPress={() => {
                               setTagText(tag);
@@ -932,25 +960,26 @@ export default function AddTaskScreen({ navigation, route }) {
                            <Text
                               style={[
                                  styles.tagOptionText,
-                                 tagText === tag && styles.tagOptionTextSelected,
+                                 { color: colors.text },
+                                 tagText === tag && [styles.tagOptionTextSelected, { color: '#fff' }],
                               ]}
                            >
                               {tag}
                            </Text>
                            {tagText === tag && (
-                              <Ionicons name="checkmark" size={20} color="#2F7BFF" />
+                              <Ionicons name="checkmark" size={20} color="#fff" />
                            )}
                         </Pressable>
                      ))}
                   </ScrollView>
 
                   <View style={styles.customTagSection}>
-                     <Text style={styles.customTagLabel}>{t('task.customTag')}</Text>
-                     <View style={styles.customTagInputContainer}>
+                     <Text style={[styles.customTagLabel, { color: colors.text }]}>{t('task.customTag')}</Text>
+                     <View style={[styles.customTagInputContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
                         <TextInput
-                           style={styles.customTagInput}
+                           style={[styles.customTagInput, { color: colors.text }]}
                            placeholder={t('task.customTagPlaceholder')}
-                           placeholderTextColor="#6B7A8F"
+                           placeholderTextColor={colors.textMuted}
                            value={customTagInput}
                            onChangeText={setCustomTagInput}
                            autoCorrect={false}
@@ -958,7 +987,8 @@ export default function AddTaskScreen({ navigation, route }) {
                         <Pressable
                            style={[
                               styles.addCustomTagBtn,
-                              !customTagInput.trim() && styles.addCustomTagBtnDisabled,
+                              { backgroundColor: colors.primary },
+                              !customTagInput.trim() && [styles.addCustomTagBtnDisabled, { backgroundColor: colors.border }],
                            ]}
                            onPress={() => {
                               if (customTagInput.trim()) {
@@ -983,7 +1013,6 @@ export default function AddTaskScreen({ navigation, route }) {
 const styles = StyleSheet.create({
    screen: {
       flex: 1,
-      backgroundColor: '#F8FBFF',
    },
    scroll: {
       paddingBottom: 180,
@@ -996,7 +1025,6 @@ const styles = StyleSheet.create({
    title: {
       fontSize: 32,
       fontWeight: '700',
-      color: '#1B2430',
       marginBottom: 24,
       textAlign: 'center',
    },
@@ -1019,42 +1047,36 @@ const styles = StyleSheet.create({
       minWidth: 100,
    },
    modeBtnActive: {
-      backgroundColor: '#FFFFFF',
    },
    modeText: {
       fontSize: 15,
-      color: '#FFFFFF',
       fontWeight: '600',
    },
    modeTextActive: {
-      color: '#000000',
    },
    section: {
       marginBottom: 20,
    },
    label: {
       fontSize: 15,
-      color: '#3D4C66',
       fontWeight: '600',
       marginBottom: 8,
       flexWrap: 'wrap',
    },
    required: {
-      color: '#FF3B30',
    },
    inputContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F0F4F8',
       borderRadius: 12,
       paddingHorizontal: 16,
       paddingVertical: Platform.OS === 'ios' ? 12 : 10,
       minHeight: 48,
+      borderWidth: 1,
    },
    input: {
       flex: 1,
       fontSize: 15,
-      color: '#1B2430',
       fontWeight: '600',
       padding: 0,
       margin: 0,
@@ -1507,7 +1529,6 @@ const styles = StyleSheet.create({
    },
    taskDetails: {
       fontSize: 13,
-      color: '#6B7A8F',
       marginBottom: 6,
    },
    taskTag: {

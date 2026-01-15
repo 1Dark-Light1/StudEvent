@@ -8,14 +8,16 @@ import { View, StyleSheet, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { bottomNavItems } from './navItems';
 import { useI18n } from '../../i18n/I18nContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const NAV_HEIGHT = 68;
 
 export default function BottomNav({ navigation, activeRoute, style }) {
    const { t } = useI18n();
+   const { colors } = useTheme();
    // Map config to UI to keep navigation copy and routing centralized.
    return (
-      <View style={[styles.navBar, style]}>
+      <View style={[styles.navBar, { backgroundColor: colors.cardBackground }, style]}>
          {bottomNavItems.map((item) => {
             const isActive = item.route === activeRoute;
             return (
@@ -27,9 +29,13 @@ export default function BottomNav({ navigation, activeRoute, style }) {
                   <Ionicons
                      name={`${item.icon}${isActive ? '' : '-outline'}`}
                      size={21}
-                     color={isActive ? '#2f6bff' : '#9aa8c2'}
+                     color={isActive ? colors.primary : colors.textMuted}
                   />
-                  <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                  <Text style={[
+                     styles.navLabel, 
+                     { color: colors.textMuted },
+                     isActive && { color: colors.primary, fontWeight: '600' }
+                  ]}>
                      {t(item.labelKey)}
                   </Text>
                </Pressable>
@@ -47,7 +53,6 @@ const styles = StyleSheet.create({
       right: 24,
       height: NAV_HEIGHT,
       borderRadius: NAV_HEIGHT / 2,
-      backgroundColor: '#fff',
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -64,10 +69,5 @@ const styles = StyleSheet.create({
    navLabel: {
       marginTop: 4,
       fontSize: 11,
-      color: '#99a6bf',
-   },
-   navLabelActive: {
-      color: '#2f6bff',
-      fontWeight: '600',
    },
 });

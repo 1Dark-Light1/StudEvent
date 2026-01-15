@@ -6,6 +6,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Animated } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useI18n } from '../../i18n/I18nContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const PREDEFINED_TAGS = [
    'Work',
@@ -21,25 +22,26 @@ const PREDEFINED_TAGS = [
 
 export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters }) {
    const { t } = useI18n();
+   const { colors } = useTheme();
    const hasFilters = selectedTags.length > 0;
    const [expandedTag, setExpandedTag] = useState(null);
 
    return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
          <View style={styles.header}>
             <View style={styles.headerLeft}>
-               <View style={styles.iconCircle}>
-                  <Ionicons name="filter" size={16} color="#2f7cff" />
+               <View style={[styles.iconCircle, { backgroundColor: colors.iconBg }]}>
+                  <Ionicons name="filter" size={16} color={colors.primary} />
                </View>
-               <Text style={styles.headerText}>{t('filter.title')}</Text>
+               <Text style={[styles.headerText, { color: colors.text }]}>{t('filter.title')}</Text>
             </View>
             {hasFilters && (
                <Pressable 
                   onPress={onClearFilters} 
-                  style={styles.clearButton}
+                  style={[styles.clearButton, { backgroundColor: colors.iconBg }]}
                >
-                  <Ionicons name="close-circle" size={18} color="#ff6b6b" />
-                  <Text style={styles.clearText}>{t('filter.clear')}</Text>
+                  <Ionicons name="close-circle" size={18} color={colors.error} />
+                  <Text style={[styles.clearText, { color: colors.error }]}>{t('filter.clear')}</Text>
                </Pressable>
             )}
          </View>
@@ -72,9 +74,9 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
                            <Text style={styles.tagTextSelected}>{t(tagKey)}</Text>
                         </LinearGradient>
                      ) : (
-                        <View style={styles.tagContent}>
-                           <Ionicons name="pricetag-outline" size={16} color="#5a6477" />
-                           <Text style={styles.tagText}>{t(tagKey)}</Text>
+                        <View style={[styles.tagContent, { backgroundColor: colors.iconBg, borderColor: colors.border }]}>
+                           <Ionicons name="pricetag-outline" size={16} color={colors.textSecondary} />
+                           <Text style={[styles.tagText, { color: colors.textSecondary }]}>{t(tagKey)}</Text>
                         </View>
                      )}
                   </Pressable>
@@ -82,9 +84,9 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
             })}
          </ScrollView>
             {hasFilters && (
-               <View style={styles.activeFiltersInfo}>
-                  <Ionicons name="information-circle" size={14} color="#2f7cff" />
-                  <Text style={styles.activeFiltersText}>
+               <View style={[styles.activeFiltersInfo, { borderTopColor: colors.border }]}>
+                  <Ionicons name="information-circle" size={14} color={colors.primary} />
+                  <Text style={[styles.activeFiltersText, { color: colors.primary }]}>
                      {selectedTags.length} {selectedTags.length === 1 ? t('filter.active') : t('filter.activePlural')} {t('filter.activeText')}
                   </Text>
                </View>
@@ -96,7 +98,6 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
 const styles = StyleSheet.create({
    container: {
       marginBottom: 20,
-      backgroundColor: '#fff',
       borderRadius: 16,
       padding: 16,
       shadowColor: '#000',
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
       shadowOffset: { width: 0, height: 4 },
       elevation: 2,
       borderWidth: 1,
-      borderColor: '#f0f2f8',
    },
    header: {
       flexDirection: 'row',
@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
       width: 32,
       height: 32,
       borderRadius: 16,
-      backgroundColor: '#e3f2fd',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 10,
@@ -129,20 +128,17 @@ const styles = StyleSheet.create({
    headerText: {
       fontSize: 15,
       fontWeight: '700',
-      color: '#262c3b',
    },
    clearButton: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 6,
       paddingHorizontal: 12,
-      backgroundColor: '#fff5f5',
       borderRadius: 20,
       gap: 4,
    },
    clearText: {
       fontSize: 13,
-      color: '#ff6b6b',
       fontWeight: '600',
    },
    tagsContainer: {
@@ -180,16 +176,13 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       paddingHorizontal: 16,
       paddingVertical: 10,
-      backgroundColor: '#f8f9fd',
       gap: 6,
       borderWidth: 1.5,
-      borderColor: '#e8eaf2',
       borderRadius: 24,
    },
    tagText: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#5a6477',
    },
    tagTextSelected: {
       fontSize: 14,
@@ -202,12 +195,10 @@ const styles = StyleSheet.create({
       marginTop: 12,
       paddingTop: 12,
       borderTopWidth: 1,
-      borderTopColor: '#f0f2f8',
       gap: 6,
    },
    activeFiltersText: {
       fontSize: 12,
-      color: '#2f7cff',
       fontWeight: '600',
    },
 });

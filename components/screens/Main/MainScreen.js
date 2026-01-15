@@ -14,12 +14,13 @@ import { subscribeToUserTasks, isTaskActive, applyTaskFilters, autoMarkUncomplet
 import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import EventDetailsModal from '../../ui/EventDetailsModal';
 
 /**
  * Builds a 7-column grid that includes leading/trailing muted days so layout never shifts.
  */
-function buildCalendar({ year, month, tasks = [] }) {
+function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff' }) {
    const firstDay = new Date(year, month, 1);
    const lastDay = new Date(year, month + 1, 0);
    const daysInMonth = lastDay.getDate();
@@ -61,7 +62,7 @@ function buildCalendar({ year, month, tasks = [] }) {
 
       // Підсвічуємо поточний день легко синім кольором
       if (isToday) {
-         entry.todayHighlight = '#d9ecff';
+         entry.todayHighlight = todayHighlightColor;
       }
 
       if (dayTasks.length > 0) {
@@ -72,17 +73,17 @@ function buildCalendar({ year, month, tasks = [] }) {
          if (hasActiveTask) {
             // Якщо це сьогодні, зберігаємо легко синій фон і додаємо обводку
             if (isToday) {
-               entry.todayHighlight = '#d9ecff';
+               entry.todayHighlight = todayHighlightColor;
                entry.outline = dayTasks[0].taskColor || '#d7c5ff';
             } else {
-               entry.highlight = '#d9ecff';
+               entry.highlight = todayHighlightColor;
             }
          } else if (hasGlobalTask) {
             // Для глобальных задач - заполненный кружок
             const globalTask = dayTasks.find(task => task.isGlobal === true);
             if (isToday) {
                // Якщо це сьогодні, легко синій фон з обводкою кольору тага
-               entry.todayHighlight = '#d9ecff';
+               entry.todayHighlight = todayHighlightColor;
                entry.outline = globalTask.taskColor || '#2f6cff';
             } else {
                entry.filled = globalTask.taskColor || '#2f6cff';
@@ -91,7 +92,7 @@ function buildCalendar({ year, month, tasks = [] }) {
             // Используем цвет первой задачи для outline
             if (isToday) {
                // Якщо це сьогодні, легко синій фон з обводкою
-               entry.todayHighlight = '#d9ecff';
+               entry.todayHighlight = todayHighlightColor;
                entry.outline = dayTasks[0].taskColor || '#d7c5ff';
             } else {
                entry.outline = dayTasks[0].taskColor || '#d7c5ff';
@@ -171,7 +172,7 @@ function formatTasksForAgenda(tasks, year, month) {
 /**
  * Генерирует данные для месяца
  */
-function getMonthData(year, month, tasks, t) {
+function getMonthData(year, month, tasks, t, todayHighlightColor = '#d9ecff') {
    const monthNames = [
       t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
       t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
@@ -182,13 +183,14 @@ function getMonthData(year, month, tasks, t) {
       year: String(year),
       month: month,
       yearNum: year,
-      calendar: buildCalendar({ year, month, tasks }),
+      calendar: buildCalendar({ year, month, tasks, todayHighlightColor }),
       agenda: formatTasksForAgenda(tasks, year, month),
    };
 }
 
 export default function Main({ navigation, route }) {
    const { t } = useI18n();
+   const { colors } = useTheme();
    const today = new Date();
    const [currentYear, setCurrentYear] = useState(today.getFullYear());
    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -203,7 +205,7 @@ export default function Main({ navigation, route }) {
    const [isModalVisible, setIsModalVisible] = useState(false);
    const activeRoute = route?.name ?? 'Main';
 
-   const activeMonth = getMonthData(currentYear, currentMonth, tasks, t);
+   const activeMonth = getMonthData(currentYear, currentMonth, tasks, t, colors.todayHighlight);
 
    // Загрузка задач из Firestore
    useEffect(() => {
@@ -393,46 +395,46 @@ export default function Main({ navigation, route }) {
    };
 
    return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
          <ScrollView 
-            contentContainerStyle={styles.scroll} 
+            contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]} 
             showsVerticalScrollIndicator={false}
-            style={styles.scrollView}
+            style={[styles.scrollView, { backgroundColor: colors.background }]}
             bounces={true}
             alwaysBounceVertical={false}
             refreshControl={
                <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  colors={['#3b85ff']}
-                  tintColor="#3b85ff"
+                  colors={[colors.primary]}
+                  tintColor={colors.primary}
                   progressViewOffset={Platform.OS === 'ios' ? 100 : 0}
                />
             }
          >
-            <View style={styles.topBounceBackground} />
-            <LinearGradient colors={["#3b85ff", "#8fc5ff"]} style={styles.hero}>
+            <View style={[styles.topBounceBackground, { backgroundColor: colors.heroGradient[0] }]} />
+            <LinearGradient colors={colors.heroGradient} style={styles.hero}>
                <View style={styles.headerRow}>
 
-                  <View style={styles.avatar}>
+                  <View style={[styles.avatar, { backgroundColor: colors.avatarBg }]}>
                      <Pressable
                         onPress={() => navigation.navigate('Settings')}
                         style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, })}
                      >
-                        <Ionicons name="person" size={22} color="#1d3f72" />
+                        <Ionicons name="person" size={22} color={colors.text} />
                      </Pressable>
                   </View>
 
                   <View style={styles.monthBlock}>
                      <View style={styles.monthSwitcher}>
                         <Pressable style={styles.monthBtn} onPress={() => shiftMonth(-1)} hitSlop={8}>
-                           <Ionicons name="chevron-back" size={18} color="#1f3d68" />
+                           <Ionicons name="chevron-back" size={18} color="rgba(255,255,255,0.9)" />
                         </Pressable>
                         <View style={styles.monthRow}>
                            <Text style={styles.monthText}>{activeMonth.name}</Text>
                         </View>
                         <Pressable style={styles.monthBtn} onPress={() => shiftMonth(1)} hitSlop={8}>
-                           <Ionicons name="chevron-forward" size={18} color="#1f3d68" />
+                           <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.9)" />
                         </Pressable>
                      </View>
                      <Text style={styles.yearText}>{activeMonth.year}</Text>
@@ -440,10 +442,10 @@ export default function Main({ navigation, route }) {
                      {/*Animation-Imitation Refresh*/}
                   </View>
                   <Pressable 
-                     style={styles.refreshBtn} 
+                     style={[styles.refreshBtn, { backgroundColor: colors.iconBg }]} 
                      onPress={() => navigation.navigate('Alerts')}
                   >
-                     <Ionicons name="notifications" size={18} color="#1f3d68" />
+                     <Ionicons name="notifications" size={18} color={colors.text} />
                   </Pressable>
                </View>
 
@@ -466,10 +468,10 @@ export default function Main({ navigation, route }) {
                   />
                </View>
 
-               <View style={styles.calendarCard}>
+               <View style={[styles.calendarCard, { backgroundColor: colors.cardBackground }]}>
                   <View style={styles.weekRow}>
                      {[t('date.mon'), t('date.tue'), t('date.wed'), t('date.thu'), t('date.fri'), t('date.sat'), t('date.sun')].map((day, idx) => (
-                        <Text key={idx} style={styles.weekLabel}>
+                        <Text key={idx} style={[styles.weekLabel, { color: colors.textMuted }]}>
                            {day}
                         </Text>
                      ))}
@@ -485,6 +487,7 @@ export default function Main({ navigation, route }) {
                                     key={`${activeMonth.name}-${rowIdx}-${idx}-${day.label}`}
                                     style={[
                                        styles.dateBadge,
+                                       { backgroundColor: colors.surface, borderColor: colors.border },
                                        day.todayHighlight && { backgroundColor: day.todayHighlight },
                                        day.highlight && { backgroundColor: day.highlight },
                                        day.outline && { borderColor: day.outline, borderWidth: 1.5 },
@@ -494,9 +497,10 @@ export default function Main({ navigation, route }) {
                                     <Text
                                        style={[
                                           styles.dateText,
-                                          day.highlight && { color: '#1a3d64' },
+                                          { color: colors.text },
+                                          day.highlight && { color: colors.text },
                                           day.filled && { color: '#fff' },
-                                          day.muted && styles.dateTextMuted,
+                                          day.muted && [styles.dateTextMuted, { color: colors.textMuted }],
                                        ]}
                                     >
                                        {day.label}
@@ -511,19 +515,19 @@ export default function Main({ navigation, route }) {
 
                {isLoading ? (
                   <View style={styles.loadingContainer}>
-                     <ActivityIndicator size="large" color="#3b85ff" />
-                     <Text style={styles.loadingText}>{t('main.loadingTasks')}</Text>
+                     <ActivityIndicator size="large" color={colors.primary} />
+                     <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('main.loadingTasks')}</Text>
                   </View>
                ) : activeMonth.agenda.length === 0 ? (
                   <View style={styles.emptyAgenda}>
-                     <Ionicons name="calendar-outline" size={32} color="#d0d8ec" />
-                     <Text style={styles.emptyAgendaText}>{t('main.noTasksScheduled')}</Text>
-                     <Text style={styles.emptyAgendaSubtext}>{t('main.addNewTask')}</Text>
+                     <Ionicons name="calendar-outline" size={32} color={colors.textMuted} />
+                     <Text style={[styles.emptyAgendaText, { color: colors.text }]}>{t('main.noTasksScheduled')}</Text>
+                     <Text style={[styles.emptyAgendaSubtext, { color: colors.textSecondary }]}>{t('main.addNewTask')}</Text>
                   </View>
                ) : (
                   activeMonth.agenda.map((block) => (
                      <View key={block.day} style={styles.agendaBlock}>
-                        <Text style={styles.agendaLabel}>{block.day}</Text>
+                        <Text style={[styles.agendaLabel, { color: colors.textMuted }]}>{block.day}</Text>
                         {block.items.map((item, idx) => {
                            const isLast = idx === block.items.length - 1;
                            const isGlobal = item.isGlobal === true;
@@ -551,7 +555,7 @@ export default function Main({ navigation, route }) {
                                  style={styles.agendaRow}
                                  onPress={() => handleEventPress(item)}
                               >
-                                 <Text style={styles.timeText}>{item.time}</Text>
+                                 <Text style={[styles.timeText, { color: colors.textMuted }]}>{item.time}</Text>
                                  <View style={styles.timeline}>
                                     <View 
                                        style={[
@@ -563,7 +567,7 @@ export default function Main({ navigation, route }) {
                                           ]
                                        ]} 
                                     />
-                                    {!isLast && <View style={styles.timelineLine} />}
+                                    {!isLast && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
                                  </View>
                                  {isGlobal ? (
                                     <LinearGradient
@@ -607,9 +611,9 @@ export default function Main({ navigation, route }) {
                                        )}
                                     </LinearGradient>
                                  ) : (
-                                    <View style={styles.agendaCard}>
-                                       <Text style={styles.agendaTitle}>{item.title}</Text>
-                                       {item.subtitle && <Text style={styles.agendaSubtitle}>{item.subtitle}</Text>}
+                                    <View style={[styles.agendaCard, { backgroundColor: colors.cardBackground }]}>
+                                       <Text style={[styles.agendaTitle, { color: colors.text }]}>{item.title}</Text>
+                                       {item.subtitle && <Text style={[styles.agendaSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>}
                                     </View>
                                  )}
                               </Pressable>
@@ -638,11 +642,9 @@ export default function Main({ navigation, route }) {
 const styles = StyleSheet.create({
    screen: {
       flex: 1,
-      backgroundColor: '#eef4ff',
    },
    scrollView: {
       flex: 1,
-      backgroundColor: '#eef4ff',
    },
    topBounceBackground: {
       position: 'absolute',
@@ -650,7 +652,6 @@ const styles = StyleSheet.create({
       left: 0,
       right: 0,
       height: 1000,
-      backgroundColor: '#3b85ff',
    },
    hero: {
       borderBottomLeftRadius: 38,
@@ -662,7 +663,6 @@ const styles = StyleSheet.create({
    },
    scroll: {
       paddingBottom: 140,
-      backgroundColor: '#eef4ff',
       flexGrow: 1,
    },
    body: {
@@ -679,7 +679,6 @@ const styles = StyleSheet.create({
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: '#dfe9ff',
       alignItems: 'center',
       justifyContent: 'center',
    },
@@ -721,7 +720,6 @@ const styles = StyleSheet.create({
       width: 34,
       height: 34,
       borderRadius: 12,
-      backgroundColor: '#f0f5ff',
       alignItems: 'center',
       justifyContent: 'center',
    },
@@ -730,7 +728,6 @@ const styles = StyleSheet.create({
       marginBottom: 16,
    },
    calendarCard: {
-      backgroundColor: '#fff',
       borderRadius: 28,
       paddingVertical: 22,
       paddingHorizontal: 18,
@@ -746,7 +743,6 @@ const styles = StyleSheet.create({
       marginBottom: 18,
    },
    weekLabel: {
-      color: '#b0bbd6',
       fontSize: 12,
    },
    dateGrid: {
@@ -763,24 +759,19 @@ const styles = StyleSheet.create({
       borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: '#ecf0fb',
       marginBottom: 6,
    },
    dateText: {
-      color: '#1b2d4e',
       fontWeight: '600',
    },
    dateTextMuted: {
-      color: '#c4cbdc',
    },
    agendaBlock: {
       marginTop: 28,
    },
    agendaLabel: {
       fontSize: 13,
-      color: '#9aa8c2',
       marginBottom: 12,
       letterSpacing: 1,
    },
@@ -791,7 +782,6 @@ const styles = StyleSheet.create({
    },
    timeText: {
       width: 52,
-      color: '#b0bbd6',
       fontWeight: '600',
    },
    timeline: {
@@ -812,13 +802,11 @@ const styles = StyleSheet.create({
    timelineLine: {
       width: 2,
       flex: 1,
-      backgroundColor: '#e3e8f4',
       marginTop: 4,
       minHeight: 48,
    },
    agendaCard: {
       flex: 1,
-      backgroundColor: '#fff',
       borderRadius: 14,
       padding: 14,
       shadowColor: '#000',
@@ -845,12 +833,10 @@ const styles = StyleSheet.create({
       flex: 1,
    },
    agendaTitle: {
-      color: '#1a2c4f',
       fontWeight: '600',
       marginBottom: 4,
    },
    agendaSubtitle: {
-      color: '#99a7c3',
       fontSize: 12,
    },
    agendaTitleGlobal: {
@@ -888,7 +874,6 @@ const styles = StyleSheet.create({
    },
    loadingText: {
       marginTop: 12,
-      color: '#99a7c3',
       fontSize: 14,
    },
    emptyAgenda: {
@@ -900,11 +885,9 @@ const styles = StyleSheet.create({
       marginTop: 12,
       fontSize: 16,
       fontWeight: '600',
-      color: '#1a2c4f',
    },
    emptyAgendaSubtext: {
       marginTop: 4,
-      color: '#99a7c3',
       fontSize: 12,
    },
 });

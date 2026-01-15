@@ -5,11 +5,18 @@
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function FloatingActionButton({ onPress, icon = 'add', style }) {
+   const { colors } = useTheme();
    return (
       <Pressable
-         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed, style]}
+         style={({ pressed }) => [
+            styles.fab, 
+            { backgroundColor: colors.primary },
+            pressed && styles.fabPressed, 
+            style
+         ]}
          onPress={onPress}
          hitSlop={10}
       >
@@ -26,7 +33,6 @@ const styles = StyleSheet.create({
       width: 64,
       height: 64,
       borderRadius: 24,
-      backgroundColor: '#2f7cff',
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',

@@ -14,11 +14,13 @@ import { auth } from '../../../FireBaseConfig';
 import { signOut } from 'firebase/auth';
 import { subscribeToUserData } from '../../../services/userService';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 // Options will be created inside component to use translations
 
 export default function Settings({ navigation, route }) {
    const { t } = useI18n();
+   const { colors } = useTheme();
    const activeRoute = route?.name ?? 'Settings';
    const [userData, setUserData] = useState(null);
 
@@ -58,6 +60,8 @@ export default function Settings({ navigation, route }) {
          navigation.navigate('Language');
       } else if (label === t('settings.notifications')) {
          navigation.navigate('NotificationSettings');
+      } else if (label === t('settings.theme')) {
+         navigation.navigate('Theme');
       }
       // Можно добавить обработчики для других опций здесь
    };
@@ -92,71 +96,76 @@ export default function Settings({ navigation, route }) {
    };
 
    return (
-      <View style={styles.screen}>
-         <LinearGradient colors={["#dbe8ff", "#f6f7fb"]} style={styles.heroBg} />
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+         <LinearGradient colors={colors.heroGradientSettings} style={styles.heroBg} />
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.heroCard}>
-               <Text style={styles.heroTitle}>{t('settings.title')}</Text>
-               <View style={styles.avatarWrap}>
-                  <Ionicons name="person" size={76} color="#6a6f80" />
-                  <View style={styles.avatarBadge}>
-                     <Ionicons name="person-add" size={16} color="#1f2b3f" />
+               <Text style={[styles.heroTitle, { color: colors.text }]}>{t('settings.title')}</Text>
+               <View style={[styles.avatarWrap, { backgroundColor: colors.avatarBg }]}>
+                  <Ionicons name="person" size={76} color={colors.textMuted} />
+                  <View style={[styles.avatarBadge, { backgroundColor: colors.surface }]}>
+                     <Ionicons name="person-add" size={16} color={colors.text} />
                   </View>
                </View>
-               <Text style={styles.heroName}>{displayName}</Text>
+               <Text style={[styles.heroName, { color: colors.textSecondary }]}>{displayName}</Text>
             </View>
 
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
                {primaryOptions.map((item, index) => (
                   <Pressable
                      key={item.label}
                      onPress={() => handleOptionPress(item.label)}
-                     style={[styles.row, index === primaryOptions.length - 1 && styles.rowLast]}
+                     style={[
+                        styles.row, 
+                        { borderBottomColor: colors.border },
+                        index === primaryOptions.length - 1 && styles.rowLast
+                     ]}
                   >
                      <View style={styles.rowLeft}>
-                        <View style={styles.rowIcon}>
-                           <Ionicons name={item.icon} size={20} color="#78849e" />
+                        <View style={[styles.rowIcon, { backgroundColor: colors.iconBg }]}>
+                           <Ionicons name={item.icon} size={20} color={colors.textSecondary} />
                         </View>
-                        <Text style={styles.rowLabel}>{item.label}</Text>
+                        <Text style={[styles.rowLabel, { color: colors.text }]}>{item.label}</Text>
                      </View>
-                     <Ionicons name="chevron-forward" size={18} color="#c3cadb" />
+                     <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                   </Pressable>
                ))}
             </View>
 
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
                {secondaryOptions.map((item, index) => (
                   <Pressable
                      key={item.label}
                      onPress={() => handleOptionPress(item.label)}
                      style={({ pressed }) => [
                         styles.row,
+                        { borderBottomColor: colors.border },
                         index === secondaryOptions.length - 1 && styles.rowLast,
                         pressed && { opacity: 0.7 }
                      ]}
                   >
                      <View style={styles.rowLeft}>
-                        <View style={styles.rowIcon}>
-                           <Ionicons name={item.icon} size={20} color="#78849e" />
+                        <View style={[styles.rowIcon, { backgroundColor: colors.iconBg }]}>
+                           <Ionicons name={item.icon} size={20} color={colors.textSecondary} />
                         </View>
-                        <Text style={styles.rowLabel}>{item.label}</Text>
+                        <Text style={[styles.rowLabel, { color: colors.text }]}>{item.label}</Text>
                      </View>
-                     <Ionicons name="chevron-forward" size={18} color="#c3cadb" />
+                     <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                   </Pressable>
                ))}
             </View>
 
             {/* Log out button */}
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
                <Pressable
                   style={styles.logoutRow}
                   onPress={handleLogout}
                >
                   <View style={styles.rowLeft}>
-                     <View style={styles.rowIcon}>
-                        <Ionicons name="log-out-outline" size={20} color="#F44336" />
+                     <View style={[styles.rowIcon, { backgroundColor: colors.iconBg }]}>
+                        <Ionicons name="log-out-outline" size={20} color={colors.error} />
                      </View>
-                     <Text style={styles.logoutLabel}>{t('settings.logout.title')}</Text>
+                     <Text style={[styles.logoutLabel, { color: colors.error }]}>{t('settings.logout.title')}</Text>
                   </View>
                </Pressable>
             </View>
@@ -172,7 +181,6 @@ export default function Settings({ navigation, route }) {
 const styles = StyleSheet.create({
    screen: {
       flex: 1,
-      backgroundColor: '#f2f4fa',
    },
    heroBg: {
       position: 'absolute',
@@ -192,7 +200,6 @@ const styles = StyleSheet.create({
    },
    heroTitle: {
       fontSize: 24,
-      color: '#3a4257',
       fontWeight: '600',
       marginBottom: 14,
    },
@@ -200,7 +207,6 @@ const styles = StyleSheet.create({
       width: 140,
       height: 140,
       borderRadius: 70,
-      backgroundColor: '#e4e8f4',
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 16,
@@ -212,7 +218,6 @@ const styles = StyleSheet.create({
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: '#fff',
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -223,10 +228,8 @@ const styles = StyleSheet.create({
    heroName: {
       fontSize: 20,
       fontWeight: '600',
-      color: '#4b5465',
    },
    card: {
-      backgroundColor: '#fff',
       borderRadius: 22,
       paddingVertical: 12,
       marginBottom: 16,
@@ -242,7 +245,6 @@ const styles = StyleSheet.create({
       paddingVertical: 12,
       paddingHorizontal: 18,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: '#eef1f6',
    },
    rowLast: {
       borderBottomWidth: 0,
@@ -255,13 +257,11 @@ const styles = StyleSheet.create({
       width: 34,
       height: 34,
       borderRadius: 12,
-      backgroundColor: '#f2f4fa',
       alignItems: 'center',
       justifyContent: 'center',
    },
    rowLabel: {
       fontSize: 15,
-      color: '#3a4257',
       fontWeight: '500',
       marginLeft: 14,
    },
@@ -274,7 +274,6 @@ const styles = StyleSheet.create({
    },
    logoutLabel: {
       fontSize: 15,
-      color: '#F44336',
       fontWeight: '500',
       marginLeft: 14,
    },

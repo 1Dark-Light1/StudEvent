@@ -8,9 +8,11 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import { getNotificationSettings, saveNotificationSettings } from '../../../services/notificationsService';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function NotificationSettings({ navigation, route }) {
    const { t } = useI18n();
+   const { colors } = useTheme();
    const activeRoute = route?.name ?? 'NotificationSettings';
    const [settings, setSettings] = useState({
       enabled: true,
@@ -44,85 +46,85 @@ export default function NotificationSettings({ navigation, route }) {
    };
 
    return (
-      <View style={styles.screen}>
-         <LinearGradient colors={["#dbe8ff", "#f6f7fb"]} style={styles.heroBg} />
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+         <LinearGradient colors={colors.heroGradientSettings} style={styles.heroBg} />
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
                <Pressable
                   onPress={() => navigation.goBack()}
-                  style={styles.backButton}
+                  style={[styles.backButton, { backgroundColor: colors.surface }]}
                >
-                  <Ionicons name="arrow-back" size={24} color="#262c3b" />
+                  <Ionicons name="arrow-back" size={24} color={colors.text} />
                </Pressable>
-               <Text style={styles.headerTitle}>{t('notifications.settings.title')}</Text>
+               <Text style={[styles.headerTitle, { color: colors.text }]}>{t('notifications.settings.title')}</Text>
                <View style={styles.backButtonPlaceholder} />
             </View>
 
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
                <View style={styles.settingRow}>
                   <View style={styles.settingLeft}>
-                     <View style={styles.settingIcon}>
-                        <Ionicons name="notifications" size={22} color="#2f7cff" />
+                     <View style={[styles.settingIcon, { backgroundColor: colors.iconBg }]}>
+                        <Ionicons name="notifications" size={22} color={colors.primary} />
                      </View>
                      <View style={styles.settingText}>
-                        <Text style={styles.settingLabel}>{t('notifications.settings.enable')}</Text>
-                        <Text style={styles.settingDescription}>{t('notifications.settings.enableDesc')}</Text>
+                        <Text style={[styles.settingLabel, { color: colors.text }]}>{t('notifications.settings.enable')}</Text>
+                        <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>{t('notifications.settings.enableDesc')}</Text>
                      </View>
                   </View>
                   <Switch
                      value={settings.enabled}
                      onValueChange={() => handleToggle('enabled')}
-                     trackColor={{ false: '#e0e0e0', true: '#2f7cff' }}
+                     trackColor={{ false: colors.border, true: colors.primary }}
                      thumbColor="#fff"
                   />
                </View>
 
-               <View style={styles.divider} />
+               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                <View style={styles.settingRow}>
                   <View style={styles.settingLeft}>
-                     <View style={styles.settingIcon}>
-                        <Ionicons name="volume-high" size={22} color="#2f7cff" />
+                     <View style={[styles.settingIcon, { backgroundColor: colors.iconBg }]}>
+                        <Ionicons name="volume-high" size={22} color={colors.primary} />
                      </View>
                      <View style={styles.settingText}>
-                        <Text style={styles.settingLabel}>{t('notifications.settings.sound')}</Text>
-                        <Text style={styles.settingDescription}>{t('notifications.settings.soundDesc')}</Text>
+                        <Text style={[styles.settingLabel, { color: colors.text }]}>{t('notifications.settings.sound')}</Text>
+                        <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>{t('notifications.settings.soundDesc')}</Text>
                      </View>
                   </View>
                   <Switch
                      value={settings.soundEnabled && settings.enabled}
                      onValueChange={() => handleToggle('soundEnabled')}
                      disabled={!settings.enabled}
-                     trackColor={{ false: '#e0e0e0', true: '#2f7cff' }}
+                     trackColor={{ false: colors.border, true: colors.primary }}
                      thumbColor="#fff"
                   />
                </View>
 
-               <View style={styles.divider} />
+               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                <View style={styles.settingRow}>
                   <View style={styles.settingLeft}>
-                     <View style={styles.settingIcon}>
-                        <Ionicons name="time" size={22} color="#2f7cff" />
+                     <View style={[styles.settingIcon, { backgroundColor: colors.iconBg }]}>
+                        <Ionicons name="time" size={22} color={colors.primary} />
                      </View>
                      <View style={styles.settingText}>
-                        <Text style={styles.settingLabel}>{t('notifications.settings.reminders')}</Text>
-                        <Text style={styles.settingDescription}>{t('notifications.settings.remindersDesc')}</Text>
+                        <Text style={[styles.settingLabel, { color: colors.text }]}>{t('notifications.settings.reminders')}</Text>
+                        <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>{t('notifications.settings.remindersDesc')}</Text>
                      </View>
                   </View>
                   <Switch
                      value={settings.reminderEnabled && settings.enabled}
                      onValueChange={() => handleToggle('reminderEnabled')}
                      disabled={!settings.enabled}
-                     trackColor={{ false: '#e0e0e0', true: '#2f7cff' }}
+                     trackColor={{ false: colors.border, true: colors.primary }}
                      thumbColor="#fff"
                   />
                </View>
             </View>
 
-            <View style={styles.infoCard}>
-               <Ionicons name="information-circle" size={20} color="#2f7cff" />
-               <Text style={styles.infoText}>{t('notifications.settings.info')}</Text>
+            <View style={[styles.infoCard, { backgroundColor: colors.iconBg }]}>
+               <Ionicons name="information-circle" size={20} color={colors.primary} />
+               <Text style={[styles.infoText, { color: colors.primary }]}>{t('notifications.settings.info')}</Text>
             </View>
          </ScrollView>
 
@@ -134,7 +136,6 @@ export default function NotificationSettings({ navigation, route }) {
 const styles = StyleSheet.create({
    screen: {
       flex: 1,
-      backgroundColor: '#f2f4fa',
    },
    heroBg: {
       position: 'absolute',
@@ -158,7 +159,6 @@ const styles = StyleSheet.create({
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#fff',
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -172,10 +172,8 @@ const styles = StyleSheet.create({
    headerTitle: {
       fontSize: 24,
       fontWeight: '700',
-      color: '#262c3b',
    },
    card: {
-      backgroundColor: '#fff',
       borderRadius: 22,
       paddingVertical: 12,
       marginBottom: 16,
@@ -201,7 +199,6 @@ const styles = StyleSheet.create({
       width: 40,
       height: 40,
       borderRadius: 12,
-      backgroundColor: '#e3f2fd',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 14,
@@ -212,22 +209,18 @@ const styles = StyleSheet.create({
    settingLabel: {
       fontSize: 16,
       fontWeight: '600',
-      color: '#262c3b',
       marginBottom: 4,
    },
    settingDescription: {
       fontSize: 13,
-      color: '#7e889e',
       lineHeight: 18,
    },
    divider: {
       height: 1,
-      backgroundColor: '#eef1f6',
       marginHorizontal: 18,
    },
    infoCard: {
       flexDirection: 'row',
-      backgroundColor: '#e3f2fd',
       borderRadius: 16,
       padding: 16,
       alignItems: 'flex-start',
@@ -235,7 +228,6 @@ const styles = StyleSheet.create({
    infoText: {
       flex: 1,
       fontSize: 13,
-      color: '#1976d2',
       marginLeft: 12,
       lineHeight: 18,
    },

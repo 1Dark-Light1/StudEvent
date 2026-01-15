@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,14 +6,16 @@ import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { SUPPORTED_LOCALES } from '../../../i18n/translations';
 
-export default function LanguageScreen({ navigation, route }) {
-  const activeRoute = route?.name ?? 'Language';
-  const { locale, setLocale, t } = useI18n();
-  const { colors } = useTheme();
+const THEMES = [
+  { code: 'light', label: 'Світла тема', icon: 'sunny' },
+  { code: 'dark', label: 'Темна тема', icon: 'moon' },
+];
 
-  const items = useMemo(() => SUPPORTED_LOCALES, []);
+export default function ThemeScreen({ navigation, route }) {
+  const activeRoute = route?.name ?? 'Theme';
+  const { t } = useI18n();
+  const { theme, setTheme, colors } = useTheme();
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -24,7 +26,7 @@ export default function LanguageScreen({ navigation, route }) {
             onPress={() => navigation.goBack()}
             hitSlop={12}
             style={({ pressed }) => [
-              styles.backBtn, 
+              styles.backBtn,
               { backgroundColor: colors.surface },
               pressed && { opacity: 0.6 }
             ]}
@@ -32,37 +34,39 @@ export default function LanguageScreen({ navigation, route }) {
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </Pressable>
           <View style={styles.headerText}>
-            <Text style={[styles.title, { color: colors.text }]}>{t('language.title')}</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('language.subtitle')}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('settings.theme')}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Оберіть тему для додатку
+            </Text>
           </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-          {items.map((l, index) => {
-            const isActive = l.code === locale;
+          {THEMES.map((t, index) => {
+            const isActive = t.code === theme;
             return (
               <Pressable
-                key={l.code}
-                onPress={() => setLocale(l.code)}
+                key={t.code}
+                onPress={() => setTheme(t.code)}
                 style={({ pressed }) => [
                   styles.row,
                   { borderBottomColor: colors.border },
-                  index === items.length - 1 && styles.rowLast,
+                  index === THEMES.length - 1 && styles.rowLast,
                   pressed && { opacity: 0.85 },
                 ]}
               >
                 <View style={styles.rowLeft}>
-                  <View style={[
-                    styles.radio, 
-                    { borderColor: colors.border },
-                    isActive && { borderColor: colors.primary }
-                  ]}>
-                    {isActive ? <View style={[styles.radioDot, { backgroundColor: colors.primary }]} /> : null}
+                  <View style={[styles.iconContainer, { backgroundColor: colors.iconBg }]}>
+                    <Ionicons 
+                      name={t.icon} 
+                      size={20} 
+                      color={isActive ? colors.primary : colors.textSecondary} 
+                    />
                   </View>
-                  <Text style={[styles.rowLabel, { color: colors.text }]}>{l.label}</Text>
+                  <Text style={[styles.rowLabel, { color: colors.text }]}>{t.label}</Text>
                 </View>
                 {isActive ? (
-                  <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
                 ) : (
                   <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                 )}
@@ -79,11 +83,26 @@ export default function LanguageScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  heroBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
-  scroll: { paddingTop: 70, paddingHorizontal: 22, paddingBottom: 200 },
-
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  screen: { 
+    flex: 1,
+  },
+  heroBg: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    height: 240 
+  },
+  scroll: { 
+    paddingTop: 70, 
+    paddingHorizontal: 22, 
+    paddingBottom: 200 
+  },
+  headerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 18 
+  },
   backBtn: {
     width: 40,
     height: 40,
@@ -95,10 +114,18 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
   },
-  headerText: { marginLeft: 12, flex: 1 },
-  title: { fontSize: 24, fontWeight: '600' },
-  subtitle: { marginTop: 4, fontSize: 13 },
-
+  headerText: { 
+    marginLeft: 12, 
+    flex: 1 
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: '600' 
+  },
+  subtitle: { 
+    marginTop: 4, 
+    fontSize: 13 
+  },
   card: {
     borderRadius: 22,
     paddingVertical: 12,
@@ -116,19 +143,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  rowLast: { borderBottomWidth: 0 },
-  rowLeft: { flexDirection: 'row', alignItems: 'center' },
-  rowLabel: { fontSize: 15, fontWeight: '500', marginLeft: 14 },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
+  rowLast: { 
+    borderBottomWidth: 0 
+  },
+  rowLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  iconContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioDot: { width: 10, height: 10, borderRadius: 5 },
+  rowLabel: { 
+    fontSize: 15, 
+    fontWeight: '500', 
+    marginLeft: 14 
+  },
 });
-
-
-
