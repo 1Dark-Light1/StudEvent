@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import { auth } from '../../../FireBaseConfig';
@@ -116,7 +116,7 @@ export default function Settings({ navigation, route }) {
                      key={item.label}
                      onPress={() => handleOptionPress(item.label)}
                      style={[
-                        styles.row, 
+                        styles.row,
                         { borderBottomColor: colors.border },
                         index === primaryOptions.length - 1 && styles.rowLast
                      ]}
