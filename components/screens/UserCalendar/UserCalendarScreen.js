@@ -3,92 +3,27 @@
  * It mixes a day-strip selector with a vertical schedule so users can
  * jump between days and immediately see context-rich events.
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert, PanResponder, RefreshControl, Platform } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert, RefreshControl, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
 import EventDetailsModal from '../../ui/EventDetailsModal';
-import GlobalEventCard from '../../ui/GlobalEventCard';
 import { useTaskFilters, useParticipants, useEventModal, toEventDetails } from '../calendarShared';
+import { generateWeekDays, calculateWeekOffset } from './weekData';
+import DayStrip from './DayStrip';
+import DayTimeline from './DayTimeline';
 import { subscribeToTasksByDate, formatTaskForCalendar, applyTaskFilters, deleteTask, autoMarkUncompletedTasks } from '../../../services/tasksService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { LinearGradient } from 'expo-linear-gradient';
-
-/**
- * Генерирует массив дней недели начиная с понедельника недели с учётом смещения
- */
-function generateWeekDays(t, weekOffset = 0) {
-   const today = new Date();
-   // Смещаем базовую дату на нужное количество недель
-   today.setDate(today.getDate() + weekOffset * 7);
-   const currentDay = today.getDay();
-   // Понедельник = 1, воскресенье = 0
-   const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-   const monday = new Date(today);
-   monday.setDate(today.getDate() + mondayOffset);
-
-   const days = [];
-   const dayLabels = [t('date.mon'), t('date.tue'), t('date.wed'), t('date.thu'), t('date.fri'), t('date.sat'), t('date.sun')];
-   
-   for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      
-      const day = date.getDate();
-      const month = date.getMonth() + 1;
-      const year = date.getFullYear();
-      const dateString = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
-      
-      days.push({
-         label: dayLabels[i],
-         date: String(day),
-         dateString: dateString,
-         fullDate: date,
-      });
-   }
-   
-   return days;
-}
-
-/**
- * Обчислює weekOffset для заданої дати
- */
-function calculateWeekOffset(targetDateString) {
-   const [day, month, year] = targetDateString.split('.');
-   const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-   
-   const today = new Date();
-   today.setHours(0, 0, 0, 0);
-   targetDate.setHours(0, 0, 0, 0);
-   
-   // Знаходимо понеділок поточного тижня
-   const currentDay = today.getDay();
-   const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-   const currentMonday = new Date(today);
-   currentMonday.setDate(today.getDate() + mondayOffset);
-   
-   // Знаходимо понеділок тижня з цільовою датою
-   const targetDay = targetDate.getDay();
-   const targetMondayOffset = targetDay === 0 ? -6 : 1 - targetDay;
-   const targetMonday = new Date(targetDate);
-   targetMonday.setDate(targetDate.getDate() + targetMondayOffset);
-   
-   // Обчислюємо різницю в тижнях
-   const diffInMs = targetMonday.getTime() - currentMonday.getTime();
-   const diffInWeeks = Math.round(diffInMs / (7 * 24 * 60 * 60 * 1000));
-   
-   return diffInWeeks;
-}
 
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
-   const { t, displayDate, displayTime } = useI18n();
-   const { colors, isDark } = useTheme();
+   const { t, displayDate } = useI18n();
+   const { colors } = useTheme();
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
@@ -128,31 +63,11 @@ export default function UserCalendar({ navigation, route }) {
    const participantsData = useParticipants(rawTasks);
    const eventModal = useEventModal();
 
+   const shiftWeek = useCallback((step) => setWeekOffset((offset) => offset + step), []);
+
    const activeDay = stripDays.find((day) => day.dateString === activeDate) || stripDays[0];
    const isToday = activeDay.dateString === todayDateString;
    const headerLabel = isToday ? t('calendar.today') : activeDay.label;
-
-   // Horizontal swipe on the day strip switches weeks
-   const [panResponder] = useState(() =>
-      PanResponder.create({
-         onMoveShouldSetPanResponder: (_evt, gestureState) => {
-            const { dx, dy } = gestureState;
-            // Игнорируем совсем мелкие движения, реагируем только на горизонтальный жест
-            return Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2;
-         },
-         onPanResponderRelease: (_evt, gestureState) => {
-            const { dx } = gestureState;
-            const threshold = 30;
-            if (dx > threshold) {
-               // свайп вправо → предыдущая неделя
-               setWeekOffset((offset) => offset - 1);
-            } else if (dx < -threshold) {
-               // свайп влево → следующая неделя
-               setWeekOffset((offset) => offset + 1);
-            }
-         },
-      })
-   );
 
    // При смене недели стараемся сохранить тот же день недели (например, четверг -> четверг следующей недели)
    useEffect(() => {
@@ -294,37 +209,13 @@ export default function UserCalendar({ navigation, route }) {
 
             </View>
 
-            <View style={[styles.dayStrip, { backgroundColor: colors.cardBackground }]} {...panResponder.panHandlers}>
-               {stripDays.map((day) => {
-                  const isActive = day.dateString === activeDate;
-                  const isTodayDate = day.dateString === todayDateString;
-                  return (
-                     <Pressable
-                        key={day.dateString}
-                        style={[
-                           styles.dayChip,
-                           { backgroundColor: colors.cardBackground },
-                           isActive && [styles.dayChipActive, { backgroundColor: colors.primary }]
-                        ]}
-                        onPress={() => setActiveDate(day.dateString)}
-                     >
-                        <Text style={[
-                           styles.dayLabel,
-                           { color: colors.textSecondary },
-                           isActive && [styles.dayLabelActive, { color: '#fff' }]
-                        ]}>{day.label}</Text>
-                        <Text style={[
-                           styles.dayNumber,
-                           { color: colors.text },
-                           isActive && [styles.dayNumberActive, { color: '#fff' }]
-                        ]}>{day.date}</Text>
-                        {isTodayDate && !isActive && (
-                           <View style={[styles.todayIndicator, { backgroundColor: colors.primary }]} />
-                        )}
-                     </Pressable>
-                  );
-               })}
-            </View>
+            <DayStrip
+               days={stripDays}
+               activeDate={activeDate}
+               todayDateString={todayDateString}
+               onSelectDay={setActiveDate}
+               onShiftWeek={shiftWeek}
+            />
 
             {/* Поиск и фильтры */}
             <SearchBar
@@ -353,78 +244,11 @@ export default function UserCalendar({ navigation, route }) {
                      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>{t('calendar.addNewTask')}</Text>
                   </View>
                ) : (
-                  tasks.map((event, index) => {
-                     const isLast = index === tasks.length - 1;
-                     const isGlobal = event.isGlobal === true;
-                     
-                     // Проверяем, прикреплен ли текущий пользователь к задаче
-                     const isUserJoined = isGlobal && auth.currentUser && event.participants && event.participants.includes(auth.currentUser.uid);
-                     
-                     // Получаем участников для глобальной задачи
-                     const taskParticipants = isGlobal && participantsData[event.id] ? participantsData[event.id] : [];
-
-                     return (
-                        <View key={event.id} style={styles.eventRow}>
-                           <Text style={[styles.eventTime, { color: colors.textMuted }]}>{displayTime(event.time)}</Text>
-                           <View style={styles.nodeColumn}>
-                              <View
-                                 style={[
-                                    styles.timelineNode,
-                                    isDark && { backgroundColor: '#3a4255', borderColor: colors.surface },
-                                    event.tone === 'highlight' && styles.timelineNodeHighlight,
-                                    isGlobal && !event.tone && styles.timelineNodeGlobal
-                                 ]}
-                              />
-                              {!isLast && <View style={[styles.nodeLine, isDark && { backgroundColor: colors.border }]} />}
-                           </View>
-                           {isGlobal ? (
-                              <Pressable onPress={() => handleEventPress(event)} style={{ flex: 1 }}>
-                                 <GlobalEventCard
-                                    large
-                                    title={event.title}
-                                    subtitle={event.subtitle}
-                                    color={event.color || '#2f7cff'}
-                                    participants={taskParticipants}
-                                    isJoined={isUserJoined}
-                                 />
-                              </Pressable>
-                           ) : event.tone === 'highlight' ? (
-                              // Активная задача - с градиентом и увеличенным размером
-                              <LinearGradient
-                                 colors={['#2f7cff', '#4a9eff', '#6bb5ff']}
-                                 start={{ x: 0, y: 0 }}
-                                 end={{ x: 0, y: 1 }}
-                                 style={[styles.eventCardHighlightGradient, styles.eventCardHighlightActive]}
-                              >
-                                 <Pressable 
-                                    style={styles.eventCardHighlightContent}
-                                    onPress={() => handleEventPress(event)}
-                                 >
-                                    <Text style={styles.eventTitleHighlight}>
-                                       {event.title}
-                                    </Text>
-                                    <Text style={styles.eventSubtitleHighlight}>
-                                       {event.subtitle}
-                                    </Text>
-                                 </Pressable>
-                              </LinearGradient>
-                           ) : (
-                              // Обычная задача
-                              <Pressable 
-                                 style={[styles.eventCard, { backgroundColor: colors.surface }]}
-                                 onPress={() => handleEventPress(event)}
-                              >
-                                 <Text style={[styles.eventTitle, { color: colors.text }]}>
-                                    {event.title}
-                                 </Text>
-                                 <Text style={[styles.eventSubtitle, { color: colors.textSecondary }]}>
-                                    {event.subtitle}
-                                 </Text>
-                              </Pressable>
-                           )}
-                        </View>
-                     );
-                  })
+                  <DayTimeline
+                     events={tasks}
+                     participants={participantsData}
+                     onEventPress={handleEventPress}
+                  />
                )}
             </View>
          </ScrollView>
@@ -473,49 +297,6 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'center',
    },
-   dayStrip: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: 16,
-      borderRadius: 30,
-      backgroundColor: '#fff',
-      paddingHorizontal: 18,
-      shadowColor: '#000',
-      shadowOpacity: 0.05,
-      shadowRadius: 14,
-      shadowOffset: { width: 0, height: 10 },
-      marginBottom: 32,
-   },
-   dayChip: {
-      alignItems: 'center',
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-      borderRadius: 16,
-   },
-   dayChipActive: {
-      backgroundColor: '#2f6cff',
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 18,
-   },
-   dayLabel: {
-      fontSize: 12,
-      color: '#a4aec3',
-   },
-   dayLabelActive: {
-      color: '#f4f6ff',
-      fontWeight: '600',
-   },
-   dayNumber: {
-      fontSize: 16,
-      color: '#20283f',
-      fontWeight: '600',
-      marginTop: 4,
-   },
-   dayNumberActive: {
-      color: '#fff',
-      fontSize: 20,
-   },
    timelineWrapper: {
       borderRadius: 34,
       paddingHorizontal: 22,
@@ -525,86 +306,6 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.07,
       shadowRadius: 18,
       shadowOffset: { width: 0, height: 8 },
-   },
-   eventRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: 26,
-   },
-   eventTime: {
-      width: 80,
-      color: '#94a0b6',
-      fontWeight: '600',
-   },
-   nodeColumn: {
-      width: 46,
-      alignItems: 'center',
-   },
-   timelineNode: {
-      width: 14,
-      height: 14,
-      borderRadius: 7,
-      backgroundColor: '#dfe6f5',
-      borderWidth: 2,
-      borderColor: '#fff',
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 2 },
-   },
-   timelineNodeHighlight: {
-      backgroundColor: '#2f6cff',
-      borderColor: '#6fa9ff',
-   },
-   timelineNodeGlobal: {
-      backgroundColor: '#2f6cff',
-      borderWidth: 0,
-   },
-   nodeLine: {
-      width: 2,
-      flex: 1,
-      backgroundColor: '#e6ecf7',
-      marginTop: 6,
-   },
-   eventCard: {
-      flex: 1,
-      borderRadius: 20,
-      padding: 18,
-      shadowColor: '#000',
-      shadowOpacity: 0.04,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 6 },
-   },
-   eventCardHighlightGradient: {
-      flex: 1,
-      borderRadius: 20,
-      shadowColor: '#000',
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-   },
-   eventCardHighlightActive: {
-      marginVertical: 4,
-      marginHorizontal: -4,
-      padding: 2,
-   },
-   eventCardHighlightContent: {
-      padding: 20,
-   },
-   eventTitle: {
-      fontWeight: '600',
-      fontSize: 16,
-      marginBottom: 6,
-   },
-   eventTitleHighlight: {
-      color: '#fff',
-   },
-   eventSubtitle: {
-      fontSize: 12,
-      lineHeight: 18,
-   },
-   eventSubtitleHighlight: {
-      color: 'rgba(255,255,255,0.85)',
    },
    eventTitleGlobal: {
       color: '#1f2b3f',
@@ -672,13 +373,5 @@ const styles = StyleSheet.create({
       marginTop: 12,
       color: '#9aa7bd',
       fontSize: 14,
-   },
-   todayIndicator: {
-      position: 'absolute',
-      bottom: 2,
-      width: 4,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: '#2f6cff',
    },
 });
