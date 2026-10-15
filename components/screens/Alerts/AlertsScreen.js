@@ -164,10 +164,10 @@ export default function Alerts({ navigation, route }) {
 
    const getNotificationTypeLabel = (type) => {
       switch (type) {
-         case 'user_reminder_1h':
-            return t('notifications.type.userReminder1h');
-         case 'user_expired':
-            return t('notifications.type.userExpired');
+         case 'user_reminder':
+            return t('notifications.type.userReminder');
+         case 'user_check':
+            return t('notifications.type.userCheck');
          case 'global_created':
             return t('notifications.type.globalCreated');
          case 'global_reminder_1d':

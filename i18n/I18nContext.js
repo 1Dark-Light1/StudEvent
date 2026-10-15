@@ -27,7 +27,9 @@ export async function getTranslator() {
   } catch {
     // fall back to the default locale
   }
-  return (key, vars) => resolveString(locale, key, vars);
+  const translate = (key, vars) => resolveString(locale, key, vars);
+  translate.locale = locale;
+  return translate;
 }
 
 export function I18nProvider({ children }) {

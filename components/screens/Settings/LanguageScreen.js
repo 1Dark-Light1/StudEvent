@@ -7,6 +7,7 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { SUPPORTED_LOCALES } from '../../../i18n/translations';
+import { resyncNotifications } from '../../../services/notificationsService';
 
 export default function LanguageScreen({ navigation, route }) {
   const activeRoute = route?.name ?? 'Language';
@@ -43,7 +44,11 @@ export default function LanguageScreen({ navigation, route }) {
             return (
               <Pressable
                 key={l.code}
-                onPress={() => setLocale(l.code)}
+                onPress={async () => {
+                  await setLocale(l.code);
+                  // scheduled reminders keep the text they were created with
+                  resyncNotifications().catch((error) => console.error('Error rescheduling notifications:', error));
+                }}
                 style={({ pressed }) => [
                   styles.row,
                   { borderBottomColor: colors.border },

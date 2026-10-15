@@ -154,6 +154,20 @@ export async function cleanupOldMessages() {
 }
 
 /**
+ * Deletes all messages of the current user
+ */
+export async function deleteAllMyMessages() {
+   const user = auth.currentUser;
+   if (!user) return;
+   const snapshot = await getDocs(query(collection(db, 'messages'), where('userId', '==', user.uid)));
+   for (let i = 0; i < snapshot.docs.length; i += 500) {
+      const batch = writeBatch(db);
+      snapshot.docs.slice(i, i + 500).forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+   }
+}
+
+/**
  * Deletes the messages of a task
  */
 export async function deleteMessagesByTaskId(taskId) {

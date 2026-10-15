@@ -2,8 +2,8 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { auth } from '../FireBaseConfig';
-import { parseDate, parseTime } from './taskRules';
-import { saveMessage } from './messagesService';
+import { planTaskNotifications, newEventNotification } from './notificationPlan';
+import { saveMessage, deleteAllMyMessages } from './messagesService';
 import { getTranslator } from '../i18n/I18nContext';
 
 // Notification handler configuration
@@ -232,90 +232,28 @@ export async function cancelTaskNotifications(taskId) {
 }
 
 /**
- * Schedules notifications for user task
+ * Schedules the reminders of an own task (see notificationPlan for when and what)
  */
 export async function scheduleUserTaskNotifications(task) {
-   const t = await getTranslator();
    if (!task || !task.date) return;
-
    const user = auth.currentUser;
-   if (!user || task.userId !== user.uid) return;
-
-   // Cancel old notifications
+   if (!user || task.isGlobal || task.userId !== user.uid) return;
    await cancelTaskNotifications(task.id);
-
-   // A completed task needs no reminder and no "time is up" message
-   if (task.isCompleted || task.isUncompleted) return;
-
-   const taskDate = parseDate(task.date);
-   const now = new Date();
-
-   // 1. Reminder 1 hour before task
-   let reminderTime = null;
-   if (task.timeDilation && task.fromTime) {
-      const fromTime = parseTime(task.fromTime, taskDate);
-      reminderTime = new Date(fromTime.getTime() - 60 * 60 * 1000); // 1 hour before
-   } else if (task.time) {
-      const taskTime = parseTime(task.time, taskDate);
-      reminderTime = new Date(taskTime.getTime() - 60 * 60 * 1000); // 1 hour before
-   }
-
-   if (reminderTime && reminderTime > now) {
-      await scheduleNotification(
-         'reminder_1h',
-         task.name,
-         task.description || t('notify.forgetComplete'),
-         reminderTime,
-         task.id,
-         'user_reminder_1h'
-      );
-   }
-
-   // 2. Notification when time is up (if task not completed)
-   let expiredTime = null;
-   if (task.timeDilation && task.toTime) {
-      const toTime = parseTime(task.toTime, taskDate);
-      expiredTime = new Date(toTime.getTime() + 30 * 60 * 1000); // 30 min after end
-   } else if (task.time) {
-      const taskTime = parseTime(task.time, taskDate);
-      const taskEndTime = new Date(taskTime.getTime() + 60 * 60 * 1000); // +1 hour for completion
-      expiredTime = new Date(taskEndTime.getTime() + 30 * 60 * 1000); // +30 min after
-   } else {
-      // If no time specified, at end of day
-      const endOfDay = new Date(taskDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      expiredTime = endOfDay;
-   }
-
-   if (expiredTime && expiredTime > now) {
-      await scheduleNotification(
-         'expired',
-         t('notify.timeUp', { name: task.name }),
-         t('notify.expiredBody'),
-         expiredTime,
-         task.id,
-         'user_expired'
-      );
+   const t = await getTranslator();
+   for (const item of planTaskNotifications(task, { t, locale: t.locale })) {
+      await scheduleNotification(item.id, item.title, item.body, item.at, task.id, item.type);
    }
 }
 
 /**
- * Shows "New global task" right away on this device and records it in the history.
+ * Shows "New event" right away on this device and records it in the history.
  * Called by syncTaskNotifications when another user's global event appears.
  */
 async function notifyNewGlobalTask(task, t) {
    const settings = await getNotificationSettings();
    if (!settings.enabled) return;
 
-   let timeText = '';
-   if (task.timeDilation && task.fromTime && task.toTime) {
-      timeText = t('notify.fromTo', { from: task.fromTime, to: task.toTime });
-   } else if (task.time) {
-      timeText = t('notify.at', { time: task.time });
-   }
-   const title = t('notify.newGlobal');
-   const body = `${task.name} (${task.date}${timeText ? `, ${timeText}` : ''})`;
-
+   const { title, body } = newEventNotification(task, { t, locale: t.locale });
    await Notifications.scheduleNotificationAsync({
       identifier: `${task.id}_global_created`,
       content: { title, body, sound: settings.soundEnabled, data: { taskId: task.id, type: 'global_created' } },
@@ -325,60 +263,16 @@ async function notifyNewGlobalTask(task, t) {
 }
 
 /**
- * Schedules notifications for global task after user joined
+ * Schedules the reminders of a global event the user has joined
  */
 export async function scheduleGlobalTaskJoinedNotifications(task) {
-   const t = await getTranslator();
-   if (!task || !task.isGlobal) return;
-
+   if (!task || !task.date) return;
    const user = auth.currentUser;
-   if (!user) return;
-
-   // Check if user has joined
-   const participants = task.participants || [];
-   if (!participants.includes(user.uid)) return;
-
-   // Cancel old notifications
+   if (!user || !task.isGlobal || !(task.participants || []).includes(user.uid)) return;
    await cancelTaskNotifications(task.id);
-
-   const taskDate = parseDate(task.date);
-   const now = new Date();
-
-   // 1. Reminder 1 day before task
-   const dayBefore = new Date(taskDate);
-   dayBefore.setDate(dayBefore.getDate() - 1);
-   dayBefore.setHours(9, 0, 0, 0); // 9:00 AM
-
-   if (dayBefore > now) {
-      await scheduleNotification(
-         'reminder_1d',
-         t('notify.tomorrow', { name: task.name }),
-         task.description || t('notify.forgetTask'),
-         dayBefore,
-         task.id,
-         'global_reminder_1d'
-      );
-   }
-
-   // 2. Reminder 1 hour before task
-   let reminderTime = null;
-   if (task.timeDilation && task.fromTime) {
-      const fromTime = parseTime(task.fromTime, taskDate);
-      reminderTime = new Date(fromTime.getTime() - 60 * 60 * 1000);
-   } else if (task.time) {
-      const taskTime = parseTime(task.time, taskDate);
-      reminderTime = new Date(taskTime.getTime() - 60 * 60 * 1000);
-   }
-
-   if (reminderTime && reminderTime > now) {
-      await scheduleNotification(
-         'reminder_1h',
-         task.name,
-         task.description || t('notify.forgetComplete'),
-         reminderTime,
-         task.id,
-         'global_reminder_1h'
-      );
+   const t = await getTranslator();
+   for (const item of planTaskNotifications(task, { t, locale: t.locale })) {
+      await scheduleNotification(item.id, item.title, item.body, item.at, task.id, item.type);
    }
 }
 
@@ -409,6 +303,7 @@ export async function syncTaskNotifications(tasks) {
    const user = auth.currentUser;
    if (!user) return;
    lastSyncedTasks = tasks;
+   await clearOldHistoryOnce(user.uid);
 
    for (const task of tasks) {
       const relevant = task.isGlobal
@@ -438,6 +333,22 @@ export async function syncTaskNotifications(tasks) {
    await recordDeliveredNotifications();
    await cancelNotificationsOfMissingTasks(tasks);
    await announceNewGlobalTasks(tasks, user.uid);
+}
+
+/**
+ * The notification texts and times changed in this version: the history written
+ * with the old texts is removed once per user and device. Scheduled reminders are
+ * replaced anyway, because every task is rescheduled on the first sync.
+ */
+async function clearOldHistoryOnce(uid) {
+   const key = `@notifications_v2_${uid}`;
+   try {
+      if (await AsyncStorage.getItem(key)) return;
+      await deleteAllMyMessages();
+      await AsyncStorage.setItem(key, '1');
+   } catch (error) {
+      console.error('Error clearing old notification history:', error);
+   }
 }
 
 /** Saves notifications that fired while the app was closed into the history (messages). */
