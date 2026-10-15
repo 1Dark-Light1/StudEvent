@@ -3,96 +3,17 @@
  */
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
+import SegmentedToggle from '../../ui/SegmentedToggle';
 import { subscribeToUserTasks, autoMarkUncompletedTasks } from '../../../services/tasksService';
 import { compareDateStrings } from '../../../services/taskRules';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
-/**
- * Переключатель виконані/невиконані (як modeSelector в AddTaskScreen)
- */
-function TaskToggle({ activeTab, onTabChange, t, colors }) {
-   return (
-      <LinearGradient
-         colors={colors.heroGradient}
-         start={{ x: 0, y: 0 }}
-         end={{ x: 0, y: 1 }}
-         style={styles.toggleContainer}
-      >
-         <Pressable
-            style={[styles.toggleSegment, activeTab === 'completed' && [styles.toggleSegmentActive, { backgroundColor: colors.surface }]]}
-            onPress={() => onTabChange('completed')}
-         >
-            <Text 
-               style={[
-                  styles.toggleText,
-                  { color: activeTab === 'completed' ? colors.text : '#fff' }
-               ]}
-               numberOfLines={1}
-               adjustsFontSizeToFit={true}
-               minimumFontScale={0.8}
-            >
-               {t('completed.completed')}
-            </Text>
-         </Pressable>
-         <Pressable
-            style={[styles.toggleSegment, activeTab === 'uncompleted' && [styles.toggleSegmentActive, { backgroundColor: colors.surface }]]}
-            onPress={() => onTabChange('uncompleted')}
-         >
-            <Text 
-               style={[
-                  styles.toggleText,
-                  { color: activeTab === 'uncompleted' ? colors.text : '#fff' }
-               ]}
-               numberOfLines={1}
-               adjustsFontSizeToFit={true}
-               minimumFontScale={0.8}
-            >
-               {t('completed.uncompleted')}
-            </Text>
-         </Pressable>
-      </LinearGradient>
-   );
-}
-
-/**
- * Форматує дату для відображення
- */
-function formatDateForDisplay(dateString, t) {
-   const [day, month, year] = dateString.split('.');
-   const monthNames = [
-      t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
-      t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
-   ];
-   return `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
-}
-
-/**
- * Форматує час для відображення
- */
-function formatTimeForDisplay(timeString) {
-   if (!timeString) return '';
-   if (timeString.includes('-')) {
-      const [from, to] = timeString.split('-');
-      return `${formatSingleTime(from)} - ${formatSingleTime(to)}`;
-   }
-   return formatSingleTime(timeString);
-}
-
-function formatSingleTime(timeString) {
-   const [hours, minutes] = timeString.split(':');
-   const hour = parseInt(hours, 10);
-   const ampm = hour >= 12 ? 'PM' : 'AM';
-   const displayHour = hour % 12 || 12;
-   return `${displayHour}:${minutes} ${ampm}`;
-}
-
 export default function CompletedTasks({ navigation, route }) {
-   const { t, tagLabel } = useI18n();
+   const { t, tagLabel, displayDate, displayTime } = useI18n();
    const { colors } = useTheme();
    const activeRoute = route?.name ?? 'CompletedTasks';
    const [activeTab, setActiveTab] = useState('completed'); // 'completed' or 'uncompleted'
@@ -204,11 +125,13 @@ export default function CompletedTasks({ navigation, route }) {
 
             {/* Переключатель */}
             <View style={styles.toggleWrapper}>
-               <TaskToggle 
-                  activeTab={activeTab} 
-                  onTabChange={setActiveTab}
-                  t={t}
-                  colors={colors}
+               <SegmentedToggle
+                  options={[
+                     { value: 'completed', label: t('completed.completed') },
+                     { value: 'uncompleted', label: t('completed.uncompleted') },
+                  ]}
+                  value={activeTab}
+                  onChange={setActiveTab}
                />
             </View>
 
@@ -240,7 +163,7 @@ export default function CompletedTasks({ navigation, route }) {
                            <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
                               {dateKey === 'no-date' 
                                  ? t('completed.noDate') 
-                                 : formatDateForDisplay(dateKey, t)}
+                                 : displayDate(dateKey)}
                            </Text>
                            {dateTasks.map(task => {
                               let timeDisplay = '';
@@ -278,7 +201,7 @@ export default function CompletedTasks({ navigation, route }) {
                                                 <View style={styles.taskMetaItem}>
                                                    <Ionicons name="time-outline" size={14} color={colors.textMuted} />
                                                    <Text style={[styles.taskMetaText, { color: colors.textMuted }]}>
-                                                      {formatTimeForDisplay(timeDisplay)}
+                                                      {displayTime(timeDisplay)}
                                                    </Text>
                                                 </View>
                                              )}
@@ -332,31 +255,6 @@ const styles = StyleSheet.create({
    toggleWrapper: {
       marginBottom: 24,
       alignItems: 'center',
-   },
-   toggleContainer: {
-      alignSelf: 'center',
-      flexDirection: 'row',
-      borderRadius: 40,
-      padding: 5,
-      overflow: 'hidden',
-      minHeight: 50,
-   },
-   toggleSegment: {
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 35,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'transparent',
-      minWidth: 120,
-   },
-   toggleSegmentActive: {
-      backgroundColor: '#FFFFFF',
-   },
-   toggleText: {
-      fontSize: 15,
-      color: '#FFFFFF',
-      fontWeight: '600',
    },
    loadingContainer: {
       alignItems: 'center',

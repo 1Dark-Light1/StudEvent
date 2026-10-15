@@ -8,10 +8,10 @@ import {
    Platform,
    Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import SearchBar from '../../ui/SearchBar';
+import SegmentedToggle from '../../ui/SegmentedToggle';
 import DatePickerSheet from '../../ui/DatePickerSheet';
 import ColorPickerModal from './ColorPickerModal';
 import TagPickerModal from './TagPickerModal';
@@ -334,49 +334,16 @@ export default function AddTaskScreen({ navigation, route }) {
             <View style={styles.container}>
                <Text style={[styles.title, { color: colors.text }]}>{t('task.add')}</Text>
 
-               {/* Mode selector */}
-               <LinearGradient
-                  colors={colors.heroGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
+               <SegmentedToggle
+                  options={[
+                     { value: 'build', label: t('task.build') },
+                     { value: 'change', label: t('task.change') },
+                  ]}
+                  value={mode}
+                  onChange={setMode}
+                  minSegmentWidth={100}
                   style={styles.modeSelector}
-               >
-                  <Pressable
-                     style={[styles.modeBtn, mode === 'build' && [styles.modeBtnActive, { backgroundColor: colors.surface }]]}
-                     onPress={() => setMode('build')}
-                  >
-                     <Text 
-                        style={[
-                           styles.modeText,
-                           { color: mode === 'build' ? colors.text : '#fff' },
-                           mode === 'build' && styles.modeTextActive
-                        ]}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit={true}
-                        minimumFontScale={0.8}
-                     >
-                        {t('task.build')}
-                     </Text>
-                  </Pressable>
-
-                  <Pressable
-                     style={[styles.modeBtn, mode === 'change' && [styles.modeBtnActive, { backgroundColor: colors.surface }]]}
-                     onPress={() => setMode('change')}
-                  >
-                     <Text 
-                        style={[
-                           styles.modeText,
-                           { color: mode === 'change' ? colors.text : '#fff' },
-                           mode === 'change' && styles.modeTextActive
-                        ]}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit={true}
-                        minimumFontScale={0.8}
-                     >
-                        {t('task.change')}
-                     </Text>
-                  </Pressable>
-               </LinearGradient>
+               />
 
                {/* \u0421\u043f\u0438\u0441\u043e\u043a \u0442\u0430\u0441\u043a\u043e\u0432 \u0434\u043b\u044f \u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f */}
                {mode === 'change' && !selectedTaskId && (

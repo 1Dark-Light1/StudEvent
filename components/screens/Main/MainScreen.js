@@ -190,7 +190,7 @@ function getMonthData(year, month, tasks, t, todayHighlightColor = '#d9ecff') {
 }
 
 export default function Main({ navigation, route }) {
-   const { t } = useI18n();
+   const { t, displayTime } = useI18n();
    const { colors } = useTheme();
    const today = new Date();
    const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -450,7 +450,7 @@ export default function Main({ navigation, route }) {
                                  style={styles.agendaRow}
                                  onPress={() => handleEventPress(item)}
                               >
-                                 <Text style={[styles.timeText, { color: colors.textMuted }]}>{item.time}</Text>
+                                 <Text style={[styles.timeText, { color: colors.textMuted }]}>{displayTime(item.time)}</Text>
                                  <View style={styles.timeline}>
                                     <View 
                                        style={[

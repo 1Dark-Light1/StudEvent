@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_LOCALE, translations } from './translations';
+import { formatDisplayDate, formatDisplayTime } from './format';
 
 const STORAGE_KEY = 'studevent.locale';
 
@@ -85,9 +86,12 @@ export function I18nProvider({ children }) {
     [locale]
   );
 
+  const displayDate = useCallback((value) => formatDisplayDate(value, locale), [locale]);
+  const displayTime = useCallback((value) => formatDisplayTime(value, locale), [locale]);
+
   const value = useMemo(
-    () => ({ locale, setLocale, t, tagLabel, errorText, isReady }),
-    [locale, setLocale, t, tagLabel, errorText, isReady]
+    () => ({ locale, setLocale, t, tagLabel, errorText, displayDate, displayTime, isReady }),
+    [locale, setLocale, t, tagLabel, errorText, displayDate, displayTime, isReady]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

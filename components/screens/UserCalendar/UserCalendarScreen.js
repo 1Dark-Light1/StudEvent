@@ -56,39 +56,6 @@ function generateWeekDays(t, weekOffset = 0) {
 }
 
 /**
- * Форматирует дату для отображения
- */
-function formatDateForDisplay(dateString, t) {
-   const [day, month, year] = dateString.split('.');
-   const monthNames = [
-      t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
-      t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
-   ];
-   return `${monthNames[parseInt(month) - 1]} ${day}, ${year}`;
-}
-
-/**
- * Форматирует время для отображения (добавляет AM/PM)
- */
-function formatTimeForDisplay(timeString) {
-   if (!timeString) return '';
-   if (timeString.includes('-')) {
-      // Диапазон времени
-      const [from, to] = timeString.split('-');
-      return `${formatSingleTime(from)}-${formatSingleTime(to)}`;
-   }
-   return formatSingleTime(timeString);
-}
-
-function formatSingleTime(timeString) {
-   const [hours, minutes] = timeString.split(':');
-   const hour = parseInt(hours, 10);
-   const ampm = hour >= 12 ? 'PM' : 'AM';
-   const displayHour = hour % 12 || 12;
-   return `${displayHour}:${minutes} ${ampm}`;
-}
-
-/**
  * Обчислює weekOffset для заданої дати
  */
 function calculateWeekOffset(targetDateString) {
@@ -120,7 +87,7 @@ function calculateWeekOffset(targetDateString) {
 
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
-   const { t } = useI18n();
+   const { t, displayDate, displayTime } = useI18n();
    const { colors, isDark } = useTheme();
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
@@ -312,7 +279,7 @@ export default function UserCalendar({ navigation, route }) {
          >
             <View style={styles.headerRow}>
                <View>
-                  <Text style={[styles.dateOverline, { color: colors.textMuted }]}>{formatDateForDisplay(activeDate, t)}</Text>
+                  <Text style={[styles.dateOverline, { color: colors.textMuted }]}>{displayDate(activeDate)}</Text>
                   <Text style={[styles.title, { color: colors.text }]}>{headerLabel}</Text>
                </View>
 
@@ -398,7 +365,7 @@ export default function UserCalendar({ navigation, route }) {
 
                      return (
                         <View key={event.id} style={styles.eventRow}>
-                           <Text style={[styles.eventTime, { color: colors.textMuted }]}>{formatTimeForDisplay(event.time)}</Text>
+                           <Text style={[styles.eventTime, { color: colors.textMuted }]}>{displayTime(event.time)}</Text>
                            <View style={styles.nodeColumn}>
                               <View
                                  style={[

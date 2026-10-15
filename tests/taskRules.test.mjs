@@ -90,3 +90,13 @@ test('tasks sort by day then start time, also without dateTimestamp', () => {
 test('date strings sort chronologically, not alphabetically', () => {
    assert.deepEqual(['10.10.2026', '05.11.2026', '01.01.2027', '09.10.2026'].sort(compareDateStrings), ['09.10.2026', '10.10.2026', '05.11.2026', '01.01.2027']);
 });
+
+test('dates and times are shown in the app language', async () => {
+   const { formatDisplayDate, formatDisplayTime } = await import('../i18n/format.js');
+   assert.equal(formatDisplayDate('15.10.2026', 'en'), 'October 15, 2026');
+   assert.match(formatDisplayDate('15.10.2026', 'uk'), /^15 жовтня 2026/);
+   assert.equal(formatDisplayDate('15.10.2026', 'pl'), '15 października 2026');
+   assert.equal(formatDisplayTime('13:05', 'en'), '1:05 PM');
+   assert.equal(formatDisplayTime('13:00-14:30', 'pl'), '13:00 - 14:30');
+   assert.equal(formatDisplayTime('', 'uk'), '');
+});

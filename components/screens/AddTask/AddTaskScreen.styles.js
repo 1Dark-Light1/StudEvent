@@ -19,30 +19,7 @@ export const styles = StyleSheet.create({
       textAlign: 'center',
    },
    modeSelector: {
-      alignSelf: 'center',
-      flexDirection: 'row',
-      borderRadius: 40,
-      padding: 5,
       marginBottom: 24,
-      overflow: 'hidden',
-      minHeight: 50,
-   },
-   modeBtn: {
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 35,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'transparent',
-      minWidth: 100,
-   },
-   modeBtnActive: {
-   },
-   modeText: {
-      fontSize: 15,
-      fontWeight: '600',
-   },
-   modeTextActive: {
    },
    section: {
       marginBottom: 20,

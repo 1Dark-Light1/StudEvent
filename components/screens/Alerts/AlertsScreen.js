@@ -13,35 +13,30 @@ import { subscribeToCurrentMonthMessages, cleanupOldMessages, getHiddenMessages,
 import { doc as firestoreDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../../FireBaseConfig';
 
-function formatDateForDisplay(date, t) {
-   const d = new Date(date);
-   const day = d.getDate();
-   const month = d.getMonth() + 1;
-   const year = d.getFullYear();
-   const monthNames = [
-      t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
-      t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
-   ];
-   return `${day} ${monthNames[month - 1].toUpperCase()} ${year}`;
-}
-
-function formatTimeForDisplay(date) {
-   const d = new Date(date);
-   const hours = d.getHours();
-   const minutes = d.getMinutes();
-   const ampm = hours >= 12 ? 'PM' : 'AM';
-   const displayHour = hours % 12 || 12;
-   return `${displayHour}:${String(minutes).padStart(2, '0')} ${ampm}`;
-}
-
 export default function Alerts({ navigation, route }) {
   const activeRoute = route?.name ?? 'Alerts';
-  const { t } = useI18n();
+  const { t, displayDate } = useI18n();
   const { colors } = useTheme();
    const [notifications, setNotifications] = useState([]);
    const [messages, setMessages] = useState([]);
    const [hiddenMessageIds, setHiddenMessageIds] = useState(new Set()); // Зберігаємо ID прихованих повідомлень
    const [loading, setLoading] = useState(true);
+
+   // Tasks referenced by notifications/messages, loaded once by id (null = deleted or not accessible)
+   const tasksCacheRef = useRef({});
+   const fetchTasks = async (ids) => {
+      const missing = [...new Set(ids)].filter((id) => id && !(id in tasksCacheRef.current));
+      await Promise.all(missing.map(async (id) => {
+         try {
+            const snapshot = await getDoc(firestoreDoc(db, 'tasks', id));
+            tasksCacheRef.current[id] = snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+         } catch (error) {
+            console.error('Error loading task:', error);
+            tasksCacheRef.current[id] = null;
+         }
+      }));
+      return tasksCacheRef.current;
+   };
 
    useEffect(() => {
       // Завантажуємо приховані повідомлення з AsyncStorage
@@ -66,6 +61,8 @@ export default function Alerts({ navigation, route }) {
       return () => {
          if (unsubscribe) unsubscribe();
       };
+      // Runs once on mount; later updates come from the messages subscription
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, []);
 
    const loadNotifications = async () => {
@@ -79,26 +76,10 @@ export default function Alerts({ navigation, route }) {
             return triggerDate > now;
          });
 
-         // Завантажуємо дані задач для кожного повідомлення
-         const notificationsWithTasks = await Promise.all(
-            futureNotifications.map(async (notif) => {
-               if (notif.taskId) {
-                  try {
-                     const taskDoc = await getDoc(firestoreDoc(db, 'tasks', notif.taskId));
-                     if (taskDoc.exists()) {
-                        return {
-                           ...notif,
-                           task: { id: taskDoc.id, ...taskDoc.data() },
-                        };
-                     }
-                  } catch (error) {
-                     // Ігноруємо помилки доступу - задача може бути видалена або недоступна
-                     console.error('Error loading task:', error);
-                  }
-               }
-               return notif;
-            })
-         );
+         const tasks = await fetchTasks(futureNotifications.map((notif) => notif.taskId));
+         const notificationsWithTasks = futureNotifications.map((notif) => (
+            tasks[notif.taskId] ? { ...notif, task: tasks[notif.taskId] } : notif
+         ));
 
          // Сортуємо за датою
          notificationsWithTasks.sort((a, b) => {
@@ -115,58 +96,24 @@ export default function Alerts({ navigation, route }) {
       }
    };
 
-   // Завантажуємо дані задач для повідомлень з Firestore (оптимізовано - завантажуємо тільки унікальні taskId)
+   // Saved messages with their task data
    const [messagesWithTasks, setMessagesWithTasks] = useState([]);
-   const tasksCacheRef = useRef({}); // Кеш для задач (useRef щоб не викликати ререндери)
-   
+
    useEffect(() => {
-      const loadTasksForMessages = async () => {
-         // Отримуємо унікальні taskId
-         const uniqueTaskIds = [...new Set(messages.filter(m => m.taskId).map(m => m.taskId))];
-         
-         // Завантажуємо тільки ті задачі, яких немає в кеші
-         const tasksToLoad = uniqueTaskIds.filter(taskId => !tasksCacheRef.current[taskId]);
-         
-         // Завантажуємо задачі батчем
-         const loadedTasks = {};
-         await Promise.all(
-            tasksToLoad.map(async (taskId) => {
-               try {
-                  const taskDoc = await getDoc(firestoreDoc(db, 'tasks', taskId));
-                  if (taskDoc.exists()) {
-                     loadedTasks[taskId] = { id: taskDoc.id, ...taskDoc.data() };
-                  }
-               } catch (error) {
-                  // Ігноруємо помилки доступу - задача може бути видалена
-                  console.error('Error loading task for message:', error);
-               }
-            })
-         );
-         
-         // Оновлюємо кеш
-         if (Object.keys(loadedTasks).length > 0) {
-            tasksCacheRef.current = { ...tasksCacheRef.current, ...loadedTasks };
-         }
-         
-         // Формуємо повідомлення з задачами
-         const messagesWithTasksData = messages.map((message) => {
-            const task = message.taskId ? (tasksCacheRef.current[message.taskId] || loadedTasks[message.taskId]) : null;
-            return {
-               ...message,
-               identifier: message.id,
-               trigger: message.createdAt?.toDate?.() || new Date(message.createdAt),
-               task: task || undefined,
-            };
-         });
-         
-         setMessagesWithTasks(messagesWithTasksData);
+      let cancelled = false;
+      (async () => {
+         const tasks = await fetchTasks(messages.map((message) => message.taskId));
+         if (cancelled) return;
+         setMessagesWithTasks(messages.map((message) => ({
+            ...message,
+            identifier: message.id,
+            trigger: message.createdAt?.toDate?.() || new Date(message.createdAt),
+            task: tasks[message.taskId] || undefined,
+         })));
+      })();
+      return () => {
+         cancelled = true;
       };
-      
-      if (messages.length > 0) {
-         loadTasksForMessages();
-      } else {
-         setMessagesWithTasks([]);
-      }
    }, [messages]);
 
    // Об'єднуємо заплановані повідомлення та повідомлення з Firestore, фільтруємо приховані
@@ -195,8 +142,8 @@ export default function Alerts({ navigation, route }) {
       const groupedByDate = {};
       unique.forEach(message => {
          const triggerDate = message.trigger instanceof Date ? message.trigger : new Date(message.trigger);
-         // Використовуємо ISO формат для ключа
-         const dateKey = triggerDate.toISOString().split('T')[0]; // YYYY-MM-DD
+         // Local day (toISOString would group by the UTC day)
+         const dateKey = `${triggerDate.getFullYear()}-${String(triggerDate.getMonth() + 1).padStart(2, '0')}-${String(triggerDate.getDate()).padStart(2, '0')}`;
          if (!groupedByDate[dateKey]) {
             groupedByDate[dateKey] = [];
          }
@@ -204,9 +151,7 @@ export default function Alerts({ navigation, route }) {
       });
       
       // Сортуємо дати (новіші спочатку)
-      const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-         return new Date(b) - new Date(a);
-      });
+      const sortedDates = Object.keys(groupedByDate).sort().reverse();
       
       return { groupedByDate, sortedDates };
    }, [notifications, messagesWithTasks, hiddenMessageIds]);
@@ -267,7 +212,7 @@ export default function Alerts({ navigation, route }) {
                      return (
                         <View key={dateKey} style={styles.dateGroup}>
                            <Text style={[styles.dateLabel, { color: colors.textMuted }]}>
-                              {formatDateForDisplay(dateObj, t)}
+                              {displayDate(dateObj).toUpperCase()}
                            </Text>
                            {dateMessages.map((message, index) => {
                               const isLast = index === dateMessages.length - 1;
@@ -296,7 +241,7 @@ export default function Alerts({ navigation, route }) {
 
 // Компонент для повідомлення з можливістю свайпу
 function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, isLast = false }) {
-   const { tagLabel } = useI18n();
+   const { tagLabel, displayTime } = useI18n();
    const { colors } = useTheme();
    const translateX = new Animated.Value(0);
    const [isHidden, setIsHidden] = useState(false);
@@ -361,7 +306,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
          {...panResponder.panHandlers}
       >
          <View style={styles.messageRow}>
-            <Text style={[styles.messageTimeText, { color: colors.textMuted }]}>{formatTimeForDisplay(triggerDate)}</Text>
+            <Text style={[styles.messageTimeText, { color: colors.textMuted }]}>{displayTime(triggerDate)}</Text>
             <View style={styles.messageTimeline}>
                <View 
                   style={[

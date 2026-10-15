@@ -21,35 +21,9 @@ import { db, auth } from '../../FireBaseConfig';
 import { styles, darkStyles } from './EventDetailsModal.styles';
 
 
-function formatTimeForDisplay(timeString) {
-   if (!timeString) return '';
-   if (timeString.includes('-')) {
-      const [from, to] = timeString.split('-');
-      return `${formatSingleTime(from)} - ${formatSingleTime(to)}`;
-   }
-   return formatSingleTime(timeString);
-}
-
-function formatSingleTime(timeString) {
-   const [hours, minutes] = timeString.split(':');
-   const hour = parseInt(hours, 10);
-   const ampm = hour >= 12 ? 'PM' : 'AM';
-   const displayHour = hour % 12 || 12;
-   return `${displayHour}:${minutes} ${ampm}`;
-}
-
-
-function formatDateForDisplay(dateString, t) {
-   const [day, month, year] = dateString.split('.');
-   const monthNames = [
-      t('date.january'), t('date.february'), t('date.march'), t('date.april'), t('date.may'), t('date.june'),
-      t('date.july'), t('date.august'), t('date.september'), t('date.october'), t('date.november'), t('date.december')
-   ];
-   return `${monthNames[parseInt(month) - 1]} ${day}, ${year}`;
-}
 
 export default function EventDetailsModal({ visible, event, onClose, onDelete }) {
-   const { t, tagLabel, errorText } = useI18n();
+   const { t, tagLabel, errorText, displayDate, displayTime } = useI18n();
    const { colors, isDark } = useTheme();
    // Light styles plus their dark-theme override, if any
    const st = (name) => (isDark && darkStyles[name] ? [styles[name], darkStyles[name]] : styles[name]);
@@ -382,12 +356,12 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                      <View style={styles.infoRow}>
                         <View style={styles.infoItem}>
                            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-                           <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatDateForDisplay(event.date, t)}</Text>
+                           <Text style={[styles.infoText, { color: colors.textSecondary }]}>{displayDate(event.date)}</Text>
                         </View>
                         {event.time && (
                            <View style={styles.infoItem}>
                               <Ionicons name="time-outline" size={18} color={colors.textMuted} />
-                              <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatTimeForDisplay(event.time)}</Text>
+                              <Text style={[styles.infoText, { color: colors.textSecondary }]}>{displayTime(event.time)}</Text>
                            </View>
                         )}
                      </View>
