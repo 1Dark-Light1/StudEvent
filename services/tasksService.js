@@ -20,7 +20,6 @@ import { db, auth } from '../FireBaseConfig';
 
 import {
    scheduleUserTaskNotifications,
-   scheduleGlobalTaskCreatedNotification,
    scheduleGlobalTaskJoinedNotifications,
    cancelTaskNotifications,
    updateTaskNotifications,
@@ -134,18 +133,13 @@ export async function addTask(taskData) {
 
          const docRef = await addDoc(collection(db, 'tasks'), taskDoc);
          createdIds.push(docRef.id);
-         
-         // Schedule notifications
+
+         // Schedule notifications (other users are told about new global events by their own sync)
          const createdTask = { id: docRef.id, ...taskDoc };
          if (admin) {
-            // For global tasks:
-            // 1. Notification about creation for all other users
-            scheduleGlobalTaskCreatedNotification(createdTask).catch(err => 
-               console.error('Error scheduling global task notification:', err)
-            );
-            // 2. Automatically join admin and schedule their reminders
-            const taskWithParticipants = { ...createdTask, participants: [user.uid] };
-            scheduleGlobalTaskJoinedNotifications(taskWithParticipants).catch(err => 
+            // The admin joins their own event, so it shows in their calendar with reminders
+            await updateDoc(docRef, { participants: arrayUnion(user.uid) });
+            scheduleGlobalTaskJoinedNotifications({ ...createdTask, participants: [user.uid] }).catch(err =>
                console.error('Error scheduling admin reminders:', err)
             );
          } else {

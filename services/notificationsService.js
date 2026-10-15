@@ -38,6 +38,8 @@ export function initializeNotificationListener() {
                console.error('Error saving received notification to Firestore:', err)
             );
          }
+         // already recorded, so the delivery check in syncTaskNotifications skips it
+         await removeScheduledNotification(notification.request.identifier);
       } catch (error) {
          console.error('Error in notification listener:', error);
       }
@@ -135,6 +137,8 @@ export async function getScheduledNotifications() {
          ...notif,
          taskId: stored[notif.identifier]?.taskId,
          type: stored[notif.identifier]?.type,
+         // the native trigger object differs per platform; use the date we scheduled for
+         trigger: stored[notif.identifier]?.date ? new Date(stored[notif.identifier].date) : notif.trigger,
       }));
    } catch (error) {
       console.error('Error getting scheduled notifications:', error);
@@ -145,11 +149,11 @@ export async function getScheduledNotifications() {
 /**
  * Saves information about scheduled notifications
  */
-async function saveScheduledNotification(identifier, taskId, type) {
+async function saveScheduledNotification(identifier, taskId, type, details = {}) {
    try {
       const storedJson = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
       const stored = storedJson ? JSON.parse(storedJson) : {};
-      stored[identifier] = { taskId, type };
+      stored[identifier] = { taskId, type, ...details };
       await AsyncStorage.setItem(SCHEDULED_NOTIFICATIONS_KEY, JSON.stringify(stored));
    } catch (error) {
       console.error('Error saving scheduled notification:', error);
@@ -198,7 +202,7 @@ async function scheduleNotification(notificationId, title, body, triggerDate, ta
          trigger,
       });
 
-      await saveScheduledNotification(identifier, taskId, type);
+      await saveScheduledNotification(identifier, taskId, type, { title, body, date: triggerDate.getTime() });
       
       // Message will be automatically saved to Firestore when received (via listener)
       // So we DON'T call saveMessage here
@@ -239,6 +243,9 @@ export async function scheduleUserTaskNotifications(task) {
 
    // Cancel old notifications
    await cancelTaskNotifications(task.id);
+
+   // A completed task needs no reminder and no "time is up" message
+   if (task.isCompleted || task.isUncompleted) return;
 
    const taskDate = parseDate(task.date);
    const now = new Date();
@@ -293,61 +300,28 @@ export async function scheduleUserTaskNotifications(task) {
 }
 
 /**
- * Schedules notification about new global task (for all users except admin)
- * Note: This is a broadcast-style notification. Each client will save the message
- * to their own Firestore when they receive it via the notification listener.
+ * Shows "New global task" right away on this device and records it in the history.
+ * Called by syncTaskNotifications when another user's global event appears.
  */
-export async function scheduleGlobalTaskCreatedNotification(task) {
-   const t = await getTranslator();
-   if (!task || !task.isGlobal) return;
+async function notifyNewGlobalTask(task, t) {
+   const settings = await getNotificationSettings();
+   if (!settings.enabled) return;
 
-   try {
-      const now = new Date();
-      const notifyTime = new Date(now.getTime() + 3000); // 3 seconds
-
-      let timeText = '';
-      if (task.timeDilation && task.fromTime && task.toTime) {
-         timeText = t('notify.fromTo', { from: task.fromTime, to: task.toTime });
-      } else if (task.time) {
-         timeText = t('notify.at', { time: task.time });
-      }
-
-      const title = t('notify.newGlobal');
-      const body = `${task.name}${timeText ? ` - ${timeText}` : ''}`;
-
-      // Schedule a broadcast notification
-      // All logged-in users will receive this notification
-      const settings = await getNotificationSettings();
-      if (!settings.enabled) {
-         return null;
-      }
-
-      const identifier = `${task.id}_global_created_broadcast`;
-      
-      await Notifications.scheduleNotificationAsync({
-         identifier,
-         content: {
-            title,
-            body,
-            sound: settings.soundEnabled,
-            data: { 
-               taskId: task.id, 
-               type: 'global_created',
-               broadcast: true // Mark as broadcast for all users
-            },
-         },
-         trigger: {
-            type: 'date',
-            date: notifyTime
-         },
-      });
-
-      await saveScheduledNotification(identifier, task.id, 'global_created');
-      
-      console.log(`Global task broadcast notification scheduled at ${notifyTime.toLocaleTimeString()}`);
-   } catch (error) {
-      console.error('Error scheduling global task created notification:', error);
+   let timeText = '';
+   if (task.timeDilation && task.fromTime && task.toTime) {
+      timeText = t('notify.fromTo', { from: task.fromTime, to: task.toTime });
+   } else if (task.time) {
+      timeText = t('notify.at', { time: task.time });
    }
+   const title = t('notify.newGlobal');
+   const body = `${task.name} (${task.date}${timeText ? `, ${timeText}` : ''})`;
+
+   await Notifications.scheduleNotificationAsync({
+      identifier: `${task.id}_global_created`,
+      content: { title, body, sound: settings.soundEnabled, data: { taskId: task.id, type: 'global_created' } },
+      trigger: null, // now
+   });
+   await saveMessage(title, body, 'global_created', task.id);
 }
 
 /**
@@ -428,23 +402,21 @@ export async function updateTaskNotifications(task) {
 
 // taskId -> what the task's notifications were last scheduled for
 const syncedTasks = new Map();
+// the last full task list, to reschedule after a settings change
+let lastSyncedTasks = [];
 
-/**
- * Keeps reminders in line with the task list. Only tasks whose time, text or
- * participation changed since the last sync are rescheduled, so it is cheap to
- * call on every Firestore snapshot (several screens subscribe at once).
- */
 export async function syncTaskNotifications(tasks) {
    const user = auth.currentUser;
    if (!user) return;
+   lastSyncedTasks = tasks;
 
    for (const task of tasks) {
       const relevant = task.isGlobal
          ? (task.participants || []).includes(user.uid)
          : task.userId === user.uid;
       const signature = JSON.stringify([
-         user.uid, relevant, task.date, task.time, task.timeDilation,
-         task.fromTime, task.toTime, task.name, task.description,
+         user.uid, relevant, task.date, task.time, task.timeDilation, task.fromTime,
+         task.toTime, task.name, task.description, task.isCompleted, task.isUncompleted,
       ]);
       const previous = syncedTasks.get(task.id);
       if (previous === signature) continue;
@@ -462,5 +434,78 @@ export async function syncTaskNotifications(tasks) {
          console.error('Error syncing notifications for task:', task.id, error);
       }
    }
+
+   await recordDeliveredNotifications();
+   await cancelNotificationsOfMissingTasks(tasks);
+   await announceNewGlobalTasks(tasks, user.uid);
+}
+
+/** Saves notifications that fired while the app was closed into the history (messages). */
+async function recordDeliveredNotifications() {
+   try {
+      const storedJson = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
+      const stored = storedJson ? JSON.parse(storedJson) : {};
+      const pending = new Set((await Notifications.getAllScheduledNotificationsAsync()).map((n) => n.identifier));
+      const now = Date.now();
+      let changed = false;
+      for (const [identifier, info] of Object.entries(stored)) {
+         if (pending.has(identifier) || !info.date || info.date > now) continue;
+         if (info.title && info.body && info.type) {
+            await saveMessage(info.title, info.body, info.type, info.taskId);
+         }
+         delete stored[identifier];
+         changed = true;
+      }
+      if (changed) await AsyncStorage.setItem(SCHEDULED_NOTIFICATIONS_KEY, JSON.stringify(stored));
+   } catch (error) {
+      console.error('Error recording delivered notifications:', error);
+   }
+}
+
+/** Reminders of tasks that were deleted (or are no longer visible) must not fire. */
+async function cancelNotificationsOfMissingTasks(tasks) {
+   const ids = new Set(tasks.map((task) => task.id));
+   const scheduled = await getScheduledNotifications();
+   const missing = new Set(scheduled.map((n) => n.taskId).filter((id) => id && !ids.has(id)));
+   for (const taskId of missing) {
+      syncedTasks.delete(taskId);
+      await cancelTaskNotifications(taskId);
+   }
+}
+
+/**
+ * Notifies about global events created by someone else since the last check.
+ * The first check on a device only remembers the existing events.
+ */
+async function announceNewGlobalTasks(tasks, uid) {
+   const key = `@seen_global_tasks_${uid}`;
+   try {
+      const globals = tasks.filter((task) => task.isGlobal);
+      const seenJson = await AsyncStorage.getItem(key);
+      const seen = new Set(seenJson ? JSON.parse(seenJson) : []);
+      const firstCheck = seenJson === null;
+      const t = await getTranslator();
+      for (const task of globals) {
+         if (seen.has(task.id)) continue;
+         seen.add(task.id);
+         if (!firstCheck && task.userId !== uid) await notifyNewGlobalTask(task, t);
+      }
+      await AsyncStorage.setItem(key, JSON.stringify([...seen].filter((id) => globals.some((task) => task.id === id))));
+   } catch (error) {
+      console.error('Error announcing new global tasks:', error);
+   }
+}
+
+/**
+ * Cancels or reschedules every reminder after the notification settings changed.
+ */
+export async function resyncNotifications() {
+   const settings = await getNotificationSettings();
+   const scheduled = await getScheduledNotifications();
+   for (const taskId of new Set(scheduled.map((n) => n.taskId).filter(Boolean))) {
+      await cancelTaskNotifications(taskId);
+   }
+   syncedTasks.clear();
+   if (settings.enabled) await syncTaskNotifications(lastSyncedTasks);
 }
 

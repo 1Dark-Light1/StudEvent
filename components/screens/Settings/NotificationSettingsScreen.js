@@ -6,7 +6,7 @@ import { StyleSheet, View, Text, ScrollView, Pressable, Switch } from 'react-nat
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
-import { getNotificationSettings, saveNotificationSettings } from '../../../services/notificationsService';
+import { getNotificationSettings, saveNotificationSettings, resyncNotifications } from '../../../services/notificationsService';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
@@ -41,6 +41,8 @@ export default function NotificationSettings({ navigation, route }) {
       };
       setSettings(newSettings);
       await saveNotificationSettings(newSettings);
+      // cancel reminders when turned off, reschedule them (with the new sound setting) otherwise
+      resyncNotifications().catch((error) => console.error('Error rescheduling notifications:', error));
    };
 
    return (
