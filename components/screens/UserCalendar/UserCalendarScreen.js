@@ -385,7 +385,7 @@ export default function UserCalendar({ navigation, route }) {
                   refreshing={refreshing}
                   onRefresh={onRefresh}
                   colors={[colors.primary]}
-                  tintColor={colors.primary}
+                  tintColor={isDark ? '#fff' : colors.primary}
                   progressViewOffset={Platform.OS === 'ios' ? 100 : 0}
                />
             }

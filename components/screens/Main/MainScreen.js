@@ -396,10 +396,11 @@ export default function Main({ navigation, route }) {
 
    return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
+         <View style={[styles.refreshBackdrop, { backgroundColor: colors.heroGradient[0] }]} />
          <ScrollView 
             contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]} 
             showsVerticalScrollIndicator={false}
-            style={[styles.scrollView, { backgroundColor: colors.heroGradient[0] }]}
+            style={styles.scrollView}
             alwaysBounceVertical
             refreshControl={
                <RefreshControl
@@ -643,6 +644,13 @@ const styles = StyleSheet.create({
    },
    scrollView: {
       flex: 1,
+   },
+   refreshBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '50%',
    },
    hero: {
       borderBottomLeftRadius: 38,

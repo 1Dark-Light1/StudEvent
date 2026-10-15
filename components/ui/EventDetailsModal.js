@@ -860,8 +860,6 @@ const styles = StyleSheet.create({
       paddingLeft: 30,
       marginTop: 8,
       paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: '#eef1f6',
    },
    participantItem: {
       flexDirection: 'row',
