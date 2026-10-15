@@ -1,0 +1,373 @@
+import { StyleSheet, Platform } from 'react-native';
+
+export const styles = StyleSheet.create({
+   screen: {
+      flex: 1,
+   },
+   scroll: {
+      paddingBottom: 180,
+   },
+   container: {
+      flex: 1,
+      paddingTop: 60,
+      paddingHorizontal: 24,
+   },
+   title: {
+      fontSize: 32,
+      fontWeight: '700',
+      marginBottom: 24,
+      textAlign: 'center',
+   },
+   modeSelector: {
+      alignSelf: 'center',
+      flexDirection: 'row',
+      borderRadius: 40,
+      padding: 5,
+      marginBottom: 24,
+      overflow: 'hidden',
+      minHeight: 50,
+   },
+   modeBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 35,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'transparent',
+      minWidth: 100,
+   },
+   modeBtnActive: {
+   },
+   modeText: {
+      fontSize: 15,
+      fontWeight: '600',
+   },
+   modeTextActive: {
+   },
+   section: {
+      marginBottom: 20,
+   },
+   label: {
+      fontSize: 15,
+      fontWeight: '600',
+      marginBottom: 8,
+      flexWrap: 'wrap',
+   },
+   required: {
+   },
+   inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+      minHeight: 48,
+      borderWidth: 1,
+   },
+   input: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '600',
+      padding: 0,
+      margin: 0,
+   },
+   inputDisabled: {
+      color: '#9AA7B8',
+   },
+   inputContainerDisabled: {
+      backgroundColor: '#E0E4E8',
+   },
+   textArea: {
+      minHeight: 60,
+      maxHeight: 120,
+      textAlignVertical: 'top',
+      paddingTop: Platform.OS === 'ios' ? 8 : 6,
+      paddingBottom: Platform.OS === 'ios' ? 8 : 6,
+   },
+   inputIcon: {
+      marginLeft: 8,
+      pointerEvents: 'none',
+   },
+   row: {
+      flexDirection: 'row',
+      gap: 12,
+   },
+   timeDilationFields: {
+      marginTop: 16,
+   },
+   rowBetween: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+   },
+   halfWidth: {
+      flex: 1,
+   },
+   toggle: {
+      width: 50,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: '#E3E8F4',
+      justifyContent: 'center',
+      paddingHorizontal: 3,
+   },
+   toggleActive: {
+      backgroundColor: '#2F7BFF',
+   },
+   toggleThumb: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: '#fff',
+      alignSelf: 'flex-start',
+   },
+   toggleThumbActive: {
+      alignSelf: 'flex-end',
+   },
+   colorDot: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      marginRight: 8,
+      pointerEvents: 'none',
+   },
+   colorBtn: {
+      padding: 4,
+   },
+   frequencyRow: {
+      flexDirection: 'row',
+      gap: 12,
+   },
+   frequencyBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      borderRadius: 40,
+      borderWidth: 2.5,
+      borderColor: '#E3E8F4',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 44,
+   },
+   frequencyBtnActive: {
+      backgroundColor: '#F0F4F8',
+      borderColor: '#838282ff',
+   },
+   frequencyText: {
+      fontSize: 14,
+      color: '#7A8BA3',
+      fontWeight: '600',
+      textAlign: 'center',
+      flexWrap: 'wrap',
+   },
+   frequencyTextActive: {},
+   fixedActionRow: {
+      position: 'absolute',
+      bottom: 100,
+      left: 24,
+      right: 24,
+      flexDirection: 'row',
+      gap: 12,
+      paddingTop: 12,
+      paddingBottom: 8,
+      elevation: 5,
+   },
+   actionRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 8,
+      marginBottom: 24,
+   },
+   clearBtn: {
+      flex: 1,
+      paddingVertical: 16,
+      borderRadius: 40,
+      backgroundColor: '#F1F6FF',
+      alignItems: 'center',
+   },
+   clearText: {
+      fontSize: 16,
+      color: '#7A8BA3',
+      fontWeight: '600',
+   },
+   addBtn: {
+      flex: 1,
+      paddingVertical: 16,
+      borderRadius: 40,
+      backgroundColor: '#2F7BFF',
+      alignItems: 'center',
+      shadowColor: '#2F7BFF',
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+   },
+   addText: {
+      fontSize: 16,
+      color: '#fff',
+      fontWeight: '700',
+   },
+   addBtnDisabled: {
+      opacity: 0.6,
+   },
+   iconButton: {
+      padding: 4,
+   },
+   customDatesSection: {
+      marginTop: 16,
+   },
+   customDateInputRow: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+   },
+   flex1: {
+      flex: 1,
+   },
+   addDateBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#F0F4F8',
+      alignItems: 'center',
+      justifyContent: 'center',
+   },
+   customDatesList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 12,
+   },
+   customDateTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#E3E8F4',
+      borderRadius: 20,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      gap: 6,
+      minHeight: 32,
+   },
+   customDateText: {
+      fontSize: 14,
+      color: '#3D4C66',
+      fontWeight: '600',
+   },
+   removeDateBtn: {
+      padding: 2,
+   },
+   placeholderText: {
+      color: '#6B7A8F',
+   },
+   selectedTagContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: '#F0F4F8',
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+      gap: 8,
+      minHeight: 36,
+   },
+   selectedTagText: {
+      fontSize: 14,
+      color: '#1B2430',
+      fontWeight: '600',
+   },
+   // Styles for task list
+   tasksListContainer: {
+      marginBottom: 24,
+   },
+   tasksListTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#1B2430',
+      marginBottom: 16,
+   },
+   loadingContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+   },
+   loadingText: {
+      fontSize: 15,
+      color: '#6B7A8F',
+      marginTop: 12,
+   },
+   emptyContainer: {
+      paddingVertical: 60,
+      alignItems: 'center',
+   },
+   emptyText: {
+      fontSize: 15,
+      color: '#9aa7bd',
+      marginTop: 12,
+   },
+   tasksList: {
+      marginTop: 12,
+   },
+   taskItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: '#f0f2f8',
+   },
+   taskItemPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.98 }],
+   },
+   taskColorIndicator: {
+      width: 4,
+      height: 50,
+      borderRadius: 2,
+      marginRight: 12,
+   },
+   taskInfo: {
+      flex: 1,
+   },
+   taskName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#1B2430',
+      marginBottom: 4,
+   },
+   taskDetails: {
+      fontSize: 13,
+      marginBottom: 6,
+   },
+   taskTag: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+   },
+   taskTagText: {
+      fontSize: 12,
+      fontWeight: '600',
+   },
+   backToListButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: '#e3f2fd',
+      borderRadius: 12,
+      marginBottom: 20,
+      gap: 8,
+   },
+   backToListText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: '#2f7cff',
+   },
+});
