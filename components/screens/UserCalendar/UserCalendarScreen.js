@@ -15,6 +15,7 @@ import { useTaskFilters, useParticipants, useEventModal, toEventDetails } from '
 import { generateWeekDays, calculateWeekOffset } from './weekData';
 import DayStrip from './DayStrip';
 import DayTimeline from './DayTimeline';
+import Avatar, { useMyProfile } from '../../ui/Avatar';
 import { subscribeToTasksByDate, formatTaskForCalendar, applyTaskFilters, deleteTask, autoMarkUncompletedTasks } from '../../../services/tasksService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
@@ -24,6 +25,7 @@ export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
    const { t, displayDate } = useI18n();
    const { colors } = useTheme();
+   const profile = useMyProfile();
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
@@ -195,7 +197,7 @@ export default function UserCalendar({ navigation, route }) {
                      onPress={() => navigation.navigate('Settings')}
                      style={({ pressed }) => ({opacity: pressed ? 0.5 : 1, })}
                   >
-                     <Ionicons name="person" size={24} color={colors.text} />
+                     <Avatar photo={profile?.photo} size={52} iconColor={colors.text} style={{ borderRadius: 20 }} />
                   </Pressable>
                </View>
 

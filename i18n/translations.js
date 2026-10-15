@@ -33,6 +33,11 @@ export const translations = {
     'settings.logout.errorTitle': 'Error',
     'settings.logout.errorBody': 'Failed to log out. Please try again.',
     'settings.profile.fallbackName': 'Name and Surname',
+    'settings.photo.title': 'Profile photo',
+    'settings.photo.choose': 'Choose a photo',
+    'settings.photo.remove': 'Remove photo',
+    'settings.photo.denied': 'Allow access to your photos in the phone settings to choose a profile photo.',
+    'settings.photo.error': 'Could not save the photo. Please try again.',
 
     // Language screen
     'language.title': 'Language',
@@ -45,10 +50,7 @@ export const translations = {
     'auth.login.noAccount': "Don't have an account?",
     'auth.login.signup': 'Sign up',
     'auth.login.alert.title': 'Login',
-    'auth.login.alert.missing': 'Enter your email and password.',
-    'auth.login.alert.successTitle': 'Success',
-    'auth.login.alert.successBody': 'Login successful!',
-    'auth.login.alert.errorTitle': 'Login error',
+    'auth.login.alert.missing': 'Enter your email and password.',    'auth.login.alert.errorTitle': 'Login error',
     'auth.login.alert.errorFallback': 'Incorrect email or password.',
 
     'auth.register.title': 'Create a new account',
@@ -322,6 +324,11 @@ export const translations = {
     'settings.logout.errorTitle': 'Помилка',
     'settings.logout.errorBody': 'Не вдалося вийти. Спробуйте ще раз.',
     'settings.profile.fallbackName': "Ім'я та Прізвище",
+    'settings.photo.title': 'Фото профілю',
+    'settings.photo.choose': 'Обрати фото',
+    'settings.photo.remove': 'Видалити фото',
+    'settings.photo.denied': 'Дозвольте доступ до фото в налаштуваннях телефона, щоб обрати фото профілю.',
+    'settings.photo.error': 'Не вдалося зберегти фото. Спробуйте ще раз.',
 
     // Language screen
     'language.title': 'Мова',
@@ -334,10 +341,7 @@ export const translations = {
     'auth.login.noAccount': 'Немає акаунту?',
     'auth.login.signup': 'Зареєструватися',
     'auth.login.alert.title': 'Вхід',
-    'auth.login.alert.missing': 'Введіть email та пароль.',
-    'auth.login.alert.successTitle': 'Успіх',
-    'auth.login.alert.successBody': 'Вхід успішний!',
-    'auth.login.alert.errorTitle': 'Помилка входу',
+    'auth.login.alert.missing': 'Введіть email та пароль.',    'auth.login.alert.errorTitle': 'Помилка входу',
     'auth.login.alert.errorFallback': 'Невірний email або пароль.',
 
     'auth.register.title': 'Створити акаунт',
@@ -611,6 +615,11 @@ export const translations = {
     'settings.logout.errorTitle': 'Błąd',
     'settings.logout.errorBody': 'Nie udało się wylogować. Spróbuj ponownie.',
     'settings.profile.fallbackName': 'Imię i nazwisko',
+    'settings.photo.title': 'Zdjęcie profilowe',
+    'settings.photo.choose': 'Wybierz zdjęcie',
+    'settings.photo.remove': 'Usuń zdjęcie',
+    'settings.photo.denied': 'Zezwól na dostęp do zdjęć w ustawieniach telefonu, aby wybrać zdjęcie profilowe.',
+    'settings.photo.error': 'Nie udało się zapisać zdjęcia. Spróbuj ponownie.',
 
     // Language screen
     'language.title': 'Język',
@@ -623,10 +632,7 @@ export const translations = {
     'auth.login.noAccount': 'Nie masz konta?',
     'auth.login.signup': 'Zarejestruj się',
     'auth.login.alert.title': 'Logowanie',
-    'auth.login.alert.missing': 'Wpisz email i hasło.',
-    'auth.login.alert.successTitle': 'Sukces',
-    'auth.login.alert.successBody': 'Zalogowano pomyślnie!',
-    'auth.login.alert.errorTitle': 'Błąd logowania',
+    'auth.login.alert.missing': 'Wpisz email i hasło.',    'auth.login.alert.errorTitle': 'Błąd logowania',
     'auth.login.alert.errorFallback': 'Nieprawidłowy email lub hasło.',
 
     'auth.register.title': 'Utwórz konto',

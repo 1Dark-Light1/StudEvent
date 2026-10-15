@@ -4,7 +4,7 @@
  * cards to make the experience familiar.
  */
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,6 +13,8 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import { auth } from '../../../FireBaseConfig';
 import { signOut } from 'firebase/auth';
 import { subscribeToUserData } from '../../../services/userService';
+import { pickAndSaveProfilePhoto, removeProfilePhoto } from '../../../services/profilePhoto';
+import Avatar from '../../ui/Avatar';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
@@ -34,6 +36,30 @@ export default function Settings({ navigation, route }) {
          if (unsubscribe) unsubscribe();
       };
    }, []);
+
+   const [savingPhoto, setSavingPhoto] = useState(false);
+
+   const savePhoto = async (action) => {
+      setSavingPhoto(true);
+      try {
+         const result = await action();
+         if (result === 'denied') Alert.alert(t('settings.photo.title'), t('settings.photo.denied'));
+      } catch (error) {
+         console.error('Error saving profile photo:', error);
+         Alert.alert(t('common.error'), t('settings.photo.error'));
+      } finally {
+         setSavingPhoto(false);
+      }
+   };
+
+   const handleAvatarPress = () => {
+      const buttons = [{ text: t('settings.photo.choose'), onPress: () => savePhoto(pickAndSaveProfilePhoto) }];
+      if (userData?.photo) {
+         buttons.push({ text: t('settings.photo.remove'), style: 'destructive', onPress: () => savePhoto(removeProfilePhoto) });
+      }
+      buttons.push({ text: t('task.cancel'), style: 'cancel' });
+      Alert.alert(t('settings.photo.title'), undefined, buttons);
+   };
 
    // Display name
    const displayName = userData
@@ -101,12 +127,16 @@ export default function Settings({ navigation, route }) {
          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.heroCard}>
                <Text style={[styles.heroTitle, { color: colors.text }]}>{t('settings.title')}</Text>
-               <View style={[styles.avatarWrap, { backgroundColor: colors.avatarBg }]}>
-                  <Ionicons name="person" size={76} color={colors.textMuted} />
+               <Pressable onPress={handleAvatarPress} disabled={savingPhoto} style={styles.avatarWrap}>
+                  <Avatar photo={userData?.photo} size={140} backgroundColor={colors.avatarBg} iconColor={colors.textMuted} />
                   <View style={[styles.avatarBadge, { backgroundColor: colors.surface }]}>
-                     <Ionicons name="person-add" size={16} color={colors.text} />
+                     {savingPhoto ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                     ) : (
+                        <Ionicons name="camera" size={16} color={colors.text} />
+                     )}
                   </View>
-               </View>
+               </Pressable>
                <Text style={[styles.heroName, { color: colors.textSecondary }]}>{displayName}</Text>
             </View>
 
@@ -204,17 +234,12 @@ const styles = StyleSheet.create({
       marginBottom: 14,
    },
    avatarWrap: {
-      width: 140,
-      height: 140,
-      borderRadius: 70,
-      alignItems: 'center',
-      justifyContent: 'center',
       marginBottom: 16,
    },
    avatarBadge: {
       position: 'absolute',
-      right: 28,
-      bottom: 26,
+      right: 4,
+      bottom: 4,
       width: 34,
       height: 34,
       borderRadius: 17,

@@ -38,6 +38,13 @@
         }
       ],
       "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "StudEvent uses your photos so you can choose a profile picture.",
+          "cameraPermission": false
+        }
+      ],
       "expo-font",
       [
         "expo-splash-screen",

@@ -16,6 +16,7 @@ import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount, isAdmin, mar
 import { getUserDataById } from '../../services/userService';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import Avatar from './Avatar';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../FireBaseConfig';
 import { styles, darkStyles } from './EventDetailsModal.styles';
@@ -574,9 +575,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                                     const fullName = `${participant.name || ''} ${participant.surname || ''}`.trim() || t('settings.profile.fallbackName');
                                     return (
                                        <View key={index} style={st('participantItem')}>
-                                          <View style={st('participantAvatar')}>
-                                             <Ionicons name="person" size={18} color="#2f7cff" />
-                                          </View>
+                                          <Avatar photo={participant?.photo} size={36} iconColor="#2f7cff" style={st('participantAvatar')} />
                                           <Text style={st('participantName')}>{fullName}</Text>
                                        </View>
                                     );

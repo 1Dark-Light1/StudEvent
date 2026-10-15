@@ -78,3 +78,11 @@ test('personal tasks belong to their owner', async () => {
    await assertFails(updateDoc(doc(db('alice'), 'tasks/personal'), { isGlobal: true }));
    await assertFails(updateDoc(doc(db('alice'), 'tasks/personal'), { userId: 'bob' }));
 });
+
+test('users set their own, small profile photo', async () => {
+   const small = 'data:image/jpeg;base64,' + 'A'.repeat(40000);
+   const huge = 'data:image/jpeg;base64,' + 'A'.repeat(300000);
+   await assertSucceeds(setDoc(doc(db('alice'), 'users/alice'), { name: 'Alice', photo: small }));
+   await assertFails(setDoc(doc(db('alice'), 'users/alice'), { name: 'Alice', photo: huge }));
+   await assertFails(setDoc(doc(db('bob'), 'users/alice'), { photo: small }));
+});

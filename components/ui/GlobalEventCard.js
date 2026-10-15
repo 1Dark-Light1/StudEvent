@@ -6,6 +6,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Avatar from './Avatar';
 
 export default function GlobalEventCard({ title, subtitle, color = '#2f7cff', participants = [], isJoined, large = false }) {
    const gradient = [color, `${color}E6`, `${color}CC`, `${color}99`];
@@ -22,13 +23,15 @@ export default function GlobalEventCard({ title, subtitle, color = '#2f7cff', pa
          {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
          {participants.length > 0 && (
             <View style={styles.participantsRow}>
-               {participants.slice(0, 4).map((_, index) => (
-                  <View
+               {participants.slice(0, 4).map((participant, index) => (
+                  <Avatar
                      key={index}
-                     style={[styles.avatar, { backgroundColor: color }, index > 0 && { marginLeft: -8 }]}
-                  >
-                     <Ionicons name="person" size={14} color="#fff" />
-                  </View>
+                     photo={participant?.photo}
+                     size={28}
+                     backgroundColor={color}
+                     iconColor="#fff"
+                     style={[styles.avatar, index > 0 && { marginLeft: -8 }]}
+                  />
                ))}
             </View>
          )}

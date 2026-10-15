@@ -4,9 +4,11 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
+import Avatar, { useMyProfile } from '../../ui/Avatar';
 
 export default function MonthHeader({ monthName, year, onPrevMonth, onNextMonth, onOpenProfile, onOpenAlerts }) {
    const { colors } = useTheme();
+   const profile = useMyProfile();
 
    return (
       <LinearGradient colors={colors.heroGradient} style={styles.hero}>
@@ -17,7 +19,7 @@ export default function MonthHeader({ monthName, year, onPrevMonth, onNextMonth,
                   onPress={() => onOpenProfile()}
                   style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, })}
                >
-                  <Ionicons name="person" size={22} color={colors.text} />
+                  <Avatar photo={profile?.photo} size={38} iconColor={colors.text} />
                </Pressable>
             </View>
 
