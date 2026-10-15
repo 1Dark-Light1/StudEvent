@@ -214,19 +214,15 @@ export default function Alerts({ navigation, route }) {
                            <Text style={[styles.dateLabel, { color: colors.textMuted }]}>
                               {displayDate(dateObj).toUpperCase()}
                            </Text>
-                           {dateMessages.map((message, index) => {
-                              const isLast = index === dateMessages.length - 1;
-                              return (
-                                 <SwipeableMessageCard
-                                    key={message.identifier || index}
-                                    message={message}
-                                    onHide={handleHideMessage}
-                                    getNotificationTypeLabel={getNotificationTypeLabel}
-                                    t={t}
-                                    isLast={isLast}
-                                 />
-                              );
-                           })}
+                           {dateMessages.map((message, index) => (
+                              <SwipeableMessageCard
+                                 key={message.identifier || index}
+                                 message={message}
+                                 onHide={handleHideMessage}
+                                 getNotificationTypeLabel={getNotificationTypeLabel}
+                                 t={t}
+                              />
+                           ))}
                         </View>
                      );
                   })}
@@ -240,7 +236,7 @@ export default function Alerts({ navigation, route }) {
 }
 
 // Message card that can be swiped away
-function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, isLast = false }) {
+function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t }) {
    const { tagLabel, displayTime } = useI18n();
    const { colors } = useTheme();
    const translateX = new Animated.Value(0);
@@ -307,16 +303,6 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
       >
          <View style={styles.messageRow}>
             <Text style={[styles.messageTimeText, { color: colors.textMuted }]}>{displayTime(triggerDate)}</Text>
-            <View style={styles.messageTimeline}>
-               <View 
-                  style={[
-                     styles.messageBullet, 
-                     { backgroundColor: isGlobal ? adminTagColor : colors.primary },
-                     isGlobal && styles.messageBulletGlobal
-                  ]} 
-               />
-               {!isLast && <View style={[styles.messageTimelineLine, { backgroundColor: colors.border }]} />}
-            </View>
             {isGlobal ? (
                <LinearGradient
                   colors={adminGradientColors}
@@ -422,29 +408,9 @@ const styles = StyleSheet.create({
       alignItems: 'flex-start',
    },
    messageTimeText: {
-      width: 52,
-      fontWeight: '600',
-   },
-   messageTimeline: {
-      alignItems: 'center',
+      minWidth: 52,
       marginRight: 12,
-      alignSelf: 'stretch',
-   },
-   messageBullet: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-   },
-   messageBulletGlobal: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-   },
-   messageTimelineLine: {
-      width: 2,
-      flex: 1,
-      marginTop: 4,
-      minHeight: 48,
+      fontWeight: '600',
    },
    messageCard: {
       flex: 1,
@@ -491,6 +457,7 @@ const styles = StyleSheet.create({
       marginBottom: 8,
    },
    messageTag: {
+      alignSelf: 'flex-start',
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 12,
