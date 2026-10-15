@@ -15,6 +15,7 @@ import {
    writeBatch,
    deleteField,
 } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db } from '../FireBaseConfig';
 import { auth } from '../FireBaseConfig';
 import {
@@ -25,14 +26,30 @@ import {
    updateTaskNotifications,
 } from './notificationsService';
 
+// UID of the signed-in user if they have a document in /admins (added via the Firebase console).
+// The real permission check is in firestore.rules; this flag only drives the UI.
+// ponytail: loaded once per sign-in, so a newly granted admin must sign in again to see admin UI
+let adminUid = null;
+
+onAuthStateChanged(auth, async (user) => {
+   adminUid = null;
+   if (!user) return;
+   try {
+      const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+      if (adminDoc.exists() && auth.currentUser?.uid === user.uid) {
+         adminUid = user.uid;
+      }
+   } catch (error) {
+      console.error('Error checking admin status:', error);
+   }
+});
+
 /**
  * Checks if the current user is an admin
  */
 export function isAdmin() {
    const user = auth.currentUser;
-   if (!user) return false;
-   // Check by email
-   return user.email === 'admin@gmail.com';
+   return !!user && user.uid === adminUid;
 }
 
 /**

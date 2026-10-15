@@ -1,69 +1,99 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Правила для коллекции users
-    // Пользователи могут читать и писать только свой собственный документ
-    // Но все аутентифицированные пользователи могут читать публичные данные для отображения участников
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+
+    function signedIn() {
+      return request.auth != null;
     }
-    
-    // Правила для коллекции tasks
+
+    // Admins are documents in /admins/{uid}; they are added only from the Firebase console
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Any signed-in user can read profiles (names of event participants).
+    // Do not store private data (email, phone) here.
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
     match /tasks/{taskId} {
-      // Разрешаем чтение, если пользователь аутентифицирован и:
-      // - задача принадлежит ему (userId совпадает), или
-      // - задача глобальная (isGlobal == true), или
-      // - пользователь является участником события
-      // Для запросов: работает с where('userId', '==', user.uid) и where('isGlobal', '==', true)
-      // Для отдельных документов: проверяет resource.data
-      allow read: if request.auth != null && (
+      function isGlobal() {
+        return resource.data.get('isGlobal', false) == true;
+      }
+
+      function isOwner() {
+        return resource.data.userId == request.auth.uid;
+      }
+
+      function changedOnly(keys) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+      }
+
+      // Join/leave: the participants list changes only by the current user's uid
+      function togglesOnlySelfInParticipants() {
+        let before = resource.data.get('participants', []).toSet();
+        let after = request.resource.data.get('participants', []).toSet();
+        return after.difference(before).union(before.difference(after)) == [request.auth.uid].toSet();
+      }
+
+      // A user may change only their own entry in userCompletions
+      function changesOnlyOwnCompletion() {
+        let before = resource.data.get('userCompletions', {});
+        let after = request.resource.data.get('userCompletions', {});
+        return after.diff(before).affectedKeys().hasOnly([request.auth.uid]);
+      }
+
+      // A participant may only add themselves to completedBy, never remove others
+      function addsOnlySelfToCompletedBy() {
+        let before = resource.data.get('completedBy', []).toSet();
+        let after = request.resource.data.get('completedBy', []).toSet();
+        return after.hasAll(before) && after.difference(before).hasOnly([request.auth.uid]);
+      }
+
+      allow read: if signedIn() && (
         resource.data.userId == request.auth.uid ||
         resource.data.get('isGlobal', false) == true ||
         request.auth.uid in resource.data.get('participants', [])
       );
-      
-      // Разрешаем создание задач только аутентифицированным пользователям
-      // и только если userId совпадает с текущим пользователем
-      allow create: if request.auth != null && 
-                      request.resource.data.userId == request.auth.uid;
-      
-      // Разрешаем обновление задач, если:
-      // 1. Пользователь является владельцем задачи (может обновлять всё), или
-      // 2. Пользователь обновляет только поле participants (для join/leave), или
-      // 3. Пользователь обновляет только поле userCompletions для глобальных задач
-      //    (для автоматического отметки выполнения/невыполнения, даже если не участник)
-      //    Логика в коде гарантирует, что каждый пользователь обновляет только свой ключ
-      // 4. Пользователь обновляет поля completedBy, completedAt для глобальных задач, если он участник
-      allow update: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])) ||
-        (resource.data.get('isGlobal', false) == true && 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userCompletions'])) ||
-        (resource.data.get('isGlobal', false) == true && 
-         request.auth.uid in resource.data.get('participants', []) &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userCompletions', 'completedBy', 'completedAt']))
+
+      // Only admins can create global events, and they start with no participants
+      allow create: if signedIn() &&
+        request.resource.data.userId == request.auth.uid && (
+          request.resource.data.get('isGlobal', false) == false ||
+          (isAdmin() && request.resource.data.get('participants', []).size() == 0)
+        );
+
+      allow update: if signedIn() && (
+        // Owner edits their task; owner and global flag cannot be changed (except by admin)
+        (isOwner() &&
+          request.resource.data.userId == resource.data.userId &&
+          (request.resource.data.get('isGlobal', false) == resource.data.get('isGlobal', false) || isAdmin())) ||
+        // Admin edits any global event, but cannot reassign its owner
+        (isGlobal() && isAdmin() && request.resource.data.userId == resource.data.userId) ||
+        // Any user joins or leaves a global event
+        (isGlobal() && changedOnly(['participants']) && togglesOnlySelfInParticipants()) ||
+        // Any user updates their own completion status on a global event
+        (isGlobal() && changedOnly(['userCompletions']) && changesOnlyOwnCompletion()) ||
+        // A participant marks a global event as completed
+        (isGlobal() &&
+          request.auth.uid in resource.data.get('participants', []) &&
+          changedOnly(['completedBy', 'completedAt']) &&
+          addsOnlySelfToCompletedBy())
       );
-      
-      // Разрешаем удаление только владельцу задачи
-      allow delete: if request.auth != null && 
-                      resource.data.userId == request.auth.uid;
+
+      allow delete: if signedIn() && (isOwner() || (isGlobal() && isAdmin()));
     }
-    
-    // Правила для коллекции messages
+
     match /messages/{messageId} {
-      // Разрешаем чтение только своих сообщений
-      allow read: if request.auth != null && 
-                     resource.data.userId == request.auth.uid;
-      
-      // Разрешаем создание только своих сообщений
-      allow create: if request.auth != null && 
-                      request.resource.data.userId == request.auth.uid;
-      
-      // Разрешаем удаление только своих сообщений
-      allow delete: if request.auth != null && 
-                      resource.data.userId == request.auth.uid;
+      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
     }
   }
 }
-

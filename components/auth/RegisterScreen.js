@@ -100,7 +100,6 @@ export default function Register({ navigation }) {
 				await saveUserData({
 					name: firstName.trim(),
 					surname: lastName.trim(),
-					email: email.trim(),
 				});
 			} catch (error) {
 				console.error('Error saving user data to Firestore:', error);
