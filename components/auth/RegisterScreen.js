@@ -12,6 +12,7 @@ import { auth } from '../../FireBaseConfig';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { saveUserData } from '../../services/userService';
 import { useI18n } from '../../i18n/I18nContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // Cache images at module level to prevent reloading
 const profileIcon = require('../../assets/Profile.png');
@@ -20,6 +21,7 @@ const lockIconReg = require('../../assets/lock.png');
 const closedEyesIconReg = require('../../assets/closed-eyes.png');
 
 export default function Register({ navigation }) {
+	const { isDark } = useTheme();
 	const { t } = useI18n();
 	const [firstName, setFirstName] = useState('');
 	const [lastName, setLastName] = useState('');
@@ -123,12 +125,12 @@ export default function Register({ navigation }) {
 	};
 
 	return (
-		<LinearGradient colors={["#BBCDE0", "#F7FCFE"]} style={styles.container}>
+		<LinearGradient colors={isDark ? ['#1a2332', '#0f1419'] : ['#BBCDE0', '#F7FCFE']} style={styles.container}>
 			<Header />
 
-			<View style={styles.card}>
+			<View style={themed('card', isDark)}>
 				<View style={styles.cardContent}>
-					<Text style={styles.cardTitle}>{t('auth.register.title')}</Text>
+					<Text style={themed('cardTitle', isDark)}>{t('auth.register.title')}</Text>
 
 					<IconInput
 						icon={profileIconElement}
@@ -184,9 +186,9 @@ export default function Register({ navigation }) {
 						</LinearGradient>
 					</Pressable>
 
-					<Text style={styles.miniText}>
+					<Text style={themed('miniText', isDark)}>
 						{t('auth.register.haveAccount')}{' '}
-						<Text style={styles.link} onPress={() => navigation.navigate('Login')}>
+						<Text style={themed('link', isDark)} onPress={() => navigation.navigate('Login')}>
 							{t('auth.register.login')}
 						</Text>
 					</Text>
@@ -204,10 +206,11 @@ const ClosedEyesIconReg = memo(() => (
 
 /** Shared icon + input field used throughout the auth stack. */
 const IconInput = memo(function IconInput({ icon, style, ...props }) {
+	const { isDark } = useTheme();
 	return (
-		<View style={[styles.inputWrap, style]}>
+		<View style={[themed('inputWrap', isDark), style]}>
 			<View style={styles.inputIcon}>{icon}</View>
-			<TextInput placeholderTextColor="#9AA7B8" style={styles.input} {...props} />
+			<TextInput placeholderTextColor="#9AA7B8" style={themed('input', isDark)} {...props} />
 			<View style={styles.eyeIcon} />
 		</View>
 	);
@@ -215,12 +218,13 @@ const IconInput = memo(function IconInput({ icon, style, ...props }) {
 
 /** Password input with eye icon toggle for show/hide password. */
 const PasswordInput = memo(function PasswordInput({ icon, showPassword, onTogglePassword, style, ...props }) {
+	const { isDark } = useTheme();
 	return (
-		<View style={[styles.inputWrap, style]}>
+		<View style={[themed('inputWrap', isDark), style]}>
 			<View style={styles.inputIcon}>{icon}</View>
 			<TextInput
 				placeholderTextColor="#9AA7B8"
-				style={styles.input}
+				style={themed('input', isDark)}
 				secureTextEntry={!showPassword}
 				{...props}
 			/>
@@ -240,15 +244,33 @@ const PasswordInput = memo(function PasswordInput({ icon, showPassword, onToggle
 
 /** Soft checkbox row for regulatory confirmations (terms, marketing, etc.). */
 function CheckboxRow({ checked, onToggle, label }) {
+	const { isDark } = useTheme();
 	return (
 		<Pressable style={styles.checkboxRow} onPress={onToggle} hitSlop={8}>
-			<View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+			<View style={[themed('checkbox', isDark), checked && themed('checkboxChecked', isDark)]}>
 				{checked && <Ionicons name="checkmark" size={14} color="#fff" />}
 			</View>
-			<Text style={styles.checkboxLabel}>{label}</Text>
+			<Text style={themed('checkboxLabel', isDark)}>{label}</Text>
 		</Pressable>
 	);
 }
+
+/** Light style plus its dark-theme override, if any. */
+function themed(name, isDark) {
+	return isDark && darkStyles[name] ? [styles[name], darkStyles[name]] : styles[name];
+}
+
+const darkStyles = StyleSheet.create({
+	card: { backgroundColor: '#1a1f2e' },
+	cardTitle: { color: '#e8ecf0' },
+	inputWrap: { backgroundColor: '#252a38' },
+	input: { color: '#e8ecf0' },
+	checkbox: { backgroundColor: '#252a38', borderColor: '#a0a8b8' },
+	checkboxChecked: { backgroundColor: '#3b85ff', borderColor: '#3b85ff' },
+	checkboxLabel: { color: '#a0a8b8' },
+	miniText: { color: '#a0a8b8' },
+	link: { color: '#5a9fff' },
+});
 
 const styles = StyleSheet.create({
 	container: {

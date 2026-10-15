@@ -25,7 +25,7 @@ const lightColors = {
   border: '#eef1f6',
   cardBackground: '#fff',
   heroGradient: ['#3b85ff', '#8fc5ff'],
-  heroGradientSettings: ['#dbe8ff', '#f6f7fb'],
+  heroGradientSettings: ['#f9fbff', '#eef4ff'], // ends at background so there is no visible edge
   shadow: '#000',
   error: '#F44336',
   success: '#4caf50',

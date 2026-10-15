@@ -51,7 +51,9 @@ function formatDateForDisplay(dateString, t) {
 
 export default function EventDetailsModal({ visible, event, onClose, onDelete }) {
    const { t } = useI18n();
-   const { colors } = useTheme();
+   const { colors, isDark } = useTheme();
+   // Light styles plus their dark-theme override, if any
+   const st = (name) => (isDark && darkStyles[name] ? [styles[name], darkStyles[name]] : styles[name]);
    const [isJoined, setIsJoined] = useState(false);
    const [participantsCount, setParticipantsCount] = useState(0);
    const [isLoading, setIsLoading] = useState(false);
@@ -394,8 +396,8 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   {event.tagText && (
                      <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                           <Ionicons name="pricetag-outline" size={22} color="#2f7cff" />
-                           <Text style={styles.sectionTitle}>{t('event.category')}</Text>
+                           <Ionicons name="pricetag-outline" size={22} color={colors.primary} />
+                           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('event.category')}</Text>
                         </View>
                         <View style={styles.tagContainer}>
                            <View style={[styles.tag, { backgroundColor: event.color || '#2f7cff' }]}>
@@ -408,13 +410,13 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   {/* Status */}
                   <View style={styles.section}>
                      <View style={styles.sectionHeader}>
-                        <Ionicons name="information-circle-outline" size={22} color="#2f7cff" />
-                        <Text style={styles.sectionTitle}>{t('event.status')}</Text>
+                        <Ionicons name="information-circle-outline" size={22} color={colors.primary} />
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('event.status')}</Text>
                      </View>
                      <View style={styles.statusContainer}>
                         <View style={[
                            styles.statusBadge,
-                           event.tone === 'highlight' ? styles.statusActive : styles.statusInactive
+                           event.tone === 'highlight' ? st('statusActive') : st('statusInactive')
                         ]}>
                            <View style={[
                               styles.statusDot,
@@ -422,7 +424,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                            ]} />
                            <Text style={[
                               styles.statusText,
-                              event.tone === 'highlight' ? styles.statusTextActive : styles.statusTextInactive
+                              event.tone === 'highlight' ? st('statusTextActive') : st('statusTextInactive')
                            ]}>
                               {event.tone === 'highlight' ? t('event.activeNow') : t('event.scheduled')}
                            </Text>
@@ -430,7 +432,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                         {taskCompletionStatus && (
                            <View style={[
                               styles.statusBadge,
-                              taskCompletionStatus === 'completed' ? styles.statusCompleted : styles.statusUncompleted,
+                              taskCompletionStatus === 'completed' ? st('statusCompleted') : st('statusUncompleted'),
                               { marginTop: 8 }
                            ]}>
                               <View style={[
@@ -439,7 +441,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                               ]} />
                               <Text style={[
                                  styles.statusText,
-                                 taskCompletionStatus === 'completed' ? styles.statusTextCompleted : styles.statusTextUncompleted
+                                 taskCompletionStatus === 'completed' ? st('statusTextCompleted') : st('statusTextUncompleted')
                               ]}>
                                  {taskCompletionStatus === 'completed' 
                                     ? t('completed.completed') 
@@ -568,8 +570,8 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                            ]}
                         >
                            <View style={styles.sectionHeader}>
-                              <Ionicons name="people-outline" size={22} color="#2f7cff" />
-                              <Text style={styles.sectionTitle}>{t('event.participants')}</Text>
+                              <Ionicons name="people-outline" size={22} color={colors.primary} />
+                              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('event.participants')}</Text>
                            </View>
                            <Ionicons 
                               name={isParticipantsExpanded ? "chevron-up" : "chevron-down"} 
@@ -578,9 +580,9 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                            />
                         </Pressable>
                         <View style={styles.participantsContainer}>
-                           <View style={styles.participantsBadge}>
+                           <View style={st('participantsBadge')}>
                               <Ionicons name="people" size={18} color="#2f7cff" />
-                              <Text style={styles.participantsText}>
+                              <Text style={st('participantsText')}>
                                  {participantsCount} {participantsCount === 1 ? t('event.participant') : t('event.participantsPlural')}
                               </Text>
                            </View>
@@ -596,11 +598,11 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                                  participantsList.map((participant, index) => {
                                     const fullName = `${participant.name || ''} ${participant.surname || ''}`.trim() || t('settings.profile.fallbackName');
                                     return (
-                                       <View key={index} style={styles.participantItem}>
-                                          <View style={styles.participantAvatar}>
+                                       <View key={index} style={st('participantItem')}>
+                                          <View style={st('participantAvatar')}>
                                              <Ionicons name="person" size={18} color="#2f7cff" />
                                           </View>
-                                          <Text style={styles.participantName}>{fullName}</Text>
+                                          <Text style={st('participantName')}>{fullName}</Text>
                                        </View>
                                     );
                                  })
@@ -981,4 +983,21 @@ const styles = StyleSheet.create({
       fontWeight: '700',
       color: '#fff',
    },
+});
+
+// Dark-theme overrides for the light-colored badges and participant rows
+const darkStyles = StyleSheet.create({
+   statusActive: { backgroundColor: '#1d3326' },
+   statusCompleted: { backgroundColor: '#1d3326' },
+   statusInactive: { backgroundColor: '#252a38' },
+   statusUncompleted: { backgroundColor: '#3a1f24' },
+   statusTextActive: { color: '#81c784' },
+   statusTextCompleted: { color: '#81c784' },
+   statusTextInactive: { color: '#a0a8b8' },
+   statusTextUncompleted: { color: '#ef9a9a' },
+   participantsBadge: { backgroundColor: '#1e3a5f' },
+   participantsText: { color: '#90caf9' },
+   participantItem: { backgroundColor: '#252a38' },
+   participantAvatar: { backgroundColor: '#1e3a5f' },
+   participantName: { color: '#e8ecf0' },
 });

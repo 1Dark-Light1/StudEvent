@@ -4,13 +4,17 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function Header() {
+  const { isDark } = useTheme();
+  const textColor = { color: isDark ? '#5a9fff' : '#06276C' };
+
   return (
     <View style={styles.header}>
       <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.brand}>StudEvent</Text>
-      <Text style={styles.subtitle}>Join to us</Text>
+      <Text style={[styles.brand, textColor]}>StudEvent</Text>
+      <Text style={[styles.subtitle, textColor]}>Join to us</Text>
     </View>
   );
 }
@@ -27,12 +31,10 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 38,
     fontWeight: '800',
-    color: '#06276C',
     letterSpacing: 0.2,
   },
   subtitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#06276C',
   },
 });

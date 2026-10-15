@@ -17,11 +17,22 @@ import NotificationSettingsScreen from './components/screens/Settings/Notificati
 import ThemeScreen from './components/screens/Settings/ThemeScreen';
 import { I18nProvider } from './i18n/I18nContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import * as SplashScreen from 'expo-splash-screen';
 
 const Stack = createNativeStackNavigator();
 
+// Keep the splash screen until the saved theme is loaded, so the first screen
+// does not flash in the light theme for dark-theme users
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 function AppContent() {
-  const { isDark } = useTheme();
+  const { isDark, isReady } = useTheme();
+
+  useEffect(() => {
+    if (isReady) SplashScreen.hideAsync().catch(() => {});
+  }, [isReady]);
+
+  if (!isReady) return null;
 
   return (
     <NavigationContainer>

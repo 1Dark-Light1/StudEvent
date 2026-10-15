@@ -451,14 +451,14 @@ export default function AddTaskScreen({ navigation, route }) {
                   <>
                      {mode === 'change' && selectedTaskId && (
                         <Pressable 
-                           style={styles.backToListButton}
+                           style={[styles.backToListButton, isDark && { backgroundColor: colors.todayHighlight }]}
                            onPress={() => {
                               setSelectedTaskId(null);
                               handleClear();
                            }}
                         >
-                           <Ionicons name="arrow-back" size={20} color={colors.primary} />
-                           <Text style={[styles.backToListText, { color: colors.primary }]}>{t('task.backToList')}</Text>
+                           <Ionicons name="arrow-back" size={20} color={isDark ? '#fff' : colors.primary} />
+                           <Text style={[styles.backToListText, { color: isDark ? '#fff' : colors.primary }]}>{t('task.backToList')}</Text>
                         </Pressable>
                      )}
 
@@ -1173,9 +1173,7 @@ const styles = StyleSheet.create({
       textAlign: 'center',
       flexWrap: 'wrap',
    },
-   frequencyTextActive: {
-      color: '#838282ff',
-   },
+   frequencyTextActive: {},
    fixedActionRow: {
       position: 'absolute',
       bottom: 100,
