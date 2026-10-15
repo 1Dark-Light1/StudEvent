@@ -207,8 +207,8 @@ function subscribeToOwnAndGlobal(ownQuery, globalQuery, { ownWithoutGlobal }, ca
 }
 
 /**
- * Подписывается на изменения задач пользователя в реальном времени
- * Включает собственные задачи пользователя и глобальные задачи админа
+ * Subscribes to the user's tasks in real time:
+ * own tasks and the admin's global tasks
  */
 export function subscribeToUserTasks(callback) {
    const user = auth.currentUser;
@@ -230,9 +230,9 @@ export function subscribeToUserTasks(callback) {
 }
 
 /**
- * Подписывается на изменения задач по дате в реальном времени
- * Включает собственные задачи пользователя и глобальные задачи админа,
- * до которых поточний користувач приєднався
+ * Subscribes to the tasks of one date in real time:
+ * own tasks and the global tasks
+ * the current user has joined
  */
 export function subscribeToTasksByDate(dateString, callback) {
    const user = auth.currentUser;
@@ -562,10 +562,10 @@ export async function markTaskAsCompleted(taskId) {
 
       const taskData = taskSnap.data();
       
-      // Проверяем права доступа
+      // Check permissions
       const isTaskGlobal = taskData.isGlobal === true;
       if (isTaskGlobal) {
-         // Для глобальных задач проверяем, присоединен ли пользователь
+         // Global tasks: the user must have joined
          const participants = taskData.participants || [];
          if (!participants.includes(user.uid)) {
             throw appError('join-first', 'You must join the event first');
@@ -635,10 +635,10 @@ export async function markTaskAsUncompleted(taskId) {
 
       const taskData = taskSnap.data();
       
-      // Проверяем права доступа
+      // Check permissions
       const isTaskGlobal = taskData.isGlobal === true;
       if (isTaskGlobal) {
-         // Для глобальных задач проверяем, присоединен ли пользователь
+         // Global tasks: the user must have joined
          const participants = taskData.participants || [];
          if (!participants.includes(user.uid)) {
             throw appError('join-first', 'You must join the event first');
@@ -783,7 +783,7 @@ export async function autoMarkUncompletedTasks() {
          // If joined but not marked - don't touch (joining = automatically completed)
       });
       
-      // Выполняем обновления батчами по 500 (лимит Firestore)
+      // Update in batches of 500 (Firestore limit)
       for (let i = 0; i < batch.length; i += 500) {
          const batchChunk = batch.slice(i, i + 500);
          const batchWrite = writeBatch(db);

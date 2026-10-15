@@ -17,10 +17,10 @@ export default function DayTimeline({ events, participants, onEventPress }) {
             const isLast = index === events.length - 1;
             const isGlobal = event.isGlobal === true;
 
-            // Проверяем, прикреплен ли текущий пользователь к задаче
+            // Has the current user joined this task?
             const isUserJoined = isGlobal && auth.currentUser && event.participants && event.participants.includes(auth.currentUser.uid);
 
-            // Получаем участников для глобальной задачи
+            // Participants of a global task
             const taskParticipants = isGlobal && participants[event.id] ? participants[event.id] : [];
 
             return (
@@ -49,7 +49,7 @@ export default function DayTimeline({ events, participants, onEventPress }) {
                         />
                      </Pressable>
                   ) : event.tone === 'highlight' ? (
-                     // Активная задача - с градиентом и увеличенным размером
+                     // Active task: gradient and larger card
                      <LinearGradient
                         colors={['#2f7cff', '#4a9eff', '#6bb5ff']}
                         start={{ x: 0, y: 0 }}
@@ -69,7 +69,7 @@ export default function DayTimeline({ events, participants, onEventPress }) {
                         </Pressable>
                      </LinearGradient>
                   ) : (
-                     // Обычная задача
+                     // Regular task
                      <Pressable 
                         style={[styles.eventCard, { backgroundColor: colors.surface }]}
                         onPress={() => onEventPress(event)}

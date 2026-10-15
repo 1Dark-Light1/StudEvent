@@ -1,5 +1,5 @@
 /**
- * AlertsScreen - екран зі списком повідомлень
+ * AlertsScreen - list of scheduled and received notifications
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Animated, PanResponder } from 'react-native';
@@ -19,7 +19,7 @@ export default function Alerts({ navigation, route }) {
   const { colors } = useTheme();
    const [notifications, setNotifications] = useState([]);
    const [messages, setMessages] = useState([]);
-   const [hiddenMessageIds, setHiddenMessageIds] = useState(new Set()); // Зберігаємо ID прихованих повідомлень
+   const [hiddenMessageIds, setHiddenMessageIds] = useState(new Set()); // ids of messages the user swiped away
    const [loading, setLoading] = useState(true);
 
    // Tasks referenced by notifications/messages, loaded once by id (null = deleted or not accessible)
@@ -39,7 +39,7 @@ export default function Alerts({ navigation, route }) {
    };
 
    useEffect(() => {
-      // Завантажуємо приховані повідомлення з AsyncStorage
+      // Hidden message ids are kept in AsyncStorage
       const loadHiddenMessages = async () => {
          const hidden = await getHiddenMessages();
          setHiddenMessageIds(hidden);
@@ -48,12 +48,12 @@ export default function Alerts({ navigation, route }) {
       
       loadNotifications();
       
-      // Підписуємось на повідомлення з Firestore
+      // Saved messages from Firestore
       const unsubscribe = subscribeToCurrentMonthMessages((loadedMessages) => {
          setMessages(loadedMessages);
       });
 
-      // Очищаємо старі повідомлення при завантаженні
+      // Remove messages from previous months
       cleanupOldMessages().catch(err => 
          console.error('Error cleaning up old messages:', err)
       );
@@ -70,7 +70,7 @@ export default function Alerts({ navigation, route }) {
          const scheduled = await getScheduledNotifications();
          const now = new Date();
          
-         // Фільтруємо тільки майбутні повідомлення та завантажуємо дані задач
+         // Only upcoming notifications, with their task data
          const futureNotifications = scheduled.filter(n => {
             const triggerDate = n.trigger instanceof Date ? n.trigger : new Date(n.trigger);
             return triggerDate > now;
@@ -81,7 +81,7 @@ export default function Alerts({ navigation, route }) {
             tasks[notif.taskId] ? { ...notif, task: tasks[notif.taskId] } : notif
          ));
 
-         // Сортуємо за датою
+         // Sort by trigger time
          notificationsWithTasks.sort((a, b) => {
             const dateA = a.trigger instanceof Date ? a.trigger : new Date(a.trigger);
             const dateB = b.trigger instanceof Date ? b.trigger : new Date(b.trigger);
@@ -116,13 +116,13 @@ export default function Alerts({ navigation, route }) {
       };
    }, [messages]);
 
-   // Об'єднуємо заплановані повідомлення та повідомлення з Firestore, фільтруємо приховані
+   // Scheduled notifications plus saved messages, without hidden ones
    const allMessages = useMemo(() => {
       const combined = [...notifications, ...messagesWithTasks];
       
-      // Видаляємо дублікати та приховані повідомлення
+      // Drop hidden messages and duplicates
       const unique = combined.filter((item, index, self) => {
-         // Пропускаємо приховані повідомлення
+         // Skip hidden messages
          if (item.id && hiddenMessageIds.has(item.id)) {
             return false;
          }
@@ -130,7 +130,7 @@ export default function Alerts({ navigation, route }) {
             return false;
          }
          
-         // Видаляємо дублікати
+         // Skip duplicates (same identifier, or same task and type within a minute)
          return index === self.findIndex(t => 
             (t.identifier && item.identifier && t.identifier === item.identifier) ||
             (t.taskId && item.taskId && t.type === item.type && t.taskId === item.taskId && 
@@ -138,7 +138,7 @@ export default function Alerts({ navigation, route }) {
          );
       });
       
-      // Групуємо за датою
+      // Group by day
       const groupedByDate = {};
       unique.forEach(message => {
          const triggerDate = message.trigger instanceof Date ? message.trigger : new Date(message.trigger);
@@ -150,14 +150,14 @@ export default function Alerts({ navigation, route }) {
          groupedByDate[dateKey].push(message);
       });
       
-      // Сортуємо дати (новіші спочатку)
+      // Newest day first
       const sortedDates = Object.keys(groupedByDate).sort().reverse();
       
       return { groupedByDate, sortedDates };
    }, [notifications, messagesWithTasks, hiddenMessageIds]);
 
    const handleHideMessage = async (messageId) => {
-      // Зберігаємо в AsyncStorage та оновлюємо стан
+      // Persist in AsyncStorage and update state
       const updatedHidden = await hideMessage(messageId);
       setHiddenMessageIds(updatedHidden);
    };
@@ -181,7 +181,7 @@ export default function Alerts({ navigation, route }) {
 
    return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
-         {/* Хедер подібний до CompletedTasksScreen */}
+         {/* Header, same layout as CompletedTasksScreen */}
          <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>{t('alerts.title')}</Text>
          </View>
@@ -206,7 +206,7 @@ export default function Alerts({ navigation, route }) {
                <View style={styles.messagesContainer}>
                   {allMessages.sortedDates.map((dateKey) => {
                      const dateMessages = allMessages.groupedByDate[dateKey];
-                     // dateKey в форматі YYYY-MM-DD, конвертуємо в Date
+                     // dateKey is YYYY-MM-DD in local time
                      const [year, month, day] = dateKey.split('-');
                      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
                      return (
@@ -239,7 +239,7 @@ export default function Alerts({ navigation, route }) {
    );
 }
 
-// Компонент для повідомлення з можливістю свайпу
+// Message card that can be swiped away
 function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, isLast = false }) {
    const { tagLabel, displayTime } = useI18n();
    const { colors } = useTheme();
@@ -257,7 +257,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
       },
       onPanResponderRelease: (_, gestureState) => {
          if (gestureState.dx < -100) {
-            // Свайп вліво більше 100px - приховуємо
+            // Swiped left more than 100px: hide
             Animated.timing(translateX, {
                toValue: -300,
                duration: 200,
@@ -270,7 +270,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
                }
             });
          } else {
-            // Повертаємо назад
+            // Snap back
             Animated.spring(translateX, {
                toValue: 0,
                useNativeDriver: true,
@@ -289,7 +289,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
    const displayTitle = message.title || (getNotificationTypeLabel ? getNotificationTypeLabel(message.type) : t('notifications.fallbackTitle'));
    const displayBody = message.body || (task ? task.name : '');
    
-   // Для глобальних задач використовуємо градієнт як на Home
+   // Global tasks use the same gradient as on Home
    const adminTagColor = isGlobal ? (task.taskColor || colors.primary) : colors.primary;
    const adminGradientColors = isGlobal
       ? [adminTagColor, `${adminTagColor}E6`, `${adminTagColor}CC`, `${adminTagColor}99`]

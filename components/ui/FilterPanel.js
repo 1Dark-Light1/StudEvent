@@ -1,5 +1,5 @@
 /**
- * FilterPanel компонент для фильтрации событий по тегам
+ * FilterPanel - filters events by tag
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';

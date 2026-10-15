@@ -8,10 +8,10 @@ function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff
    const firstDay = new Date(year, month, 1);
    const lastDay = new Date(year, month + 1, 0);
    const daysInMonth = lastDay.getDate();
-   const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Понедельник = 0
+   const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Monday = 0
    const prevMonthDays = new Date(year, month, 0).getDate();
 
-   // Группируем задачи по дням
+   // Group tasks by day
    const tasksByDay = {};
    tasks.forEach(task => {
       const [day, monthStr, yearStr] = task.date.split('.');
@@ -28,17 +28,17 @@ function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff
    });
 
    const grid = [];
-   // Дни предыдущего месяца
+   // Days of the previous month
    for (let i = startOffset; i > 0; i -= 1) {
       grid.push({ label: String(prevMonthDays - i + 1), muted: true });
    }
 
-   // Перевіряємо, чи поточний день є сьогоднішнім
+   // Is this day today?
    const today = new Date();
    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
    const todayDay = today.getDate();
 
-   // Дни текущего месяца
+   // Days of the current month
    for (let day = 1; day <= daysInMonth; day += 1) {
       const entry = { label: String(day) };
       const dayTasks = tasksByDay[day] || [];
@@ -50,12 +50,12 @@ function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff
       }
 
       if (dayTasks.length > 0) {
-         // Выделяем день с задачами
+         // Highlight days with tasks
          const hasActiveTask = dayTasks.some(task => isTaskActive(task));
          const hasGlobalTask = dayTasks.some(task => task.isGlobal === true);
          
          if (hasActiveTask) {
-            // Якщо це сьогодні, зберігаємо легко синій фон і додаємо обводку
+            // Today keeps its light blue background and gets an outline
             if (isToday) {
                entry.todayHighlight = todayHighlightColor;
                entry.outline = dayTasks[0].taskColor || '#d7c5ff';
@@ -63,19 +63,19 @@ function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff
                entry.highlight = todayHighlightColor;
             }
          } else if (hasGlobalTask) {
-            // Для глобальных задач - заполненный кружок
+            // Global tasks: filled circle
             const globalTask = dayTasks.find(task => task.isGlobal === true);
             if (isToday) {
-               // Якщо це сьогодні, легко синій фон з обводкою кольору тага
+               // Today: light blue background with a tag-colored outline
                entry.todayHighlight = todayHighlightColor;
                entry.outline = globalTask.taskColor || '#2f6cff';
             } else {
                entry.filled = globalTask.taskColor || '#2f6cff';
             }
          } else {
-            // Используем цвет первой задачи для outline
+            // Outline in the first task's color
             if (isToday) {
-               // Якщо це сьогодні, легко синій фон з обводкою
+               // Today: light blue background with an outline
                entry.todayHighlight = todayHighlightColor;
                entry.outline = dayTasks[0].taskColor || '#d7c5ff';
             } else {
@@ -87,7 +87,7 @@ function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff
       grid.push(entry);
    }
 
-   // Дни следующего месяца - заполняем до 35 ячеек (5 недель по 7 дней)
+   // Days of the next month, up to 35 cells (5 weeks of 7 days)
    let next = 1;
    while (grid.length < 35) {
       grid.push({ label: String(next), muted: true });
@@ -98,7 +98,7 @@ function buildCalendar({ year, month, tasks = [], todayHighlightColor = '#d9ecff
 }
 
 /**
- * Форматирует задачи для отображения в agenda
+ * Formats tasks for the agenda
  */
 function formatTasksForAgenda(tasks, year, month) {
    const tasksByDay = {};
@@ -136,7 +136,7 @@ function formatTasksForAgenda(tasks, year, month) {
       }
    });
 
-   // Сортируем дни и задачи внутри дней
+   // Sort days and the tasks within each day
    const sortedDays = Object.keys(tasksByDay).sort((a, b) => {
       const dayA = parseInt(a.split(' ')[1]);
       const dayB = parseInt(b.split(' ')[1]);
@@ -154,7 +154,7 @@ function formatTasksForAgenda(tasks, year, month) {
 }
 
 /**
- * Генерирует данные для месяца
+ * Builds the data for one month
  */
 export function getMonthData(year, month, tasks, t, todayHighlightColor = '#d9ecff') {
    const monthNames = [

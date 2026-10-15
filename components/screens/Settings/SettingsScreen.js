@@ -24,7 +24,7 @@ export default function Settings({ navigation, route }) {
    const activeRoute = route?.name ?? 'Settings';
    const [userData, setUserData] = useState(null);
 
-   // Подписка на изменения данных пользователя
+   // Follow changes of the user profile
    useEffect(() => {
       const unsubscribe = subscribeToUserData((data) => {
          setUserData(data);
@@ -35,7 +35,7 @@ export default function Settings({ navigation, route }) {
       };
    }, []);
 
-   // Формируем отображаемое имя
+   // Display name
    const displayName = userData
       ? `${userData.name || ''} ${userData.surname || ''}`.trim() || t('settings.profile.fallbackName')
       : t('settings.profile.fallbackName');
@@ -54,7 +54,7 @@ export default function Settings({ navigation, route }) {
       { icon: 'people', label: t('settings.accounts') },
    ];
 
-   // Обработчик навигации для опций настроек
+   // Navigation for the settings options
    const handleOptionPress = (label) => {
       if (label === t('settings.language')) {
          navigation.navigate('Language');
@@ -63,7 +63,7 @@ export default function Settings({ navigation, route }) {
       } else if (label === t('settings.theme')) {
          navigation.navigate('Theme');
       }
-      // Можно добавить обработчики для других опций здесь
+      // Other options can get handlers here
    };
 
    const handleLogout = async () => {

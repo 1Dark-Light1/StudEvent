@@ -1,5 +1,5 @@
 /**
- * NotificationSettingsScreen - екран налаштувань повідомлень
+ * NotificationSettingsScreen - notification settings
  */
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, Switch } from 'react-native';

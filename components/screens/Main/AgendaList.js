@@ -18,18 +18,17 @@ export default function AgendaList({ agenda, participants, onEventPress }) {
                {block.items.map((item, idx) => {
                   const isLast = idx === block.items.length - 1;
                   const isGlobal = item.isGlobal === true;
-                  // Получаем участников для глобальной задачи
+                  // Participants of a global task
                   const taskParticipants = isGlobal && participants[item.id] ? participants[item.id] : [];
 
-                  // Проверяем, прикреплен ли текущий пользователь к задаче
+                  // Has the current user joined this task?
                   const isUserJoined = isGlobal && auth.currentUser && item.participants && item.participants.includes(auth.currentUser.uid);
 
-                  // Для админских задач используем цвет тага с градиентом
+                  // Global tasks use their tag color
                   const adminTagColor = isGlobal ? (item.color || '#2f7cff') : '#2f7cff';
 
-                  // Создаем более светлую обводку для кружечка админской задачи
-                  // Используем тот же цвет с увеличенной прозрачностью для эффекта осветления
-                  // Для обводки используем цвет с добавлением белого через opacity
+                  // A lighter ring around the dot of a global task:
+                  // the same color, slightly transparent
                   const lightBorderColor = isGlobal ? adminTagColor + 'CC' : null;
 
                   return (

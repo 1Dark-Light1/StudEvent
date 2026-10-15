@@ -1,5 +1,5 @@
 /**
- * CompletedTasksScreen - сторінка для перегляду виконаних та невиконаних задач
+ * CompletedTasksScreen - completed and uncompleted tasks
  */
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, Platform } from 'react-native';
@@ -21,7 +21,7 @@ export default function CompletedTasks({ navigation, route }) {
    const [isLoading, setIsLoading] = useState(true);
    const [refreshing, setRefreshing] = useState(false);
 
-   // Завантаження задач
+   // Load tasks
    useEffect(() => {
       if (!auth.currentUser) {
          setIsLoading(false);
@@ -31,7 +31,7 @@ export default function CompletedTasks({ navigation, route }) {
       setIsLoading(true);
       let isFirstLoad = true;
       const unsubscribe = subscribeToUserTasks(async (loadedTasks) => {
-         // Автоматически отмечаем просроченные задачи только при первой загрузке
+         // Mark overdue tasks as uncompleted, only on the first load
          if (isFirstLoad) {
             isFirstLoad = false;
             try {
@@ -50,20 +50,20 @@ export default function CompletedTasks({ navigation, route }) {
       };
    }, []);
 
-   // Фільтрація задач за статусом
+   // Filter tasks by status
    const filteredTasks = tasks.filter(task => {
       let isCompleted = false;
       let isUncompleted = false;
       
       if (task.isGlobal && task.userCompletions && auth.currentUser) {
-         // Для глобальних задач перевіряємо статус користувача
+         // Global tasks: use the current user's status
          const userCompletion = task.userCompletions[auth.currentUser.uid];
          if (userCompletion) {
             isCompleted = userCompletion.isCompleted === true;
             isUncompleted = userCompletion.isUncompleted === true;
          }
       } else {
-         // Для звичайних задач перевіряємо загальний статус
+         // Own tasks: use the task status
          isCompleted = task.isCompleted === true;
          isUncompleted = task.isUncompleted === true;
       }
@@ -75,7 +75,7 @@ export default function CompletedTasks({ navigation, route }) {
       }
    });
 
-   // Групування задач за датою
+   // Group tasks by date
    const tasksByDate = {};
    filteredTasks.forEach(task => {
       const dateKey = task.date || 'no-date';
@@ -85,7 +85,7 @@ export default function CompletedTasks({ navigation, route }) {
       tasksByDate[dateKey].push(task);
    });
 
-   // Сортування дат
+   // Sort dates
    const sortedDates = Object.keys(tasksByDate).sort((a, b) => {
       if (a === 'no-date') return 1;
       if (b === 'no-date') return -1;
@@ -96,7 +96,7 @@ export default function CompletedTasks({ navigation, route }) {
       setRefreshing(true);
       try {
          await autoMarkUncompletedTasks();
-         // Дані оновляться автоматично через subscribeToUserTasks
+         // The list updates through subscribeToUserTasks
       } catch (error) {
          console.error('Error refreshing tasks:', error);
       } finally {
@@ -123,7 +123,7 @@ export default function CompletedTasks({ navigation, route }) {
                <Text style={[styles.title, { color: colors.text }]}>{t('completed.title')}</Text>
             </View>
 
-            {/* Переключатель */}
+            {/* Completed / uncompleted switch */}
             <View style={styles.toggleWrapper}>
                <SegmentedToggle
                   options={[
@@ -135,7 +135,7 @@ export default function CompletedTasks({ navigation, route }) {
                />
             </View>
 
-            {/* Список задач */}
+            {/* Task list */}
             {isLoading ? (
                <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={colors.primary} />
@@ -178,7 +178,7 @@ export default function CompletedTasks({ navigation, route }) {
                                     key={task.id}
                                     style={[styles.taskCard, { backgroundColor: colors.cardBackground }]}
                                     onPress={() => {
-                                       // Навігація до UserCalendar з датою задачі
+                                       // Open the personal calendar on the task's date
                                        navigation.navigate('UserCalendar', { 
                                           initialDate: task.date 
                                        });

@@ -37,7 +37,7 @@ export default function Main({ navigation, route }) {
 
    const activeMonth = getMonthData(currentYear, currentMonth, tasks, t, colors.todayHighlight);
 
-   // Загрузка задач из Firestore
+   // Load tasks from Firestore
    useEffect(() => {
       if (!auth.currentUser) {
          setIsLoading(false);
@@ -48,7 +48,7 @@ export default function Main({ navigation, route }) {
       let isFirstLoad = true;
       
       const unsubscribe = subscribeToUserTasks(async (loadedTasks) => {
-         // Автоматически отмечаем просроченные задачи только при первой загрузке
+         // Mark overdue tasks as uncompleted, only on the first load
          if (isFirstLoad) {
             isFirstLoad = false;
             try {
@@ -58,7 +58,7 @@ export default function Main({ navigation, route }) {
             }
          }
          
-         // Всегда обновляем задачи (даже если массив пустой - это нормально)
+         // Always update, an empty list is valid too
          // Filtering happens in the effect below, whenever rawTasks changes
          setRawTasks(loadedTasks);
          setIsLoading(false);
@@ -69,7 +69,7 @@ export default function Main({ navigation, route }) {
       };
    }, []);
 
-   /** Перемещение между месяцами */
+   /** Move between months */
    const shiftMonth = (step) => {
       setCurrentMonth((prev) => {
          let newMonth = prev + step;
@@ -91,15 +91,15 @@ export default function Main({ navigation, route }) {
    const onRefresh = async () => {
       setRefreshing(true);
       try {
-         // Перекидаємо на поточний місяць
+         // Back to the current month
          const today = new Date();
          setCurrentYear(today.getFullYear());
          setCurrentMonth(today.getMonth());
          resetFilters();
          
-         // Оновлюємо задачі
+         // Refresh tasks
          await autoMarkUncompletedTasks();
-         // Дані оновляться автоматично через subscribeToUserTasks
+         // The list updates through subscribeToUserTasks
       } catch (error) {
          console.error('Error refreshing tasks:', error);
       } finally {
@@ -153,7 +153,7 @@ export default function Main({ navigation, route }) {
             />
 
             <View style={styles.body}>
-               {/* Поиск и фильтры */}
+               {/* Search and filters */}
                <View style={styles.filterSection}>
                   <SearchBar
                      value={searchQuery}

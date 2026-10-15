@@ -1,14 +1,14 @@
 /** Week strip data for the personal calendar. */
 
 /**
- * Генерирует массив дней недели начиная с понедельника недели с учётом смещения
+ * Days of a week starting on Monday, shifted by weekOffset weeks
  */
 export function generateWeekDays(t, weekOffset = 0) {
    const today = new Date();
-   // Смещаем базовую дату на нужное количество недель
+   // Shift the base date by whole weeks
    today.setDate(today.getDate() + weekOffset * 7);
    const currentDay = today.getDay();
-   // Понедельник = 1, воскресенье = 0
+   // Monday = 1, Sunday = 0
    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
    const monday = new Date(today);
    monday.setDate(today.getDate() + mondayOffset);
@@ -37,7 +37,7 @@ export function generateWeekDays(t, weekOffset = 0) {
 }
 
 /**
- * Обчислює weekOffset для заданої дати
+ * Week offset (from the current week) of the given date
  */
 export function calculateWeekOffset(targetDateString) {
    const [day, month, year] = targetDateString.split('.');
@@ -47,19 +47,19 @@ export function calculateWeekOffset(targetDateString) {
    today.setHours(0, 0, 0, 0);
    targetDate.setHours(0, 0, 0, 0);
    
-   // Знаходимо понеділок поточного тижня
+   // Monday of the current week
    const currentDay = today.getDay();
    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
    const currentMonday = new Date(today);
    currentMonday.setDate(today.getDate() + mondayOffset);
    
-   // Знаходимо понеділок тижня з цільовою датою
+   // Monday of the target week
    const targetDay = targetDate.getDay();
    const targetMondayOffset = targetDay === 0 ? -6 : 1 - targetDay;
    const targetMonday = new Date(targetDate);
    targetMonday.setDate(targetDate.getDate() + targetMondayOffset);
    
-   // Обчислюємо різницю в тижнях
+   // Difference in weeks
    const diffInMs = targetMonday.getTime() - currentMonday.getTime();
    const diffInWeeks = Math.round(diffInMs / (7 * 24 * 60 * 60 * 1000));
    

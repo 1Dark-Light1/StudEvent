@@ -27,7 +27,7 @@ export default function UserCalendar({ navigation, route }) {
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
-   // Отримуємо initialDate з параметрів навігації та обчислюємо weekOffset
+   // initialDate from the navigation params and its week offset
    const initialDate = route?.params?.initialDate;
    const calculatedWeekOffset = initialDate ? calculateWeekOffset(initialDate) : 0;
    const [weekOffset, setWeekOffset] = useState(calculatedWeekOffset);
@@ -38,7 +38,7 @@ export default function UserCalendar({ navigation, route }) {
       : stripDays.find(day => day.dateString === todayDateString) || stripDays[0];
    const [activeDate, setActiveDate] = useState(defaultDay.dateString);
    
-   // Оновлюємо weekOffset та activeDate, коли змінюється initialDate
+   // Update weekOffset and activeDate when initialDate changes
    useEffect(() => {
       if (initialDate) {
          const newWeekOffset = calculateWeekOffset(initialDate);
@@ -46,7 +46,7 @@ export default function UserCalendar({ navigation, route }) {
       }
    }, [initialDate]);
    
-   // Оновлюємо activeDate після зміни weekOffset
+   // Select initialDate once its week is shown
    useEffect(() => {
       if (initialDate && stripDays.length > 0) {
          const targetDay = stripDays.find(day => day.dateString === initialDate);
@@ -56,7 +56,7 @@ export default function UserCalendar({ navigation, route }) {
       }
    }, [weekOffset, stripDays, initialDate]);
    const [tasks, setTasks] = useState([]);
-   const [rawTasks, setRawTasks] = useState([]); // Сохраняем оригинальные данные задач
+   const [rawTasks, setRawTasks] = useState([]); // unfiltered tasks of the selected day
    const [isLoading, setIsLoading] = useState(true);
    const [refreshing, setRefreshing] = useState(false);
    const { searchQuery, setSearchQuery, clearSearch, selectedTags, toggleTag, clearTags, resetFilters } = useTaskFilters();
@@ -69,7 +69,7 @@ export default function UserCalendar({ navigation, route }) {
    const isToday = activeDay.dateString === todayDateString;
    const headerLabel = isToday ? t('calendar.today') : activeDay.label;
 
-   // При смене недели стараемся сохранить тот же день недели (например, четверг -> четверг следующей недели)
+   // When the week changes, keep the same weekday (e.g. Thursday -> next Thursday)
    useEffect(() => {
       if (stripDays.length === 0) return;
 
@@ -78,16 +78,16 @@ export default function UserCalendar({ navigation, route }) {
 
          const [d, m, y] = prevDate.split('.');
          const prevDateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
-         // Преобразуем getDay (0-6, где 0 воскресенье) в индекс с понедельника
+         // getDay (0-6, 0 = Sunday) -> index from Monday
          const jsDay = prevDateObj.getDay(); // 0..6
-         const weekdayIndex = jsDay === 0 ? 6 : jsDay - 1; // 0..6, где 0 понедельник
+         const weekdayIndex = jsDay === 0 ? 6 : jsDay - 1; // 0..6, 0 = Monday
 
          const targetDay = stripDays[weekdayIndex] || stripDays[0];
          return targetDay.dateString;
       });
    }, [weekOffset, stripDays]);
 
-   // Подписка на задачи для выбранной даты
+   // Subscribe to the tasks of the selected date
    useEffect(() => {
       if (!auth.currentUser) {
          setIsLoading(false);
@@ -97,7 +97,7 @@ export default function UserCalendar({ navigation, route }) {
       setIsLoading(true);
       let isFirstLoadForDate = true;
       const unsubscribe = subscribeToTasksByDate(activeDate, async (loadedTasks) => {
-         // Автоматически отмечаем просроченные задачи только при первой загрузке для этой даты
+         // Mark overdue tasks as uncompleted, only on the first load for this date
          if (isFirstLoadForDate) {
             isFirstLoadForDate = false;
             try {
@@ -116,20 +116,20 @@ export default function UserCalendar({ navigation, route }) {
       };
    }, [activeDate]);
 
-   // Обновление активных задач каждые 30 секунд и при возврате на экран
+   // Refresh the "active now" state every 30 seconds and when the app comes back
    useEffect(() => {
       // Re-format regularly so the "active now" highlight follows the clock
       const updateTasks = () => {
          setTasks(applyTaskFilters(rawTasks, searchQuery, selectedTags).map(formatTaskForCalendar));
       };
 
-      // Обновляем сразу при монтировании
+      // Right away
       updateTasks();
 
-      // Обновляем каждые 30 секунд
+      // Every 30 seconds
       const interval = setInterval(updateTasks, 30000);
 
-      // Обновляем при возврате на экран
+      // When the app becomes active
       const subscription = AppState.addEventListener('change', (nextAppState) => {
          if (nextAppState === 'active') {
             updateTasks();
@@ -160,16 +160,16 @@ export default function UserCalendar({ navigation, route }) {
    const onRefresh = async () => {
       setRefreshing(true);
       try {
-         // Перекидаємо на поточний тиждень
+         // Back to the current week
          setWeekOffset(0);
          const today = new Date();
          const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
          setActiveDate(todayDateString);
          resetFilters();
          
-         // Оновлюємо задачі
+         // Refresh tasks
          await autoMarkUncompletedTasks();
-         // Дані оновляться автоматично через subscribeToTasksByDate
+         // The list updates through subscribeToTasksByDate
       } catch (error) {
          console.error('Error refreshing tasks:', error);
       } finally {
@@ -217,7 +217,7 @@ export default function UserCalendar({ navigation, route }) {
                onShiftWeek={shiftWeek}
             />
 
-            {/* Поиск и фильтры */}
+            {/* Search and filters */}
             <SearchBar
                value={searchQuery}
                onChangeText={setSearchQuery}

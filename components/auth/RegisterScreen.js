@@ -97,7 +97,7 @@ export default function Register({ navigation }) {
 				await updateProfile(userCredential.user, { displayName: fullName });
 			}
 
-			// Сохраняем данные пользователя в Firestore
+			// Save the user profile in Firestore
 			try {
 				await saveUserData({
 					name: firstName.trim(),
@@ -105,7 +105,7 @@ export default function Register({ navigation }) {
 				});
 			} catch (error) {
 				console.error('Error saving user data to Firestore:', error);
-				// Не прерываем регистрацию, если не удалось сохранить в Firestore
+				// Registration still succeeds if the profile could not be saved
 			}
 
 			// message + transition to login screen

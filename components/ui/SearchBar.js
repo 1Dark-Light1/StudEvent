@@ -1,5 +1,5 @@
 /**
- * SearchBar компонент для поиска событий
+ * SearchBar - search events by name
  */
 import React from 'react';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';

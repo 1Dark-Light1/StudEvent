@@ -35,7 +35,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
    const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
    const [isMarkingTask, setIsMarkingTask] = useState(false);
    const [taskCompletionStatus, setTaskCompletionStatus] = useState(null); // 'completed', 'uncompleted', null
-   const [canJoin, setCanJoin] = useState(true); // Можна приєднатись до глобального таску
+   const [canJoin, setCanJoin] = useState(true); // whether the global event can still be joined
    const userIsAdmin = isAdmin();
 
    useEffect(() => {
@@ -45,7 +45,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
          setIsParticipantsExpanded(false);
          setParticipantsList([]);
          
-         // Перевіряємо, чи можна приєднатись до глобального таску
+         // Can the global event still be joined?
          if (event.isGlobal && !isJoined) {
             const taskData = {
                date: event.date,
@@ -76,7 +76,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             const user = auth.currentUser;
             
             if (taskData.isGlobal && taskData.userCompletions && user) {
-               // Для глобальных задач проверяем статус пользователя
+               // Global tasks: use the current user's status
                const userCompletion = taskData.userCompletions[user.uid];
                if (userCompletion) {
                   if (userCompletion.isCompleted === true) {
@@ -90,7 +90,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                   setTaskCompletionStatus(null);
                }
             } else {
-               // Для обычных задач проверяем общий статус
+               // Own tasks: use the task status
                if (taskData.isCompleted === true) {
                   setTaskCompletionStatus('completed');
                } else if (taskData.isUncompleted === true) {
@@ -131,7 +131,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             const participantsIds = taskData.participants || [];
             
             if (participantsIds.length > 0) {
-               // Завантажуємо всіх учасників, не тільки перших 4
+               // Load all participants, not only the first 4
                const usersDataPromises = participantsIds.map(userId => 
                   getUserDataById(userId)
                );
@@ -151,7 +151,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
 
    const handleParticipantsToggle = async () => {
       if (!isParticipantsExpanded) {
-         // Розгортаємо - завантажуємо список
+         // Expanding: load the list
          await loadParticipantsList();
       }
       setIsParticipantsExpanded(!isParticipantsExpanded);
@@ -215,7 +215,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
       
       setIsMarkingTask(true);
       try {
-         // Загружаем полные данные задачи для проверки
+         // Load the full task to check it
          const taskRef = doc(db, 'tasks', event.id);
          const taskSnap = await getDoc(taskRef);
          
@@ -226,7 +226,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
          
          const taskData = { id: taskSnap.id, ...taskSnap.data() };
          
-         // Определяем текущий статус
+         // Current status
          const user = auth.currentUser;
          let currentStatus = null;
          if (taskData.isGlobal && taskData.userCompletions && user) {
@@ -246,14 +246,14 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             }
          }
          
-         // Переключаем статус
+         // Toggle the status
          if (currentStatus === 'completed') {
-            // Если выполнена - отмечаем как невыполненную (можно всегда переключить)
+            // Completed -> uncompleted (always allowed)
             await markTaskAsUncompleted(event.id);
             setTaskCompletionStatus('uncompleted');
             Alert.alert(t('event.success'), t('completed.markedUncompleted'));
          } else if (currentStatus === 'uncompleted') {
-            // Если невыполнена - можно переключить обратно на выполненную, если в пределах времени
+            // Uncompleted -> completed, only within the time window
             const canMark = canMarkTaskAsCompleted(taskData);
             if (!canMark.canMark) {
                if (canMark.reason === 'too_early') {
@@ -270,7 +270,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             setTaskCompletionStatus('completed');
             Alert.alert(t('event.success'), t('completed.markedCompleted'));
          } else {
-            // Если не отмечена - проверяем, можно ли отметить как выполненную
+            // Not marked yet: check whether it can be marked as completed
             const canMark = canMarkTaskAsCompleted(taskData);
             if (!canMark.canMark) {
                if (canMark.reason === 'too_early') {
@@ -288,7 +288,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             Alert.alert(t('event.success'), t('completed.markedCompleted'));
          }
          
-         // Перезагружаем статус
+         // Reload the status
          await loadTaskCompletionStatus();
       } catch (error) {
          console.error('Error marking task:', error);
@@ -427,14 +427,14 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                      </View>
                   </View>
                   
-                  {/* Task Completion Actions - только для неглобальных задач */}
+                  {/* Task completion actions - only for own (non-global) tasks */}
                   {!event.isGlobal && (() => {
-                     // Проверяем, можно ли показывать кнопку и активна ли она
+                     // Should the button be shown, and is it enabled?
                      let canShowButton = false;
                      let isButtonDisabled = false;
                      
                      try {
-                        // Используем данные из event для проверки
+                        // Check with the event data
                         const taskData = {
                            date: event.date,
                            time: event.time,
@@ -444,7 +444,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                         };
                         const canMark = canMarkTaskAsCompleted(taskData);
                         
-                        // Перевіряємо, чи час пройшов (30 хв після закінчення)
+                        // Has the time window passed (30 min after the end)?
                         const now = new Date();
                         let timePassed = false;
                         
@@ -463,36 +463,36 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                         }
                         
                         if (taskCompletionStatus === 'completed') {
-                           // Если выполнена - можно переключить на невыполненную только в пределах времени
+                           // Completed: can switch to uncompleted only within the time window
                            canShowButton = true;
-                           // Кнопка неактивна, якщо час пройшов
+                           // Disabled once the time has passed
                            isButtonDisabled = !canMark.canMark || timePassed;
                         } else if (taskCompletionStatus === 'uncompleted') {
-                           // Если невыполнена - можно переключить обратно только в пределах времени
+                           // Uncompleted: can switch back only within the time window
                            canShowButton = true;
                            isButtonDisabled = !canMark.canMark;
                         } else {
-                           // Если не отмечена - показываем кнопку якщо:
-                           // 1. Задача на сьогодні або в минулому
-                           // 2. Або немає часу (можна відмітити в будь-який момент)
+                           // Not marked: show the button if
+                           // 1. the task is today or in the past
+                           // 2. or it has no time (can be marked any time)
                            const taskDate = parseDate(taskData.date);
                            const today = new Date();
                            today.setHours(0, 0, 0, 0);
                            const taskDateOnly = new Date(taskDate);
                            taskDateOnly.setHours(0, 0, 0, 0);
                            
-                           // Якщо немає часу - завжди показуємо кнопку для задач на сьогодні або в минулому
+                           // No time: always show for tasks today or in the past
                            if (!taskData.time && !taskData.timeDilation) {
                               canShowButton = taskDateOnly <= today;
                               isButtonDisabled = false;
                            } else {
-                              // Якщо є час - показуємо тільки якщо можна відмітити
+                              // With a time: show only if it can be marked
                               canShowButton = canMark.canMark;
                               isButtonDisabled = !canMark.canMark;
                            }
                         }
                      } catch {
-                        // Если ошибка - не показываем кнопку
+                        // On error, hide the button
                         canShowButton = false;
                      }
                      
@@ -591,7 +591,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                      </View>
                   )}
 
-                  {/* Join Event Button - только для глобальных задач */}
+                  {/* Join event button - only for global tasks */}
                   {event.isGlobal && (
                      <View style={styles.actionSection}>
                         <Pressable 

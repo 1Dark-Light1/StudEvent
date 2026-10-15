@@ -62,7 +62,7 @@ export async function saveMessage(title, body, type, taskId = null, userId = nul
 }
 
 /**
- * Підписується на повідомлення користувача за поточний місяць
+ * Subscribes to the user's messages of the current month
  */
 export function subscribeToCurrentMonthMessages(callback) {
    const user = auth.currentUser;
@@ -75,8 +75,8 @@ export function subscribeToCurrentMonthMessages(callback) {
    const currentMonth = now.getMonth();
    const currentYear = now.getFullYear();
 
-   // Спочатку фільтруємо за userId, month, year, потім сортуємо на клієнті
-   // щоб уникнути необхідності створювати складний індекс
+   // Filter by userId, month and year, then sort on the client
+   // to avoid a composite index
    const messagesQuery = query(
       collection(db, 'messages'),
       where('userId', '==', user.uid),
@@ -91,7 +91,7 @@ export function subscribeToCurrentMonthMessages(callback) {
             id: doc.id,
             ...doc.data(),
          }));
-         // Сортуємо на клієнті за датою створення (новіші спочатку)
+         // Sort on the client by creation date (newest first)
          messages.sort((a, b) => {
             const dateA = a.createdAt?.toMillis?.() || 0;
             const dateB = b.createdAt?.toMillis?.() || 0;
@@ -109,7 +109,7 @@ export function subscribeToCurrentMonthMessages(callback) {
 }
 
 /**
- * Видаляє повідомлення старіші за поточний місяць
+ * Deletes messages older than the current month
  */
 export async function cleanupOldMessages() {
    try {
@@ -122,7 +122,7 @@ export async function cleanupOldMessages() {
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
 
-      // Отримуємо всі повідомлення користувача
+      // All of the user's messages
       const messagesQuery = query(
          collection(db, 'messages'),
          where('userId', '==', user.uid)
@@ -137,7 +137,7 @@ export async function cleanupOldMessages() {
          const messageMonth = message.month;
          const messageYear = message.year;
 
-         // Видаляємо повідомлення, які не належать поточному місяцю
+         // Delete messages that are not from the current month
          if (messageYear < currentYear || (messageYear === currentYear && messageMonth < currentMonth)) {
             batch.delete(doc.ref);
             batchCount++;
@@ -154,7 +154,7 @@ export async function cleanupOldMessages() {
 }
 
 /**
- * Видаляє повідомлення за taskId
+ * Deletes the messages of a task
  */
 export async function deleteMessagesByTaskId(taskId) {
    try {
@@ -186,20 +186,20 @@ export async function deleteMessagesByTaskId(taskId) {
 }
 
 /**
- * Оновлює повідомлення для задачі - видаляє старі та створює нові
+ * Updates the messages of a task: deletes the old ones
  */
 export async function updateMessagesForTask(taskId) {
    try {
-      // Видаляємо старі повідомлення
+      // Delete old messages
       await deleteMessagesByTaskId(taskId);
-      // Нові повідомлення будуть створені через updateTaskNotifications
+      // New ones are created through updateTaskNotifications
    } catch (error) {
       console.error('Error updating messages for task:', error);
    }
 }
 
 /**
- * Отримує список прихованих повідомлень з AsyncStorage
+ * Hidden message ids from AsyncStorage
  */
 export async function getHiddenMessages() {
    try {
@@ -215,7 +215,7 @@ export async function getHiddenMessages() {
 }
 
 /**
- * Зберігає список прихованих повідомлень в AsyncStorage
+ * Saves hidden message ids in AsyncStorage
  */
 export async function saveHiddenMessages(hiddenIds) {
    try {
@@ -227,7 +227,7 @@ export async function saveHiddenMessages(hiddenIds) {
 }
 
 /**
- * Додає повідомлення до списку прихованих
+ * Adds a message to the hidden list
  */
 export async function hideMessage(messageId) {
    try {
