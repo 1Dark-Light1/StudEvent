@@ -377,15 +377,16 @@ export default function UserCalendar({ navigation, route }) {
 
    return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
+         <View style={[styles.refreshBackdrop, { backgroundColor: colors.heroGradient[0] }]} />
          <ScrollView 
-            contentContainerStyle={styles.scroll} 
+            contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]} 
             showsVerticalScrollIndicator={false}
             refreshControl={
                <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
                   colors={[colors.primary]}
-                  tintColor={isDark ? '#fff' : colors.primary}
+                  tintColor="#fff"
                   progressViewOffset={Platform.OS === 'ios' ? 100 : 0}
                />
             }
@@ -611,9 +612,17 @@ const styles = StyleSheet.create({
       flex: 1,
    },
    scroll: {
+      flexGrow: 1,
       paddingTop: 60,
       paddingBottom: 160,
       paddingHorizontal: 24,
+   },
+   refreshBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '50%',
    },
    headerRow: {
       flexDirection: 'row',
