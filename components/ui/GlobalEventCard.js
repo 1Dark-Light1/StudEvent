@@ -22,7 +22,7 @@ function lighten(hex, amount) {
  * on light and dark backgrounds (transparency made it darker in the dark theme).
  */
 export function globalGradient(color) {
-   return [color, lighten(color, 0.12), lighten(color, 0.24), lighten(color, 0.36)];
+   return [color, lighten(color, 0.06), lighten(color, 0.12), lighten(color, 0.18)];
 }
 
 export default function GlobalEventCard({ title, subtitle, color = '#2f7cff', participants = [], isJoined, large = false }) {

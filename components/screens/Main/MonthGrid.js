@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
       borderRadius: 28,
       paddingVertical: 22,
       paddingHorizontal: 18,
-      marginTop: 8, // plus the filter panel's 20 px bottom margin: a 28 px gap
+      marginTop: 2, // plus the filter panel's 20 px bottom margin: 22 px, the same as search -> filters
       shadowColor: '#000',
       shadowOpacity: 0.05,
       shadowRadius: 16,

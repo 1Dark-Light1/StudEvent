@@ -45,7 +45,7 @@ const darkColors = {
   textMuted: '#6b7280',
   border: '#2a2f3e',
   cardBackground: '#1f2432',
-  heroGradient: ['#2d4a6b', '#1a2f4a'],
+  heroGradient: ['#3b85ff', '#8fc5ff'], // same blue as the light theme (Home header, top switches)
   heroGradientSettings: ['#1a2332', '#0f1419'],
   shadow: '#000',
   error: '#ff5252',
