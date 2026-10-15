@@ -10,6 +10,8 @@ import {
    canMarkTaskAsCompleted,
    shouldMarkTaskAsUncompleted,
    canJoinEvent,
+   compareTasksByDateTime,
+   compareDateStrings,
 } from '../services/taskRules.js';
 
 // "Now" is Thursday 15.10.2026 12:00 local time in every test
@@ -71,4 +73,20 @@ test('global events can be joined until 30 minutes after their end', () => {
    assert.equal(canJoinEvent({ date: today, time: '11:00' }).canJoin, true);
    assert.deepEqual(canJoinEvent({ date: today, time: '08:00' }), { canJoin: false, reason: 'expired' });
    assert.equal(canJoinEvent({ date: today }).canJoin, true);
+});
+
+test('tasks sort by day then start time, also without dateTimestamp', () => {
+   const ts = (d) => ({ toMillis: () => parseDate(d).getTime() });
+   const tasks = [
+      { id: 'no-time', date: '15.10.2026' },
+      { id: 'old-format', date: '01.11.2026', time: '09:00' },
+      { id: 'late', date: '15.10.2026', dateTimestamp: ts('15.10.2026'), time: '18:00' },
+      { id: 'range', date: '15.10.2026', dateTimestamp: ts('15.10.2026'), timeDilation: true, fromTime: '08:00', toTime: '09:00' },
+      { id: 'earlier-day', date: '10.10.2026', dateTimestamp: ts('10.10.2026'), time: '23:00' },
+   ];
+   assert.deepEqual([...tasks].sort(compareTasksByDateTime).map(t => t.id), ['earlier-day', 'range', 'late', 'no-time', 'old-format']);
+});
+
+test('date strings sort chronologically, not alphabetically', () => {
+   assert.deepEqual(['10.10.2026', '05.11.2026', '01.01.2027', '09.10.2026'].sort(compareDateStrings), ['09.10.2026', '10.10.2026', '05.11.2026', '01.01.2027']);
 });

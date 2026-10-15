@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import { subscribeToUserTasks, autoMarkUncompletedTasks } from '../../../services/tasksService';
+import { compareDateStrings } from '../../../services/taskRules';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -167,11 +168,7 @@ export default function CompletedTasks({ navigation, route }) {
    const sortedDates = Object.keys(tasksByDate).sort((a, b) => {
       if (a === 'no-date') return 1;
       if (b === 'no-date') return -1;
-      const [dayA, monthA, yearA] = a.split('.');
-      const [dayB, monthB, yearB] = b.split('.');
-      const dateA = new Date(parseInt(yearA), parseInt(monthA) - 1, parseInt(dayA));
-      const dateB = new Date(parseInt(yearB), parseInt(monthB) - 1, parseInt(dayB));
-      return dateB - dateA; // Новіші спочатку
+      return compareDateStrings(b, a); // newest first
    });
 
    const onRefresh = async () => {

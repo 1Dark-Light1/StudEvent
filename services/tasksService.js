@@ -36,6 +36,7 @@ import {
    canMarkTaskAsCompleted,
    shouldMarkTaskAsUncompleted,
    canJoinEvent,
+   compareTasksByDateTime,
 } from './taskRules';
 
 export {
@@ -173,20 +174,7 @@ export async function getUserTasks() {
       }));
 
       // Sort by time on the client
-      return tasks.sort((a, b) => {
-         // Сначала по дате
-         const dateA = a.dateTimestamp?.toMillis() || 0;
-         const dateB = b.dateTimestamp?.toMillis() || 0;
-         if (dateA !== dateB) {
-            return dateA - dateB;
-         }
-         // Then by time
-         const timeA = a.timeDilation ? a.fromTime : a.time;
-         const timeB = b.timeDilation ? b.fromTime : b.time;
-         if (!timeA) return 1;
-         if (!timeB) return -1;
-         return timeA.localeCompare(timeB);
-      });
+      return tasks.sort(compareTasksByDateTime);
    } catch (error) {
       console.error('Error getting user tasks:', error);
       return [];
@@ -216,13 +204,7 @@ export async function getTasksByDate(dateString) {
       }));
 
       // Sort by time
-      return tasks.sort((a, b) => {
-         const timeA = a.timeDilation ? a.fromTime : a.time;
-         const timeB = b.timeDilation ? b.fromTime : b.time;
-         if (!timeA) return 1;
-         if (!timeB) return -1;
-         return timeA.localeCompare(timeB);
-      });
+      return tasks.sort(compareTasksByDateTime);
    } catch (error) {
       console.error('Error getting tasks by date:', error);
       return [];
@@ -262,16 +244,7 @@ export function subscribeToUserTasks(callback) {
       });
 
       // Sort
-      const sorted = allTasks.sort((a, b) => {
-         const dateA = a.dateTimestamp?.toMillis?.() || 0;
-         const dateB = b.dateTimestamp?.toMillis?.() || 0;
-         if (dateA !== dateB) return dateA - dateB;
-         const timeA = a.timeDilation ? a.fromTime : a.time;
-         const timeB = b.timeDilation ? b.fromTime : b.time;
-         if (!timeA) return 1;
-         if (!timeB) return -1;
-         return timeA.localeCompare(timeB);
-      });
+      const sorted = allTasks.sort(compareTasksByDateTime);
 
       // Schedule notifications for tasks
       for (const task of sorted) {
@@ -382,13 +355,7 @@ export function subscribeToTasksByDate(dateString, callback) {
       });
 
       // Sort by time
-      const sortedTasks = allTasks.sort((a, b) => {
-         const timeA = a.timeDilation ? a.fromTime : a.time;
-         const timeB = b.timeDilation ? b.fromTime : b.time;
-         if (!timeA) return 1;
-         if (!timeB) return -1;
-         return timeA.localeCompare(timeB);
-      });
+      const sortedTasks = allTasks.sort(compareTasksByDateTime);
 
       // Call callback after at least one query has loaded
       // This ensures that global tasks will be shown even if there are no own tasks

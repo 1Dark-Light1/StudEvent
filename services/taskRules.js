@@ -120,6 +120,27 @@ export function applyTaskFilters(tasks, searchQuery, selectedTags) {
    return filteredTasks;
 }
 
+/** Task day in ms: dateTimestamp, or the date string for tasks saved without it. */
+export function taskDateMillis(task) {
+   if (task.dateTimestamp?.toMillis) return task.dateTimestamp.toMillis();
+   return task.date ? parseDate(task.date).getTime() : 0;
+}
+
+/** Orders tasks by day, then by start time; tasks without a time go last. */
+export function compareTasksByDateTime(a, b) {
+   const dayDiff = taskDateMillis(a) - taskDateMillis(b);
+   if (dayDiff !== 0) return dayDiff;
+   const timeA = a.timeDilation ? a.fromTime : a.time;
+   const timeB = b.timeDilation ? b.fromTime : b.time;
+   if (!timeA || !timeB) return (timeA ? 0 : 1) - (timeB ? 0 : 1);
+   return timeA.localeCompare(timeB);
+}
+
+/** Orders 'DD.MM.YYYY' strings chronologically. */
+export function compareDateStrings(a, b) {
+   return parseDate(a) - parseDate(b);
+}
+
 /** True if the task's day is after today. */
 function isFutureDay(taskDate) {
    const today = new Date();
