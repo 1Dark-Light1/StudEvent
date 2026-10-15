@@ -11,8 +11,9 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
 import EventDetailsModal from '../../ui/EventDetailsModal';
+import GlobalEventCard from '../../ui/GlobalEventCard';
+import { useTaskFilters, useParticipants, useEventModal, toEventDetails } from '../calendarShared';
 import { subscribeToTasksByDate, formatTaskForCalendar, applyTaskFilters, deleteTask, autoMarkUncompletedTasks } from '../../../services/tasksService';
-import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -156,11 +157,9 @@ export default function UserCalendar({ navigation, route }) {
    const [rawTasks, setRawTasks] = useState([]); // Сохраняем оригинальные данные задач
    const [isLoading, setIsLoading] = useState(true);
    const [refreshing, setRefreshing] = useState(false);
-   const [searchQuery, setSearchQuery] = useState('');
-   const [selectedTags, setSelectedTags] = useState([]);
-   const [selectedEvent, setSelectedEvent] = useState(null);
-   const [isModalVisible, setIsModalVisible] = useState(false);
-   const [participantsData, setParticipantsData] = useState({}); // Кэш данных участников по taskId
+   const { searchQuery, setSearchQuery, clearSearch, selectedTags, toggleTag, clearTags, resetFilters } = useTaskFilters();
+   const participantsData = useParticipants(rawTasks);
+   const eventModal = useEventModal();
 
    const activeDay = stripDays.find((day) => day.dateString === activeDate) || stripDays[0];
    const isToday = activeDay.dateString === todayDateString;
@@ -226,48 +225,20 @@ export default function UserCalendar({ navigation, route }) {
             }
          }
          
-         setRawTasks(loadedTasks); // Сохраняем оригинальные данные
-         // Применяем фильтры
-         const filteredTasks = applyTaskFilters(loadedTasks, searchQuery, selectedTags);
-         const formattedTasks = filteredTasks.map(task => formatTaskForCalendar(task));
-         setTasks(formattedTasks);
-         
-         // Загружаем данные участников для глобальных задач
-         const globalTasksWithParticipants = loadedTasks.filter(task => task.isGlobal && task.participants && task.participants.length > 0);
-         const participantsMap = {};
-         
-         for (const task of globalTasksWithParticipants) {
-            if (!participantsData[task.id] && task.participants && task.participants.length > 0) {
-               const usersData = await getUsersDataByIds(task.participants);
-               participantsMap[task.id] = usersData;
-            }
-         }
-         
-         if (Object.keys(participantsMap).length > 0) {
-            setParticipantsData(prev => ({ ...prev, ...participantsMap }));
-         }
-         
+         setRawTasks(loadedTasks);
          setIsLoading(false);
       });
 
       return () => {
          if (unsubscribe) unsubscribe();
       };
-      // Resubscribe only when the date changes; filters are re-applied by the effect below
-      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [activeDate]);
 
    // Обновление активных задач каждые 30 секунд и при возврате на экран
    useEffect(() => {
-      if (rawTasks.length === 0) return;
-
+      // Re-format regularly so the "active now" highlight follows the clock
       const updateTasks = () => {
-         if (auth.currentUser && rawTasks.length > 0) {
-            // Применяем фильтры и переформатируем задачи
-            const filteredTasks = applyTaskFilters(rawTasks, searchQuery, selectedTags);
-            const updatedTasks = filteredTasks.map(task => formatTaskForCalendar(task));
-            setTasks(updatedTasks);
-         }
+         setTasks(applyTaskFilters(rawTasks, searchQuery, selectedTags).map(formatTaskForCalendar));
       };
 
       // Обновляем сразу при монтировании
@@ -289,57 +260,10 @@ export default function UserCalendar({ navigation, route }) {
       };
    }, [rawTasks, searchQuery, selectedTags]);
 
-   // Обработчики для поиска и фильтров
-   const handleSearchChange = (text) => {
-      setSearchQuery(text);
-   };
-
-   const handleSearchClear = () => {
-      setSearchQuery('');
-   };
-
-   const handleTagToggle = (tag) => {
-      setSelectedTags(prev => {
-         if (prev.includes(tag)) {
-            return prev.filter(t => t !== tag);
-         } else {
-            return [...prev, tag];
-         }
-      });
-   };
-
-   const handleClearFilters = () => {
-      setSelectedTags([]);
-   };
-
    const handleEventPress = (event) => {
-      // Находим исходную задачу с полными данными
       const fullTask = rawTasks.find(task => task.id === event.id);
-      if (fullTask) {
-         // Объединяем отформатированные данные события с полными данными задачи
-         setSelectedEvent({
-            id: event.id,
-            title: event.title,
-            subtitle: event.subtitle,
-            time: event.time,
-            color: event.color,
-            tone: event.tone,
-            date: fullTask.date,
-            tagText: fullTask.tagText,
-            name: fullTask.name,
-            description: fullTask.description,
-            isGlobal: fullTask.isGlobal || false,
-            timeDilation: fullTask.timeDilation || false,
-            fromTime: fullTask.fromTime || null,
-            toTime: fullTask.toTime || null,
-         });
-         setIsModalVisible(true);
-      }
-   };
-
-   const handleCloseModal = () => {
-      setIsModalVisible(false);
-      setSelectedEvent(null);
+      if (!fullTask) return;
+      eventModal.open(toEventDetails(fullTask, { time: event.time, color: event.color, tone: event.tone }));
    };
 
    const handleDeleteEvent = async (eventId) => {
@@ -359,13 +283,7 @@ export default function UserCalendar({ navigation, route }) {
          const today = new Date();
          const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
          setActiveDate(todayDateString);
-         
-         // Очищаємо фільтри
-         setSearchQuery('');
-         setSelectedTags([]);
-         
-         // Очищаємо кеш учасників
-         setParticipantsData({});
+         resetFilters();
          
          // Оновлюємо задачі
          await autoMarkUncompletedTasks();
@@ -444,15 +362,15 @@ export default function UserCalendar({ navigation, route }) {
             {/* Поиск и фильтры */}
             <SearchBar
                value={searchQuery}
-               onChangeText={handleSearchChange}
-               onClear={handleSearchClear}
+               onChangeText={setSearchQuery}
+               onClear={clearSearch}
                placeholder={t('field.searchEvents')}
             />
 
             <FilterPanel
                selectedTags={selectedTags}
-               onTagToggle={handleTagToggle}
-               onClearFilters={handleClearFilters}
+               onTagToggle={toggleTag}
+               onClearFilters={clearTags}
             />
 
             <View style={[styles.timelineWrapper, { backgroundColor: colors.cardBackground }]}>
@@ -477,7 +395,6 @@ export default function UserCalendar({ navigation, route }) {
                      
                      // Получаем участников для глобальной задачи
                      const taskParticipants = isGlobal && participantsData[event.id] ? participantsData[event.id] : [];
-                     const displayParticipants = taskParticipants.slice(0, 4);
 
                      return (
                         <View key={event.id} style={styles.eventRow}>
@@ -494,65 +411,16 @@ export default function UserCalendar({ navigation, route }) {
                               {!isLast && <View style={[styles.nodeLine, isDark && { backgroundColor: colors.border }]} />}
                            </View>
                            {isGlobal ? (
-                              // Админская задача - с цветом тага и градиентом как в основном календаре
-                              (() => {
-                                 const adminTagColor = event.color || '#2f7cff';
-                                 const adminGradientColors = [
-                                    adminTagColor,
-                                    `${adminTagColor}E6`,
-                                    `${adminTagColor}CC`,
-                                    `${adminTagColor}99`
-                                 ];
-                                 return (
-                                    <Pressable 
-                                       onPress={() => handleEventPress(event)}
-                                       style={{ flex: 1 }}
-                                    >
-                                       <LinearGradient
-                                          colors={adminGradientColors}
-                                          start={{ x: 0, y: 0 }}
-                                          end={{ x: 0, y: 1 }}
-                                          style={styles.eventCardGlobalGradient}
-                                       >
-                                          <View style={styles.eventCardGlobalContent}>
-                                             <View style={styles.eventCardGlobalText}>
-                                                <Text style={styles.eventTitleGlobalWhite}>
-                                                   {event.title}
-                                                </Text>
-                                                {event.subtitle && (
-                                                   <Text style={styles.eventSubtitleGlobalWhite}>
-                                                      {event.subtitle}
-                                                   </Text>
-                                                )}
-                                                {displayParticipants.length > 0 && (
-                                                   <View style={styles.agendaParticipantsRow}>
-                                                      {displayParticipants.map((participant, pIdx) => (
-                                                         <View 
-                                                            key={pIdx} 
-                                                            style={[
-                                                               styles.agendaParticipantAvatar, 
-                                                               { backgroundColor: adminTagColor },
-                                                               pIdx > 0 && { marginLeft: -8 }
-                                                            ]}
-                                                         >
-                                                            <Ionicons name="person" size={14} color="#fff" />
-                                                         </View>
-                                                      ))}
-                                                   </View>
-                                                )}
-                                             </View>
-                                          </View>
-                                          <View style={styles.agendaJoinStatusIcon}>
-                                             {isUserJoined ? (
-                                                <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                                             ) : (
-                                                <Ionicons name="add-circle-outline" size={24} color="rgba(255,255,255,0.7)" />
-                                             )}
-                                          </View>
-                                       </LinearGradient>
-                                    </Pressable>
-                                 );
-                              })()
+                              <Pressable onPress={() => handleEventPress(event)} style={{ flex: 1 }}>
+                                 <GlobalEventCard
+                                    large
+                                    title={event.title}
+                                    subtitle={event.subtitle}
+                                    color={event.color || '#2f7cff'}
+                                    participants={taskParticipants}
+                                    isJoined={isUserJoined}
+                                 />
+                              </Pressable>
                            ) : event.tone === 'highlight' ? (
                               // Активная задача - с градиентом и увеличенным размером
                               <LinearGradient
@@ -597,9 +465,9 @@ export default function UserCalendar({ navigation, route }) {
          <BottomNav navigation={navigation} activeRoute={activeRoute} />
 
          <EventDetailsModal
-            visible={isModalVisible}
-            event={selectedEvent}
-            onClose={handleCloseModal}
+            visible={eventModal.isVisible}
+            event={eventModal.selectedEvent}
+            onClose={eventModal.close}
             onDelete={handleDeleteEvent}
          />
 
@@ -756,24 +624,6 @@ const styles = StyleSheet.create({
    eventCardHighlightContent: {
       padding: 20,
    },
-   eventCardGlobalGradient: {
-      flex: 1,
-      borderRadius: 20,
-      padding: 18,
-      paddingBottom: 16,
-      shadowColor: '#000',
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-      minHeight: 70,
-      position: 'relative',
-   },
-   eventCardGlobalContent: {
-      flex: 1,
-   },
-   eventCardGlobalText: {
-      flex: 1,
-   },
    eventTitle: {
       fontWeight: '600',
       fontSize: 16,
@@ -792,34 +642,6 @@ const styles = StyleSheet.create({
    eventTitleGlobal: {
       color: '#1f2b3f',
       fontWeight: '700',
-   },
-   eventTitleGlobalWhite: {
-      color: '#fff',
-      fontWeight: '600',
-      marginBottom: 6,
-      fontSize: 15,
-   },
-   eventSubtitleGlobalWhite: {
-      color: 'rgba(255,255,255,0.9)',
-      fontSize: 12,
-      marginBottom: 8,
-   },
-   agendaParticipantsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 8,
-   },
-   agendaParticipantAvatar: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-   },
-   agendaJoinStatusIcon: {
-      position: 'absolute',
-      bottom: 18,
-      right: 18,
    },
    descriptionGradient: {
       borderRadius: 8,
