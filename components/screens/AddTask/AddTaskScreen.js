@@ -11,7 +11,7 @@ import {
    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import BottomNav from '../../navigation/BottomNav';
 import SearchBar from '../../ui/SearchBar';
@@ -76,7 +76,7 @@ export default function AddTaskScreen({ navigation, route }) {
             },
          ]);
       }
-   }, [navigation]);
+   }, [navigation, t]);
 
    
    useEffect(() => {

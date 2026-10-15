@@ -16,8 +16,8 @@ import {
    deleteField,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { db } from '../FireBaseConfig';
-import { auth } from '../FireBaseConfig';
+import { db , auth } from '../FireBaseConfig';
+
 import {
    scheduleUserTaskNotifications,
    scheduleGlobalTaskCreatedNotification,
@@ -107,12 +107,10 @@ export function isTaskActive(task) {
  */
 function generateWeeklyDates(startDateString) {
    const startDate = parseDate(startDateString);
-   const [day, month, year] = startDateString.split('.');
+   const [, month, year] = startDateString.split('.');
    const startMonth = parseInt(month, 10) - 1;
    const startYear = parseInt(year, 10);
    
-   // Get the last day of the month
-   const lastDayOfMonth = new Date(startYear, startMonth + 1, 0).getDate();
    const dates = [];
    
    // Add the start date

@@ -2,7 +2,7 @@
  * AlertsScreen - екран зі списком повідомлень
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, RefreshControl, ActivityIndicator, Platform, Animated, PanResponder } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Animated, PanResponder } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';

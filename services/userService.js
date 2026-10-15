@@ -1,6 +1,5 @@
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '../FireBaseConfig';
-import { auth } from '../FireBaseConfig';
+import { db , auth } from '../FireBaseConfig';
 
 /**
  * Gets user data from Firestore

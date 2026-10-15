@@ -3,7 +3,7 @@
  * It mixes a day-strip selector with a vertical schedule so users can
  * jump between days and immediately see context-rich events.
  */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, AppState, Alert, PanResponder, RefreshControl, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
@@ -11,7 +11,7 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import SearchBar from '../../ui/SearchBar';
 import FilterPanel from '../../ui/FilterPanel';
 import EventDetailsModal from '../../ui/EventDetailsModal';
-import { subscribeToTasksByDate, formatTaskForCalendar, isTaskActive, applyTaskFilters, deleteTask, markTaskAsCompleted, markTaskAsUncompleted, canMarkTaskAsCompleted, autoMarkUncompletedTasks } from '../../../services/tasksService';
+import { subscribeToTasksByDate, formatTaskForCalendar, applyTaskFilters, deleteTask, autoMarkUncompletedTasks } from '../../../services/tasksService';
 import { getUsersDataByIds } from '../../../services/userService';
 import { auth } from '../../../FireBaseConfig';
 import { useI18n } from '../../../i18n/I18nContext';
@@ -167,7 +167,7 @@ export default function UserCalendar({ navigation, route }) {
    const headerLabel = isToday ? t('calendar.today') : activeDay.label;
 
    // Horizontal swipe on the day strip switches weeks
-   const panResponder = useRef(
+   const [panResponder] = useState(() =>
       PanResponder.create({
          onMoveShouldSetPanResponder: (_evt, gestureState) => {
             const { dx, dy } = gestureState;
@@ -186,7 +186,7 @@ export default function UserCalendar({ navigation, route }) {
             }
          },
       })
-   ).current;
+   );
 
    // При смене недели стараемся сохранить тот же день недели (например, четверг -> четверг следующей недели)
    useEffect(() => {
@@ -253,6 +253,8 @@ export default function UserCalendar({ navigation, route }) {
       return () => {
          if (unsubscribe) unsubscribe();
       };
+      // Resubscribe only when the date changes; filters are re-applied by the effect below
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [activeDate]);
 
    // Обновление активных задач каждые 30 секунд и при возврате на экран
@@ -344,7 +346,7 @@ export default function UserCalendar({ navigation, route }) {
       try {
          await deleteTask(eventId);
          Alert.alert(t('common.success'), t('calendar.deleteSuccess'));
-      } catch (error) {
+      } catch {
          Alert.alert(t('common.error'), t('calendar.deleteError'));
       }
    };

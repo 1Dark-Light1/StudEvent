@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import Header from '../ui/Header';
 import { auth } from '../../FireBaseConfig';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -54,7 +54,7 @@ export default function Register({ navigation }) {
 				await Image.prefetch(Image.resolveAssetSource(emailIconReg).uri);
 				await Image.prefetch(Image.resolveAssetSource(lockIconReg).uri);
 				await Image.prefetch(Image.resolveAssetSource(closedEyesIconReg).uri);
-			} catch (e) {
+			} catch {
 				// Ignore prefetch errors
 			}
 		};
@@ -200,9 +200,9 @@ export default function Register({ navigation }) {
 }
 
 // Memoize closed eyes icon element to prevent recreation
-const ClosedEyesIconReg = memo(() => (
-	<Image source={closedEyesIconReg} style={styles.inputImage} />
-));
+const ClosedEyesIconReg = memo(function ClosedEyesIconReg() {
+	return <Image source={closedEyesIconReg} style={styles.inputImage} />;
+});
 
 /** Shared icon + input field used throughout the auth stack. */
 const IconInput = memo(function IconInput({ icon, style, ...props }) {

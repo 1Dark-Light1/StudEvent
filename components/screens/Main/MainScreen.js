@@ -229,10 +229,8 @@ export default function Main({ navigation, route }) {
          }
          
          // Всегда обновляем задачи (даже если массив пустой - это нормально)
-         setRawTasks(loadedTasks); // Сохраняем оригинальные данные
-         // Применяем фильтры
-         const filteredTasks = applyTaskFilters(loadedTasks, searchQuery, selectedTags);
-         setTasks(filteredTasks);
+         // Filtering happens in the effect below, whenever rawTasks changes
+         setRawTasks(loadedTasks);
          setIsLoading(false);
       });
 
@@ -286,6 +284,8 @@ export default function Main({ navigation, route }) {
       };
       
       loadParticipants();
+      // participantsData is only a cache; refetch only when tasks change
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [rawTasks]);
 
    /** Перемещение между месяцами */

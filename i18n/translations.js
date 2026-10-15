@@ -203,8 +203,6 @@ export const translations = {
     'completed.canMarkAfterStart': 'You can mark this task as completed from the start time until 30 minutes after it ends',
     'completed.timeWindowExpired': 'The time window for marking this task as completed has expired',
 
-    // HomeScreen
-    'home.start': 'Start',
 
     // MainScreen
     'main.loadingTasks': 'Loading tasks...',
@@ -465,8 +463,6 @@ export const translations = {
     'completed.canMarkAfterStart': 'Ви можете відмітити цю задачу як виконану від початку виконання до 30 хвилин після закінчення',
     'completed.timeWindowExpired': 'Час для відмітки цієї задачі як виконаної минув',
 
-    // HomeScreen
-    'home.start': 'Почати',
 
     // MainScreen
     'main.loadingTasks': 'Завантаження завдань...',
@@ -727,8 +723,6 @@ export const translations = {
     'completed.canMarkAfterStart': 'Możesz oznaczyć to zadanie jako ukończone od początku wykonania do 30 minut po zakończeniu',
     'completed.timeWindowExpired': 'Okno czasowe na oznaczenie tego zadania jako ukończone minęło',
 
-    // HomeScreen
-    'home.start': 'Start',
 
     // MainScreen
     'main.loadingTasks': 'Ładowanie zadań...',

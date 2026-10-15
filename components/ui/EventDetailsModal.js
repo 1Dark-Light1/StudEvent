@@ -13,9 +13,8 @@ import {
    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { joinEvent, leaveEvent, isUserJoined, getParticipantsCount, isAdmin, markTaskAsCompleted, markTaskAsUncompleted, canMarkTaskAsCompleted, canJoinEvent, parseDate, parseTime } from '../../services/tasksService';
-import { getUsersDataByIds, getUserDataById } from '../../services/userService';
+import { getUserDataById } from '../../services/userService';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { doc, getDoc } from 'firebase/firestore';
@@ -87,6 +86,8 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             setCanJoin(true);
          }
       }
+      // The loaders are recreated every render; reload only when the event or visibility changes
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [visible, event, isJoined]);
    
    const loadTaskCompletionStatus = async () => {
@@ -228,7 +229,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                Alert.alert(t('event.info'), result.message);
             }
          }
-      } catch (error) {
+      } catch {
          Alert.alert(t('event.error'), t('event.errorMessage'));
       } finally {
          setIsLoading(false);
@@ -516,7 +517,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                               isButtonDisabled = !canMark.canMark;
                            }
                         }
-                     } catch (error) {
+                     } catch {
                         // Если ошибка - не показываем кнопку
                         canShowButton = false;
                      }

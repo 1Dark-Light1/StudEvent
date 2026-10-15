@@ -44,7 +44,7 @@ export default function Login({ navigation }) {
 				await Image.prefetch(Image.resolveAssetSource(emailIcon).uri);
 				await Image.prefetch(Image.resolveAssetSource(lockIcon).uri);
 				await Image.prefetch(Image.resolveAssetSource(closedEyesIcon).uri);
-			} catch (e) {
+			} catch {
 				// Ignore prefetch errors
 			}
 		};
@@ -135,9 +135,9 @@ export default function Login({ navigation }) {
 }
 
 // Memoize closed eyes icon element to prevent recreation
-const ClosedEyesIcon = memo(() => (
-	<Image source={closedEyesIcon} style={styles.inputImage} />
-));
+const ClosedEyesIcon = memo(function ClosedEyesIcon() {
+	return <Image source={closedEyesIcon} style={styles.inputImage} />;
+});
 
 /** Lightweight wrapper that pairs a left-aligned icon with a text input. */
 const IconInput = memo(function IconInput({ icon, style, ...props }) {

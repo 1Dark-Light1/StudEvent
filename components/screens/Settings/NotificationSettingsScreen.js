@@ -19,7 +19,6 @@ export default function NotificationSettings({ navigation, route }) {
       soundEnabled: true,
       reminderEnabled: true,
    });
-   const [loading, setLoading] = useState(true);
 
    useEffect(() => {
       loadSettings();
@@ -32,7 +31,6 @@ export default function NotificationSettings({ navigation, route }) {
       } catch (error) {
          console.error('Error loading notification settings:', error);
       } finally {
-         setLoading(false);
       }
    };
 

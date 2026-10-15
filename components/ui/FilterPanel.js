@@ -1,8 +1,8 @@
 /**
  * FilterPanel компонент для фильтрации событий по тегам
  */
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useI18n } from '../../i18n/I18nContext';
@@ -24,7 +24,6 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
    const { t } = useI18n();
    const { colors } = useTheme();
    const hasFilters = selectedTags.length > 0;
-   const [expandedTag, setExpandedTag] = useState(null);
 
    return (
       <View style={[styles.container, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>

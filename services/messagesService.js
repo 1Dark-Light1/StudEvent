@@ -1,6 +1,6 @@
-import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, orderBy, onSnapshot, writeBatch, doc, getDoc } from 'firebase/firestore';
-import { db } from '../FireBaseConfig';
-import { auth } from '../FireBaseConfig';
+import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, onSnapshot, writeBatch, doc, getDoc } from 'firebase/firestore';
+import { db , auth } from '../FireBaseConfig';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HIDDEN_MESSAGES_KEY = '@hidden_messages';
