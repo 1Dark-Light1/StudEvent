@@ -15,6 +15,8 @@ import AddTask from './components/screens/AddTask/AddTaskScreen';
 import LanguageScreen from './components/screens/Settings/LanguageScreen';
 import NotificationSettingsScreen from './components/screens/Settings/NotificationSettingsScreen';
 import ThemeScreen from './components/screens/Settings/ThemeScreen';
+import PersonalInfoScreen from './components/screens/Settings/PersonalInfoScreen';
+import AccountSettingsScreen from './components/screens/Settings/AccountSettingsScreen';
 import { I18nProvider } from './i18n/I18nContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import * as SplashScreen from 'expo-splash-screen';
@@ -57,6 +59,8 @@ function AppContent() {
         <Stack.Screen name="Language" component={LanguageScreen} />
         <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
         <Stack.Screen name="Theme" component={ThemeScreen} />
+        <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+        <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
         <Stack.Screen name="AddTask" component={AddTask} />
       </Stack.Navigator>
     </NavigationContainer>

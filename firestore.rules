@@ -20,8 +20,9 @@ service cloud.firestore {
     // Do not store private data (email, phone) here.
     match /users/{userId} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == userId &&
+      allow create, update: if signedIn() && request.auth.uid == userId &&
         request.resource.data.get('photo', '').size() <= 200000;
+      allow delete: if signedIn() && request.auth.uid == userId;
     }
 
     match /tasks/{taskId} {

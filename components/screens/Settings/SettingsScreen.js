@@ -13,8 +13,7 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import { auth } from '../../../FireBaseConfig';
 import { signOut } from 'firebase/auth';
 import { subscribeToUserData } from '../../../services/userService';
-import { pickAndSaveProfilePhoto, removeProfilePhoto } from '../../../services/profilePhoto';
-import Avatar from '../../ui/Avatar';
+import Avatar, { useProfilePhotoMenu } from '../../ui/Avatar';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
@@ -37,29 +36,7 @@ export default function Settings({ navigation, route }) {
       };
    }, []);
 
-   const [savingPhoto, setSavingPhoto] = useState(false);
-
-   const savePhoto = async (action) => {
-      setSavingPhoto(true);
-      try {
-         const result = await action();
-         if (result === 'denied') Alert.alert(t('settings.photo.title'), t('settings.photo.denied'));
-      } catch (error) {
-         console.error('Error saving profile photo:', error);
-         Alert.alert(t('common.error'), t('settings.photo.error'));
-      } finally {
-         setSavingPhoto(false);
-      }
-   };
-
-   const handleAvatarPress = () => {
-      const buttons = [{ text: t('settings.photo.choose'), onPress: () => savePhoto(pickAndSaveProfilePhoto) }];
-      if (userData?.photo) {
-         buttons.push({ text: t('settings.photo.remove'), style: 'destructive', onPress: () => savePhoto(removeProfilePhoto) });
-      }
-      buttons.push({ text: t('task.cancel'), style: 'cancel' });
-      Alert.alert(t('settings.photo.title'), undefined, buttons);
-   };
+   const { saving: savingPhoto, openPhotoMenu: handleAvatarPress } = useProfilePhotoMenu(userData?.photo);
 
    // Display name
    const displayName = userData
@@ -88,6 +65,10 @@ export default function Settings({ navigation, route }) {
          navigation.navigate('NotificationSettings');
       } else if (label === t('settings.theme')) {
          navigation.navigate('Theme');
+      } else if (label === t('settings.personalInfo')) {
+         navigation.navigate('PersonalInfo');
+      } else if (label === t('settings.settings')) {
+         navigation.navigate('AccountSettings');
       }
       // Other options can get handlers here
    };

@@ -85,4 +85,7 @@ test('users set their own, small profile photo', async () => {
    await assertSucceeds(setDoc(doc(db('alice'), 'users/alice'), { name: 'Alice', photo: small }));
    await assertFails(setDoc(doc(db('alice'), 'users/alice'), { name: 'Alice', photo: huge }));
    await assertFails(setDoc(doc(db('bob'), 'users/alice'), { photo: small }));
+   // deleting the own profile (account deletion) is allowed, someone else's is not
+   await assertFails(deleteDoc(doc(db('bob'), 'users/alice')));
+   await assertSucceeds(deleteDoc(doc(db('alice'), 'users/alice')));
 });
