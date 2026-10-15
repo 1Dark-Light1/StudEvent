@@ -11,10 +11,22 @@ const I18nContext = createContext({
   isReady: false,
 });
 
-function resolveString(locale, key) {
+function resolveString(locale, key, vars) {
   const table = translations?.[locale] || {};
   const fallback = translations?.[DEFAULT_LOCALE] || {};
-  return table[key] ?? fallback[key] ?? key;
+  const text = table[key] ?? fallback[key] ?? key;
+  return vars ? text.replace(/\{(\w+)\}/g, (m, name) => (name in vars ? vars[name] : m)) : text;
+}
+
+/** Translator for code outside React components (e.g. services), using the saved locale. */
+export async function getTranslator() {
+  let locale = DEFAULT_LOCALE;
+  try {
+    locale = (await AsyncStorage.getItem(STORAGE_KEY)) || DEFAULT_LOCALE;
+  } catch {
+    // fall back to the default locale
+  }
+  return (key, vars) => resolveString(locale, key, vars);
 }
 
 export function I18nProvider({ children }) {
@@ -47,13 +59,24 @@ export function I18nProvider({ children }) {
   }, []);
 
   const t = useCallback(
-    (key) => resolveString(locale, key),
+    (key, vars) => resolveString(locale, key, vars),
+    [locale]
+  );
+
+  // Built-in tags are stored in English; show them translated, custom tags as typed
+  const tagLabel = useCallback(
+    (tag) => {
+      if (!tag) return tag;
+      const key = `filter.tag.${tag.toLowerCase()}`;
+      const label = resolveString(locale, key);
+      return label === key ? tag : label;
+    },
     [locale]
   );
 
   const value = useMemo(
-    () => ({ locale, setLocale, t, isReady }),
-    [locale, setLocale, t, isReady]
+    () => ({ locale, setLocale, t, tagLabel, isReady }),
+    [locale, setLocale, t, tagLabel, isReady]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

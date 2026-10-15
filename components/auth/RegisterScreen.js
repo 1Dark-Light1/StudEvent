@@ -111,7 +111,7 @@ export default function Register({ navigation }) {
 			// message + transition to login screen
 			Alert.alert(t('auth.register.alert.successTitle'), t('auth.register.alert.successBody'), [
 				{
-					text: 'OK',
+					text: t('common.ok'),
 					onPress: () => navigation.navigate('Login'),
 				},
 			]);

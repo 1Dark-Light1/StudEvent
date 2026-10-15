@@ -296,6 +296,7 @@ export default function Alerts({ navigation, route }) {
 
 // Компонент для повідомлення з можливістю свайпу
 function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, isLast = false }) {
+   const { tagLabel } = useI18n();
    const { colors } = useTheme();
    const translateX = new Animated.Value(0);
    const [isHidden, setIsHidden] = useState(false);
@@ -340,7 +341,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
    const triggerDate = message.trigger instanceof Date ? message.trigger : new Date(message.trigger);
    const task = message.task;
    const isGlobal = task && task.isGlobal === true;
-   const displayTitle = message.title || (getNotificationTypeLabel ? getNotificationTypeLabel(message.type) : 'Повідомлення');
+   const displayTitle = message.title || (getNotificationTypeLabel ? getNotificationTypeLabel(message.type) : t('notifications.fallbackTitle'));
    const displayBody = message.body || (task ? task.name : '');
    
    // Для глобальних задач використовуємо градієнт як на Home
@@ -385,7 +386,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
                      )}
                      {task && task.tagText && (
                         <View style={[styles.messageTag, { backgroundColor: adminTagColor }]}>
-                           <Text style={styles.messageTagText}>{task.tagText}</Text>
+                           <Text style={styles.messageTagText}>{tagLabel(task.tagText)}</Text>
                         </View>
                      )}
                   </View>
@@ -399,7 +400,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t, is
                      )}
                      {task && task.tagText && (
                         <View style={[styles.messageTag, { backgroundColor: task.taskColor || colors.primary }]}>
-                           <Text style={styles.messageTagText}>{task.tagText}</Text>
+                           <Text style={styles.messageTagText}>{tagLabel(task.tagText)}</Text>
                         </View>
                      )}
                   </View>

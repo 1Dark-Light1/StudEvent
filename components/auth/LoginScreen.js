@@ -65,7 +65,7 @@ export default function Login({ navigation }) {
 			await signInWithEmailAndPassword(auth, email.trim(), password);
 			Alert.alert(t('auth.login.alert.successTitle'), t('auth.login.alert.successBody'), [
 				{
-					text: 'OK',
+					text: t('common.ok'),
 					onPress: () => navigation.navigate('Main'),
 				},
 			]);

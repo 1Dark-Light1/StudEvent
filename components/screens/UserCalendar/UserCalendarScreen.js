@@ -120,7 +120,7 @@ function calculateWeekOffset(targetDateString) {
 export default function UserCalendar({ navigation, route }) {
    const activeRoute = route?.name ?? 'UserCalendar';
    const { t } = useI18n();
-   const { colors } = useTheme();
+   const { colors, isDark } = useTheme();
    const today = new Date();
    const todayDateString = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
    
@@ -484,11 +484,12 @@ export default function UserCalendar({ navigation, route }) {
                               <View
                                  style={[
                                     styles.timelineNode,
+                                    isDark && { backgroundColor: '#3a4255', borderColor: colors.surface },
                                     event.tone === 'highlight' && styles.timelineNodeHighlight,
                                     isGlobal && !event.tone && styles.timelineNodeGlobal
                                  ]}
                               />
-                              {!isLast && <View style={styles.nodeLine} />}
+                              {!isLast && <View style={[styles.nodeLine, isDark && { backgroundColor: colors.border }]} />}
                            </View>
                            {isGlobal ? (
                               // Админская задача - с цветом тага и градиентом как в основном календаре

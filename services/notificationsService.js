@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { auth } from '../FireBaseConfig';
 import { parseDate, parseTime } from './tasksService';
 import { saveMessage } from './messagesService';
+import { getTranslator } from '../i18n/I18nContext';
 
 // Notification handler configuration
 Notifications.setNotificationHandler({
@@ -230,6 +231,7 @@ export async function cancelTaskNotifications(taskId) {
  * Schedules notifications for user task
  */
 export async function scheduleUserTaskNotifications(task) {
+   const t = await getTranslator();
    if (!task || !task.date) return;
 
    const user = auth.currentUser;
@@ -255,7 +257,7 @@ export async function scheduleUserTaskNotifications(task) {
       await scheduleNotification(
          'reminder_1h',
          task.name,
-         task.description || 'Don\'t forget to complete this task',
+         task.description || t('notify.forgetComplete'),
          reminderTime,
          task.id,
          'user_reminder_1h'
@@ -281,8 +283,8 @@ export async function scheduleUserTaskNotifications(task) {
    if (expiredTime && expiredTime > now) {
       await scheduleNotification(
          'expired',
-         `${task.name} - time is up`,
-         'Time to complete this task has expired',
+         t('notify.timeUp', { name: task.name }),
+         t('notify.expiredBody'),
          expiredTime,
          task.id,
          'user_expired'
@@ -296,6 +298,7 @@ export async function scheduleUserTaskNotifications(task) {
  * to their own Firestore when they receive it via the notification listener.
  */
 export async function scheduleGlobalTaskCreatedNotification(task) {
+   const t = await getTranslator();
    if (!task || !task.isGlobal) return;
 
    try {
@@ -304,12 +307,12 @@ export async function scheduleGlobalTaskCreatedNotification(task) {
 
       let timeText = '';
       if (task.timeDilation && task.fromTime && task.toTime) {
-         timeText = `from ${task.fromTime} to ${task.toTime}`;
+         timeText = t('notify.fromTo', { from: task.fromTime, to: task.toTime });
       } else if (task.time) {
-         timeText = `at ${task.time}`;
+         timeText = t('notify.at', { time: task.time });
       }
 
-      const title = 'New Global Task';
+      const title = t('notify.newGlobal');
       const body = `${task.name}${timeText ? ` - ${timeText}` : ''}`;
 
       // Schedule a broadcast notification
@@ -351,6 +354,7 @@ export async function scheduleGlobalTaskCreatedNotification(task) {
  * Schedules notifications for global task after user joined
  */
 export async function scheduleGlobalTaskJoinedNotifications(task) {
+   const t = await getTranslator();
    if (!task || !task.isGlobal) return;
 
    const user = auth.currentUser;
@@ -374,8 +378,8 @@ export async function scheduleGlobalTaskJoinedNotifications(task) {
    if (dayBefore > now) {
       await scheduleNotification(
          'reminder_1d',
-         `Tomorrow: ${task.name}`,
-         task.description || 'Don\'t forget about this task',
+         t('notify.tomorrow', { name: task.name }),
+         task.description || t('notify.forgetTask'),
          dayBefore,
          task.id,
          'global_reminder_1d'
@@ -396,7 +400,7 @@ export async function scheduleGlobalTaskJoinedNotifications(task) {
       await scheduleNotification(
          'reminder_1h',
          task.name,
-         task.description || 'Don\'t forget to complete this task',
+         task.description || t('notify.forgetComplete'),
          reminderTime,
          task.id,
          'global_reminder_1h'

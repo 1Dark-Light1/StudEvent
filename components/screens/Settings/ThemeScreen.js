@@ -8,8 +8,8 @@ import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 const THEMES = [
-  { code: 'light', label: 'Світла тема', icon: 'sunny' },
-  { code: 'dark', label: 'Темна тема', icon: 'moon' },
+  { code: 'light', labelKey: 'theme.light', icon: 'sunny' },
+  { code: 'dark', labelKey: 'theme.dark', icon: 'moon' },
 ];
 
 export default function ThemeScreen({ navigation, route }) {
@@ -36,18 +36,18 @@ export default function ThemeScreen({ navigation, route }) {
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: colors.text }]}>{t('settings.theme')}</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Оберіть тему для додатку
+              {t('theme.subtitle')}
             </Text>
           </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-          {THEMES.map((t, index) => {
-            const isActive = t.code === theme;
+          {THEMES.map((item, index) => {
+            const isActive = item.code === theme;
             return (
               <Pressable
-                key={t.code}
-                onPress={() => setTheme(t.code)}
+                key={item.code}
+                onPress={() => setTheme(item.code)}
                 style={({ pressed }) => [
                   styles.row,
                   { borderBottomColor: colors.border },
@@ -58,12 +58,12 @@ export default function ThemeScreen({ navigation, route }) {
                 <View style={styles.rowLeft}>
                   <View style={[styles.iconContainer, { backgroundColor: colors.iconBg }]}>
                     <Ionicons 
-                      name={t.icon} 
+                      name={item.icon} 
                       size={20} 
                       color={isActive ? colors.primary : colors.textSecondary} 
                     />
                   </View>
-                  <Text style={[styles.rowLabel, { color: colors.text }]}>{t.label}</Text>
+                  <Text style={[styles.rowLabel, { color: colors.text }]}>{t(item.labelKey)}</Text>
                 </View>
                 {isActive ? (
                   <Ionicons name="checkmark-circle" size={22} color={colors.primary} />

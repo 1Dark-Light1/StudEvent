@@ -5,16 +5,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useI18n } from '../../i18n/I18nContext';
 
 export default function Header() {
   const { isDark } = useTheme();
+  const { t } = useI18n();
   const textColor = { color: isDark ? '#5a9fff' : '#06276C' };
 
   return (
     <View style={styles.header}>
       <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
       <Text style={[styles.brand, textColor]}>StudEvent</Text>
-      <Text style={[styles.subtitle, textColor]}>Join to us</Text>
+      <Text style={[styles.subtitle, textColor]}>{t('auth.subtitle')}</Text>
     </View>
   );
 }

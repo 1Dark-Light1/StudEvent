@@ -50,7 +50,7 @@ function formatDateForDisplay(dateString, t) {
 }
 
 export default function EventDetailsModal({ visible, event, onClose, onDelete }) {
-   const { t } = useI18n();
+   const { t, tagLabel } = useI18n();
    const { colors, isDark } = useTheme();
    // Light styles plus their dark-theme override, if any
    const st = (name) => (isDark && darkStyles[name] ? [styles[name], darkStyles[name]] : styles[name]);
@@ -401,7 +401,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
                         </View>
                         <View style={styles.tagContainer}>
                            <View style={[styles.tag, { backgroundColor: event.color || '#2f7cff' }]}>
-                              <Text style={styles.tagText}>{event.tagText}</Text>
+                              <Text style={styles.tagText}>{tagLabel(event.tagText)}</Text>
                            </View>
                         </View>
                      </View>

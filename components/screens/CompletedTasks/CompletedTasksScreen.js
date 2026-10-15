@@ -91,7 +91,7 @@ function formatSingleTime(timeString) {
 }
 
 export default function CompletedTasks({ navigation, route }) {
-   const { t } = useI18n();
+   const { t, tagLabel } = useI18n();
    const { colors } = useTheme();
    const activeRoute = route?.name ?? 'CompletedTasks';
    const [activeTab, setActiveTab] = useState('completed'); // 'completed' or 'uncompleted'
@@ -291,7 +291,7 @@ export default function CompletedTasks({ navigation, route }) {
                                                       styles.taskTag,
                                                       { backgroundColor: task.taskColor || colors.primary }
                                                    ]}>
-                                                      <Text style={styles.taskTagText}>{task.tagText}</Text>
+                                                      <Text style={styles.taskTagText}>{tagLabel(task.tagText)}</Text>
                                                    </View>
                                                 </View>
                                              )}

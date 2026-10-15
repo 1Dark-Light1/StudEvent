@@ -21,7 +21,7 @@ import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function AddTaskScreen({ navigation, route }) {
-   const { t } = useI18n();
+   const { t, tagLabel } = useI18n();
    const { colors, isDark } = useTheme();
    const [mode, setMode] = useState('build'); // 'build' or 'change'
    const [name, setName] = useState('');
@@ -69,9 +69,9 @@ export default function AddTaskScreen({ navigation, route }) {
    
    useEffect(() => {
       if (!auth.currentUser) {
-         Alert.alert('Authentication Required', 'Please log in to add tasks.', [
+         Alert.alert(t('task.alert.authTitle'), t('task.alert.authBody'), [
             {
-               text: 'OK',
+               text: t('common.ok'),
                onPress: () => navigation.navigate('Login'),
             },
          ]);
@@ -433,7 +433,7 @@ export default function AddTaskScreen({ navigation, route }) {
                                     {task.tagText && (
                                        <View style={[styles.taskTag, { backgroundColor: task.taskColor + '20' }]}>
                                           <Text style={[styles.taskTagText, { color: task.taskColor }]}>
-                                             {task.tagText}
+                                             {tagLabel(task.tagText)}
                                           </Text>
                                        </View>
                                     )}
@@ -451,14 +451,14 @@ export default function AddTaskScreen({ navigation, route }) {
                   <>
                      {mode === 'change' && selectedTaskId && (
                         <Pressable 
-                           style={[styles.backToListButton, isDark && { backgroundColor: colors.todayHighlight }]}
+                           style={[styles.backToListButton, { backgroundColor: isDark ? colors.todayHighlight : colors.primary }]}
                            onPress={() => {
                               setSelectedTaskId(null);
                               handleClear();
                            }}
                         >
-                           <Ionicons name="arrow-back" size={20} color={isDark ? '#fff' : colors.primary} />
-                           <Text style={[styles.backToListText, { color: isDark ? '#fff' : colors.primary }]}>{t('task.backToList')}</Text>
+                           <Ionicons name="arrow-back" size={20} color="#fff" />
+                           <Text style={[styles.backToListText, { color: '#fff' }]}>{t('task.backToList')}</Text>
                         </Pressable>
                      )}
 
@@ -606,7 +606,7 @@ export default function AddTaskScreen({ navigation, route }) {
                   >
                      <View style={[styles.colorDot, { backgroundColor: taskColor }]} />
                      <Text style={[styles.input, { color: colors.text }, !tagText && [styles.placeholderText, { color: colors.textMuted }]]}>
-                        {tagText || t('task.selectTag')}
+                        {tagLabel(tagText) || t('task.selectTag')}
                      </Text>
                      <Pressable 
                         style={styles.colorBtn} 
@@ -620,7 +620,7 @@ export default function AddTaskScreen({ navigation, route }) {
                   </Pressable>
                   {tagText && (
                      <View style={[styles.selectedTagContainer, { backgroundColor: colors.iconBg }]}>
-                        <Text style={[styles.selectedTagText, { color: colors.text }]}>{tagText}</Text>
+                        <Text style={[styles.selectedTagText, { color: colors.text }]}>{tagLabel(tagText)}</Text>
                         <Pressable onPress={() => setTagText('')}>
                            <Ionicons name="close-circle" size={20} color={colors.textMuted} />
                         </Pressable>
@@ -766,7 +766,9 @@ export default function AddTaskScreen({ navigation, route }) {
                   disabled={isLoading}
                >
                   <Text style={styles.addText}>
-                     {isLoading ? (mode === 'change' ? 'Updating...' : 'Adding...') : (mode === 'change' ? 'Update' : 'Add')}
+                     {isLoading
+                        ? t(mode === 'change' ? 'task.updating' : 'task.adding')
+                        : t(mode === 'change' ? 'task.updateButton' : 'task.addButton')}
                   </Text>
                </Pressable>
             </View>
@@ -842,7 +844,7 @@ export default function AddTaskScreen({ navigation, route }) {
                               setShowCustomDatePicker(false);
                            }}
                         >
-                           <Text style={styles.modalDone}>Done</Text>
+                           <Text style={styles.modalDone}>{t('task.done')}</Text>
                         </Pressable>
                      </View>
                      <DateTimePicker
@@ -938,7 +940,7 @@ export default function AddTaskScreen({ navigation, route }) {
                   style={[styles.tagModalContent, { backgroundColor: colors.cardBackground }]} 
                   onStartShouldSetResponder={() => true}
                >
-                  <View style={styles.tagModalHeader}>
+                  <View style={[styles.tagModalHeader, { borderBottomColor: colors.border }]}>
                      <Text style={[styles.tagModalTitle, { color: colors.text }]}>{t('task.selectTag')}</Text>
                      <Pressable onPress={() => setShowTagPicker(false)}>
                         <Ionicons name="close" size={24} color={colors.text} />
@@ -966,7 +968,7 @@ export default function AddTaskScreen({ navigation, route }) {
                                  tagText === tag && [styles.tagOptionTextSelected, { color: '#fff' }],
                               ]}
                            >
-                              {tag}
+                              {tagLabel(tag)}
                            </Text>
                            {tagText === tag && (
                               <Ionicons name="checkmark" size={20} color="#fff" />
@@ -975,11 +977,11 @@ export default function AddTaskScreen({ navigation, route }) {
                      ))}
                   </ScrollView>
 
-                  <View style={styles.customTagSection}>
+                  <View style={[styles.customTagSection, { borderTopColor: colors.border }]}>
                      <Text style={[styles.customTagLabel, { color: colors.text }]}>{t('task.customTag')}</Text>
                      <View style={[styles.customTagInputContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
                         <TextInput
-                           style={[styles.customTagInput, { color: colors.text }]}
+                           style={[styles.customTagInput, { color: colors.text, backgroundColor: colors.iconBg }]}
                            placeholder={t('task.customTagPlaceholder')}
                            placeholderTextColor={colors.textMuted}
                            value={customTagInput}
