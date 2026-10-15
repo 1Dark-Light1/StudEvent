@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, onSnapshot, writeBatch, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, Timestamp, onSnapshot, writeBatch } from 'firebase/firestore';
 import { db , auth } from '../FireBaseConfig';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -58,47 +58,6 @@ export async function saveMessage(title, body, type, taskId = null, userId = nul
    } catch (error) {
       console.error('Error saving message:', error);
       return null;
-   }
-}
-
-/**
- * Отримує повідомлення користувача за поточний місяць
- */
-export async function getCurrentMonthMessages() {
-   try {
-      const user = auth.currentUser;
-      if (!user) {
-         return [];
-      }
-
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-
-      const messagesQuery = query(
-         collection(db, 'messages'),
-         where('userId', '==', user.uid),
-         where('month', '==', currentMonth),
-         where('year', '==', currentYear)
-      );
-
-      const querySnapshot = await getDocs(messagesQuery);
-      const messages = querySnapshot.docs.map(doc => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
-      
-      // Сортуємо на клієнті
-      messages.sort((a, b) => {
-         const dateA = a.createdAt?.toMillis?.() || 0;
-         const dateB = b.createdAt?.toMillis?.() || 0;
-         return dateB - dateA;
-      });
-      
-      return messages;
-   } catch (error) {
-      console.error('Error getting messages:', error);
-      return [];
    }
 }
 
@@ -223,36 +182,6 @@ export async function deleteMessagesByTaskId(taskId) {
       }
    } catch (error) {
       console.error('Error deleting messages by taskId:', error);
-   }
-}
-
-/**
- * Видаляє одне повідомлення за ID
- */
-export async function deleteMessage(messageId) {
-   try {
-      const user = auth.currentUser;
-      if (!user) {
-         throw new Error('User not authenticated');
-      }
-
-      const messageRef = doc(db, 'messages', messageId);
-      const messageDoc = await getDoc(messageRef);
-      
-      if (!messageDoc.exists()) {
-         throw new Error('Message not found');
-      }
-
-      const messageData = messageDoc.data();
-      if (messageData.userId !== user.uid) {
-         throw new Error('You can only delete your own messages');
-      }
-
-      await deleteDoc(messageRef);
-      return true;
-   } catch (error) {
-      console.error('Error deleting message:', error);
-      throw error;
    }
 }
 

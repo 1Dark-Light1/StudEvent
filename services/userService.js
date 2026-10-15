@@ -39,39 +39,6 @@ export function restoreSession() {
 }
 
 /**
- * Gets user data from Firestore
- */
-export async function getUserData() {
-   try {
-      const user = auth.currentUser;
-      if (!user) {
-         return null;
-      }
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (userDoc.exists()) {
-         return userDoc.data();
-      }
-
-      // If no data in Firestore, try to get from displayName
-      if (user.displayName) {
-         const nameParts = user.displayName.split(' ');
-         return {
-            name: nameParts[0] || '',
-            surname: nameParts.slice(1).join(' ') || '',
-         };
-      }
-
-      return null;
-   } catch (error) {
-      console.error('Error getting user data:', error);
-      return null;
-   }
-}
-
-/**
  * Saves user data to Firestore
  */
 export async function saveUserData(userData) {
@@ -168,30 +135,6 @@ export function subscribeToUserData(callback) {
          callback(null);
       }
    });
-}
-
-/**
- * Gets all users from the users collection
- */
-export async function getAllUsers() {
-   try {
-      const { collection, getDocs } = await import('firebase/firestore');
-      const usersCollectionRef = collection(db, 'users');
-      const querySnapshot = await getDocs(usersCollectionRef);
-      
-      const users = [];
-      querySnapshot.forEach((doc) => {
-         users.push({
-            uid: doc.id,
-            ...doc.data()
-         });
-      });
-      
-      return users;
-   } catch (error) {
-      console.error('Error getting all users:', error);
-      return [];
-   }
 }
 
 

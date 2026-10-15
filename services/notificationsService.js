@@ -464,14 +464,3 @@ export async function syncTaskNotifications(tasks) {
    }
 }
 
-/**
- * Cancels all notifications
- */
-export async function cancelAllNotifications() {
-   try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      await AsyncStorage.removeItem(SCHEDULED_NOTIFICATIONS_KEY);
-   } catch (error) {
-      console.error('Error canceling all notifications:', error);
-   }
-}

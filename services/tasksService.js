@@ -164,59 +164,46 @@ export async function addTask(taskData) {
 }
 
 /**
- * Gets all user tasks
+ * Listens to the user's own tasks and to global tasks, and calls back with both
+ * lists merged (no duplicates) and sorted, as soon as either query has loaded.
+ * A failing query counts as empty, so the other one is still shown.
  */
-export async function getUserTasks() {
-   try {
-      const user = auth.currentUser;
-      if (!user) {
-         return [];
+function subscribeToOwnAndGlobal(ownQuery, globalQuery, { ownWithoutGlobal }, callback) {
+   let own = null;
+   let global = null;
+   const toTasks = (snapshot) => snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+   const emit = () => {
+      const tasks = (own || []).filter((task) => !ownWithoutGlobal || !task.isGlobal);
+      const ids = new Set(tasks.map((task) => task.id));
+      for (const task of global || []) {
+         if (!ids.has(task.id)) tasks.push(task);
       }
+      callback(tasks.sort(compareTasksByDateTime));
+   };
 
-      const q = query(collection(db, 'tasks'), where('userId', '==', user.uid));
+   const unsubscribeOwn = onSnapshot(ownQuery, (snapshot) => {
+      own = toTasks(snapshot);
+      emit();
+   }, (error) => {
+      console.error('Error subscribing to own tasks:', error);
+      own = [];
+      emit();
+   });
 
-      const querySnapshot = await getDocs(q);
-      const tasks = querySnapshot.docs.map(doc => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
+   const unsubscribeGlobal = onSnapshot(globalQuery, (snapshot) => {
+      global = toTasks(snapshot);
+      emit();
+   }, (error) => {
+      console.error('Error subscribing to global tasks:', error);
+      global = [];
+      emit();
+   });
 
-      // Sort by time on the client
-      return tasks.sort(compareTasksByDateTime);
-   } catch (error) {
-      console.error('Error getting user tasks:', error);
-      return [];
-   }
-}
-
-/**
- * Gets user tasks by date
- */
-export async function getTasksByDate(dateString) {
-   try {
-      const user = auth.currentUser;
-      if (!user) {
-         return [];
-      }
-
-      const q = query(
-         collection(db, 'tasks'),
-         where('userId', '==', user.uid),
-         where('date', '==', dateString)
-      );
-
-      const querySnapshot = await getDocs(q);
-      const tasks = querySnapshot.docs.map(doc => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
-
-      // Sort by time
-      return tasks.sort(compareTasksByDateTime);
-   } catch (error) {
-      console.error('Error getting tasks by date:', error);
-      return [];
-   }
+   return () => {
+      unsubscribeOwn();
+      unsubscribeGlobal();
+   };
 }
 
 /**
@@ -230,70 +217,16 @@ export function subscribeToUserTasks(callback) {
       return () => {};
    }
 
-   // Subscribe to own tasks and global tasks
-   const userTasksQuery = query(collection(db, 'tasks'), where('userId', '==', user.uid));
-   const globalTasksQuery = query(collection(db, 'tasks'), where('isGlobal', '==', true));
-
-   let userTasksUnsubscribe;
-   let globalTasksUnsubscribe;
-   let userTasks = [];
-   let globalTasks = [];
-   let userTasksLoaded = false;
-   let globalTasksLoaded = false;
-
-   const mergeAndSortTasks = () => {
-      // Merge tasks and remove duplicates
-      const allTasks = [...userTasks];
-      globalTasks.forEach(globalTask => {
-         // Don't add if already in own tasks
-         if (!allTasks.find(t => t.id === globalTask.id)) {
-            allTasks.push(globalTask);
-         }
-      });
-
-      // Sort
-      const sorted = allTasks.sort(compareTasksByDateTime);
-
-      // Reminders are synced in the background; the list is shown right away
-      syncTaskNotifications(sorted).catch((error) => console.error('Error syncing notifications:', error));
-
-      // Call callback after at least one query has loaded
-      // This ensures that global tasks will be shown even if there are no own tasks
-      if (userTasksLoaded || globalTasksLoaded) {
-         callback(sorted);
+   return subscribeToOwnAndGlobal(
+      query(collection(db, 'tasks'), where('userId', '==', user.uid)),
+      query(collection(db, 'tasks'), where('isGlobal', '==', true)),
+      { ownWithoutGlobal: false },
+      (tasks) => {
+         // Reminders are synced in the background; the list is shown right away
+         syncTaskNotifications(tasks).catch((error) => console.error('Error syncing notifications:', error));
+         callback(tasks);
       }
-   };
-
-   userTasksUnsubscribe = onSnapshot(userTasksQuery, (querySnapshot) => {
-      userTasks = querySnapshot.docs.map((doc) => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
-      userTasksLoaded = true;
-      mergeAndSortTasks();
-   }, (error) => {
-      console.error('Error subscribing to user tasks:', error);
-      userTasksLoaded = true; // Mark as loaded even on error
-      callback([]);
-   });
-
-   globalTasksUnsubscribe = onSnapshot(globalTasksQuery, (querySnapshot) => {
-      globalTasks = querySnapshot.docs.map((doc) => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
-      globalTasksLoaded = true;
-      mergeAndSortTasks();
-   }, (error) => {
-      console.error('Error subscribing to global tasks:', error);
-      globalTasksLoaded = true; // Mark as loaded even on error
-      mergeAndSortTasks(); // Still call merge to show at least own tasks
-   });
-
-   return () => {
-      if (userTasksUnsubscribe) userTasksUnsubscribe();
-      if (globalTasksUnsubscribe) globalTasksUnsubscribe();
-   };
+   );
 }
 
 /**
@@ -308,85 +241,18 @@ export function subscribeToTasksByDate(dateString, callback) {
       return () => {};
    }
 
-   // Query for own tasks by date
-   const userTasksQuery = query(
-      collection(db, 'tasks'),
-      where('userId', '==', user.uid),
-      where('date', '==', dateString)
+   // Global events show up only when the user joined them (also for the admin who created them)
+   return subscribeToOwnAndGlobal(
+      query(collection(db, 'tasks'), where('userId', '==', user.uid), where('date', '==', dateString)),
+      query(
+         collection(db, 'tasks'),
+         where('isGlobal', '==', true),
+         where('date', '==', dateString),
+         where('participants', 'array-contains', user.uid)
+      ),
+      { ownWithoutGlobal: true },
+      callback
    );
-
-   // Query for global tasks by date that the user has joined
-   const globalTasksQuery = query(
-      collection(db, 'tasks'),
-      where('isGlobal', '==', true),
-      where('date', '==', dateString),
-      where('participants', 'array-contains', user.uid)
-   );
-
-   let userTasksUnsubscribe;
-   let globalTasksUnsubscribe;
-   let userTasks = [];
-   let globalTasks = [];
-   let userTasksLoaded = false;
-   let globalTasksLoaded = false;
-
-   const mergeAndSortTasks = () => {
-      // Filter global tasks from own tasks (for admin - their global tasks
-      // should only appear if they joined, i.e., they will be in globalTasks)
-      const filteredUserTasks = userTasks.filter(task => {
-         // If it's a global task, exclude it from own tasks
-         // It will only appear if the user has joined (via globalTasks)
-         return !task.isGlobal;
-      });
-      
-      // Merge tasks and remove duplicates
-      const allTasks = [...filteredUserTasks];
-      globalTasks.forEach(globalTask => {
-         if (!allTasks.find(t => t.id === globalTask.id)) {
-            allTasks.push(globalTask);
-         }
-      });
-
-      // Sort by time
-      const sortedTasks = allTasks.sort(compareTasksByDateTime);
-
-      // Call callback after at least one query has loaded
-      // This ensures that global tasks will be shown even if there are no own tasks
-      if (userTasksLoaded || globalTasksLoaded) {
-         callback(sortedTasks);
-      }
-   };
-
-   userTasksUnsubscribe = onSnapshot(userTasksQuery, (querySnapshot) => {
-      userTasks = querySnapshot.docs.map(doc => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
-      userTasksLoaded = true;
-      mergeAndSortTasks();
-   }, (error) => {
-      console.error('Error subscribing to user tasks by date:', error);
-      userTasksLoaded = true; // Mark as loaded even on error
-      callback([]);
-   });
-
-   globalTasksUnsubscribe = onSnapshot(globalTasksQuery, (querySnapshot) => {
-      globalTasks = querySnapshot.docs.map(doc => ({
-         id: doc.id,
-         ...doc.data(),
-      }));
-      globalTasksLoaded = true;
-      mergeAndSortTasks();
-   }, (error) => {
-      console.error('Error subscribing to global tasks by date:', error);
-      globalTasksLoaded = true; // Mark as loaded even on error
-      mergeAndSortTasks(); // Still call merge to show at least own tasks
-   });
-
-   return () => {
-      if (userTasksUnsubscribe) userTasksUnsubscribe();
-      if (globalTasksUnsubscribe) globalTasksUnsubscribe();
-   };
 }
 
 /**
