@@ -12,6 +12,7 @@ import { auth } from '../../FireBaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { setRememberLogin } from '../../services/userService';
 
 // Cache images at module level to prevent reloading
 const emailIcon = require('../../assets/email.png');
@@ -63,10 +64,11 @@ export default function Login({ navigation }) {
 
 		try {
 			await signInWithEmailAndPassword(auth, email.trim(), password);
+			await setRememberLogin(remember);
 			Alert.alert(t('auth.login.alert.successTitle'), t('auth.login.alert.successBody'), [
 				{
 					text: t('common.ok'),
-					onPress: () => navigation.navigate('Main'),
+					onPress: () => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }),
 				},
 			]);
 		} catch (error) {

@@ -1,5 +1,42 @@
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db , auth } from '../FireBaseConfig';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db, auth } from '../FireBaseConfig';
+
+const REMEMBER_KEY = 'studevent.rememberLogin';
+
+/** Saves the "Remember your account" choice made on the login screen. */
+export async function setRememberLogin(remember) {
+   try {
+      await AsyncStorage.setItem(REMEMBER_KEY, remember ? '1' : '0');
+   } catch {
+      // not critical: the user will just see the login screen next time
+   }
+}
+
+/**
+ * Resolves once Firebase restored the saved session: true if a remembered user
+ * is signed in. A session the user chose not to remember is signed out.
+ */
+export function restoreSession() {
+   return new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+         unsubscribe();
+         if (!user) return resolve(false);
+         let remember = null;
+         try {
+            remember = await AsyncStorage.getItem(REMEMBER_KEY);
+         } catch {
+            // treat as remembered
+         }
+         if (remember === '0') {
+            await signOut(auth).catch(() => {});
+            return resolve(false);
+         }
+         resolve(true);
+      });
+   });
+}
 
 /**
  * Gets user data from Firestore

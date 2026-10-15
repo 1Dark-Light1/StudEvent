@@ -426,6 +426,44 @@ export async function updateTaskNotifications(task) {
    }
 }
 
+// taskId -> what the task's notifications were last scheduled for
+const syncedTasks = new Map();
+
+/**
+ * Keeps reminders in line with the task list. Only tasks whose time, text or
+ * participation changed since the last sync are rescheduled, so it is cheap to
+ * call on every Firestore snapshot (several screens subscribe at once).
+ */
+export async function syncTaskNotifications(tasks) {
+   const user = auth.currentUser;
+   if (!user) return;
+
+   for (const task of tasks) {
+      const relevant = task.isGlobal
+         ? (task.participants || []).includes(user.uid)
+         : task.userId === user.uid;
+      const signature = JSON.stringify([
+         user.uid, relevant, task.date, task.time, task.timeDilation,
+         task.fromTime, task.toTime, task.name, task.description,
+      ]);
+      const previous = syncedTasks.get(task.id);
+      if (previous === signature) continue;
+      syncedTasks.set(task.id, signature);
+
+      try {
+         if (relevant) {
+            await updateTaskNotifications(task);
+         } else if (previous) {
+            // the user left this global event
+            await cancelTaskNotifications(task.id);
+         }
+      } catch (error) {
+         syncedTasks.delete(task.id);
+         console.error('Error syncing notifications for task:', task.id, error);
+      }
+   }
+}
+
 /**
  * Cancels all notifications
  */

@@ -24,6 +24,7 @@ import {
    scheduleGlobalTaskJoinedNotifications,
    cancelTaskNotifications,
    updateTaskNotifications,
+   syncTaskNotifications,
 } from './notificationsService';
 import {
    parseDate,
@@ -233,7 +234,7 @@ export function subscribeToUserTasks(callback) {
    let userTasksLoaded = false;
    let globalTasksLoaded = false;
 
-   const mergeAndSortTasks = async () => {
+   const mergeAndSortTasks = () => {
       // Merge tasks and remove duplicates
       const allTasks = [...userTasks];
       globalTasks.forEach(globalTask => {
@@ -246,23 +247,8 @@ export function subscribeToUserTasks(callback) {
       // Sort
       const sorted = allTasks.sort(compareTasksByDateTime);
 
-      // Schedule notifications for tasks
-      for (const task of sorted) {
-         try {
-            if (task.isGlobal) {
-               // For global tasks - check if user has joined
-               const participants = task.participants || [];
-               if (participants.includes(user.uid)) {
-                  await scheduleGlobalTaskJoinedNotifications(task);
-               }
-            } else {
-               // For regular user tasks
-               await scheduleUserTaskNotifications(task);
-            }
-         } catch (error) {
-            console.error('Error scheduling notifications for task:', task.id, error);
-         }
-      }
+      // Reminders are synced in the background; the list is shown right away
+      syncTaskNotifications(sorted).catch((error) => console.error('Error syncing notifications:', error));
 
       // Call callback after at least one query has loaded
       // This ensures that global tasks will be shown even if there are no own tasks
@@ -277,7 +263,7 @@ export function subscribeToUserTasks(callback) {
          ...doc.data(),
       }));
       userTasksLoaded = true;
-      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err));
+      mergeAndSortTasks();
    }, (error) => {
       console.error('Error subscribing to user tasks:', error);
       userTasksLoaded = true; // Mark as loaded even on error
@@ -290,11 +276,11 @@ export function subscribeToUserTasks(callback) {
          ...doc.data(),
       }));
       globalTasksLoaded = true;
-      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err));
+      mergeAndSortTasks();
    }, (error) => {
       console.error('Error subscribing to global tasks:', error);
       globalTasksLoaded = true; // Mark as loaded even on error
-      mergeAndSortTasks().catch(err => console.error('Error in mergeAndSortTasks:', err)); // Still call merge to show at least own tasks
+      mergeAndSortTasks(); // Still call merge to show at least own tasks
    });
 
    return () => {

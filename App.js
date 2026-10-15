@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -18,27 +18,33 @@ import ThemeScreen from './components/screens/Settings/ThemeScreen';
 import { I18nProvider } from './i18n/I18nContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import * as SplashScreen from 'expo-splash-screen';
+import { restoreSession } from './services/userService';
 
 const Stack = createNativeStackNavigator();
 
-// Keep the splash screen until the saved theme is loaded, so the first screen
-// does not flash in the light theme for dark-theme users
+// Keep the splash screen until the saved theme and the login session are loaded,
+// so the first screen is the right one and does not flash in the wrong theme
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function AppContent() {
   const { isDark, isReady } = useTheme();
+  const [initialRoute, setInitialRoute] = useState(null);
 
   useEffect(() => {
-    if (isReady) SplashScreen.hideAsync().catch(() => {});
-  }, [isReady]);
+    restoreSession().then((signedIn) => setInitialRoute(signedIn ? 'Main' : 'Login'));
+  }, []);
 
-  if (!isReady) return null;
+  useEffect(() => {
+    if (isReady && initialRoute) SplashScreen.hideAsync().catch(() => {});
+  }, [isReady, initialRoute]);
+
+  if (!isReady || !initialRoute) return null;
 
   return (
     <NavigationContainer>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName={initialRoute}
         screenOptions={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
       >
         <Stack.Screen name="Login" component={Login} />
