@@ -341,9 +341,14 @@ export async function syncTaskNotifications(tasks) {
  * replaced anyway, because every task is rescheduled on the first sync.
  */
 async function clearOldHistoryOnce(uid) {
-   const key = `@notifications_v2_${uid}`;
+   // v3: v2 cleared the history but then re-recorded reminders scheduled with the old texts
+   const key = `@notifications_v3_${uid}`;
    try {
       if (await AsyncStorage.getItem(key)) return;
+      // drop everything scheduled with the old texts, so it is neither delivered nor recorded
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await AsyncStorage.removeItem(SCHEDULED_NOTIFICATIONS_KEY);
+      syncedTasks.clear();
       await deleteAllMyMessages();
       await AsyncStorage.setItem(key, '1');
    } catch (error) {

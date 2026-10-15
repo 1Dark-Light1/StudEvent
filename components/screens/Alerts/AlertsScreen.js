@@ -302,7 +302,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t }) 
          {...panResponder.panHandlers}
       >
          <View style={styles.messageRow}>
-            <Text style={[styles.messageTimeText, { color: colors.textMuted }]}>{displayTime(triggerDate)}</Text>
+            <Text style={[styles.messageTimeText, { color: colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>{displayTime(triggerDate)}</Text>
             {isGlobal ? (
                <LinearGradient
                   colors={adminGradientColors}
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
       alignItems: 'flex-start',
    },
    messageTimeText: {
-      minWidth: 52,
+      width: 68, // fixed, so every card starts at the same place ("9:05 AM" and "13:00" alike)
       marginRight: 12,
       fontWeight: '600',
    },
