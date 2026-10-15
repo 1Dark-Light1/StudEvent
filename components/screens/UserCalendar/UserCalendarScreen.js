@@ -95,18 +95,10 @@ export default function UserCalendar({ navigation, route }) {
       }
 
       setIsLoading(true);
-      let isFirstLoadForDate = true;
-      const unsubscribe = subscribeToTasksByDate(activeDate, async (loadedTasks) => {
-         // Mark overdue tasks as uncompleted, only on the first load for this date
-         if (isFirstLoadForDate) {
-            isFirstLoadForDate = false;
-            try {
-               await autoMarkUncompletedTasks();
-            } catch (error) {
-               console.error('Error auto-marking uncompleted tasks:', error);
-            }
-         }
-         
+      // Mark overdue tasks as uncompleted in the background; the listener picks up the changes
+      autoMarkUncompletedTasks().catch((error) => console.error('Error auto-marking uncompleted tasks:', error));
+
+      const unsubscribe = subscribeToTasksByDate(activeDate, (loadedTasks) => {
          setRawTasks(loadedTasks);
          setIsLoading(false);
       });

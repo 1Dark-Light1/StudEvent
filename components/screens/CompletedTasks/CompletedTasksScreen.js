@@ -29,18 +29,10 @@ export default function CompletedTasks({ navigation, route }) {
       }
 
       setIsLoading(true);
-      let isFirstLoad = true;
-      const unsubscribe = subscribeToUserTasks(async (loadedTasks) => {
-         // Mark overdue tasks as uncompleted, only on the first load
-         if (isFirstLoad) {
-            isFirstLoad = false;
-            try {
-               await autoMarkUncompletedTasks();
-            } catch (error) {
-               console.error('Error auto-marking uncompleted tasks:', error);
-            }
-         }
-         
+      // Mark overdue tasks as uncompleted in the background; the listener picks up the changes
+      autoMarkUncompletedTasks().catch((error) => console.error('Error auto-marking uncompleted tasks:', error));
+
+      const unsubscribe = subscribeToUserTasks((loadedTasks) => {
          setTasks(loadedTasks);
          setIsLoading(false);
       });

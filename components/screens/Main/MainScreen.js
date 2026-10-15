@@ -45,21 +45,11 @@ export default function Main({ navigation, route }) {
       }
 
       setIsLoading(true);
-      let isFirstLoad = true;
-      
-      const unsubscribe = subscribeToUserTasks(async (loadedTasks) => {
-         // Mark overdue tasks as uncompleted, only on the first load
-         if (isFirstLoad) {
-            isFirstLoad = false;
-            try {
-               await autoMarkUncompletedTasks();
-            } catch (error) {
-               console.error('Error auto-marking uncompleted tasks:', error);
-            }
-         }
-         
-         // Always update, an empty list is valid too
-         // Filtering happens in the effect below, whenever rawTasks changes
+      // Mark overdue tasks as uncompleted in the background; the listener picks up the changes
+      autoMarkUncompletedTasks().catch((error) => console.error('Error auto-marking uncompleted tasks:', error));
+
+      const unsubscribe = subscribeToUserTasks((loadedTasks) => {
+         // Filtered tasks are derived from rawTasks (useMemo above)
          setRawTasks(loadedTasks);
          setIsLoading(false);
       });
