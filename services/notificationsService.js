@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { auth } from '../FireBaseConfig';
-import { parseDate, parseTime } from './tasksService';
+import { parseDate, parseTime } from './taskRules';
 import { saveMessage } from './messagesService';
 import { getTranslator } from '../i18n/I18nContext';
 

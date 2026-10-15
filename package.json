@@ -11,7 +11,8 @@
     "build:apk": "eas build --platform android --profile preview",
     "build:apk:production": "eas build --platform android --profile production",
     "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project demo-studevent \"node --test tests/firestore.rules.test.mjs\"",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test tests/taskRules.test.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

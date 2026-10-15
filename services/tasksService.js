@@ -16,7 +16,7 @@ import {
    deleteField,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { db , auth } from '../FireBaseConfig';
+import { db, auth } from '../FireBaseConfig';
 
 import {
    scheduleUserTaskNotifications,
@@ -25,6 +25,29 @@ import {
    cancelTaskNotifications,
    updateTaskNotifications,
 } from './notificationsService';
+import {
+   parseDate,
+   parseTime,
+   isTaskActive,
+   generateWeeklyDates,
+   filterTasksBySearch,
+   filterTasksByTags,
+   applyTaskFilters,
+   canMarkTaskAsCompleted,
+   shouldMarkTaskAsUncompleted,
+   canJoinEvent,
+} from './taskRules';
+
+export {
+   parseDate,
+   parseTime,
+   isTaskActive,
+   filterTasksBySearch,
+   filterTasksByTags,
+   applyTaskFilters,
+   canMarkTaskAsCompleted,
+   canJoinEvent,
+};
 
 // UID of the signed-in user if they have a document in /admins (added via the Firebase console).
 // The real permission check is in firestore.rules; this flag only drives the UI.
@@ -50,85 +73,6 @@ onAuthStateChanged(auth, async (user) => {
 export function isAdmin() {
    const user = auth.currentUser;
    return !!user && user.uid === adminUid;
-}
-
-/**
- * Converts a date in DD.MM.YYYY format to a Date object
- */
-export function parseDate(dateString) {
-   const [day, month, year] = dateString.split('.');
-   return new Date(year, month - 1, day);
-}
-
-/**
- * Converts time in HH:MM format to a Date object with the specified date
- */
-export function parseTime(timeString, date) {
-   const [hours, minutes] = timeString.split(':');
-   const result = new Date(date);
-   result.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-   return result;
-}
-
-/**
- * Checks if the task is currently active
- */
-export function isTaskActive(task) {
-   const now = new Date();
-   const taskDate = parseDate(task.date);
-   
-   // Check that the task is for today
-   const today = new Date();
-   const isToday = taskDate.getDate() === today.getDate() &&
-                   taskDate.getMonth() === today.getMonth() &&
-                   taskDate.getFullYear() === today.getFullYear();
-   
-   if (!isToday) {
-      return false;
-   }
-   
-   if (task.timeDilation && task.fromTime && task.toTime) {
-      const fromTime = parseTime(task.fromTime, taskDate);
-      const toTime = parseTime(task.toTime, taskDate);
-      return now >= fromTime && now <= toTime;
-   } else if (task.time) {
-      const taskTime = parseTime(task.time, taskDate);
-      // Consider the task active for an hour after start
-      const oneHourLater = new Date(taskTime);
-      oneHourLater.setHours(oneHourLater.getHours() + 1);
-      return now >= taskTime && now <= oneHourLater;
-   }
-   
-   return false;
-}
-
-/**
- * Generates dates for Weekly frequency until the end of the month
- */
-function generateWeeklyDates(startDateString) {
-   const startDate = parseDate(startDateString);
-   const [, month, year] = startDateString.split('.');
-   const startMonth = parseInt(month, 10) - 1;
-   const startYear = parseInt(year, 10);
-   
-   const dates = [];
-   
-   // Add the start date
-   dates.push(startDateString);
-   
-   // Add each week until the end of the month
-   let currentDate = new Date(startDate);
-   currentDate.setDate(currentDate.getDate() + 7);
-   
-   while (currentDate.getMonth() === startMonth && currentDate.getFullYear() === startYear) {
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const year = currentDate.getFullYear();
-      dates.push(`${day}.${month}.${year}`);
-      currentDate.setDate(currentDate.getDate() + 7);
-   }
-   
-   return dates;
 }
 
 /**
@@ -513,55 +457,6 @@ export function formatTaskForCalendar(task) {
 }
 
 /**
- * Filters tasks by search query (title or description)
- */
-export function filterTasksBySearch(tasks, searchQuery) {
-   if (!searchQuery || searchQuery.trim() === '') {
-      return tasks;
-   }
-
-   const query = searchQuery.toLowerCase().trim();
-   return tasks.filter(task => {
-      const name = task.name?.toLowerCase() || '';
-      const description = task.description?.toLowerCase() || '';
-      return name.includes(query) || description.includes(query);
-   });
-}
-
-/**
- * Filters tasks by selected tags
- */
-export function filterTasksByTags(tasks, selectedTags) {
-   if (!selectedTags || selectedTags.length === 0) {
-      return tasks;
-   }
-
-   return tasks.filter(task => {
-      const taskTag = task.tagText || '';
-      return selectedTags.includes(taskTag);
-   });
-}
-
-/**
- * Applies all filters to tasks
- */
-export function applyTaskFilters(tasks, searchQuery, selectedTags) {
-   let filteredTasks = tasks;
-
-   // Apply search
-   if (searchQuery && searchQuery.trim() !== '') {
-      filteredTasks = filterTasksBySearch(filteredTasks, searchQuery);
-   }
-
-   // Apply filters by tags
-   if (selectedTags && selectedTags.length > 0) {
-      filteredTasks = filterTasksByTags(filteredTasks, selectedTags);
-   }
-
-   return filteredTasks;
-}
-
-/**
  * Deletes task by ID
  */
 export async function deleteTask(taskId) {
@@ -823,65 +718,6 @@ export async function updateTask(taskId, taskData) {
 }
 
 /**
- * Checks if task can be marked as completed
- * Can be marked from start of execution to 30 minutes after end
- */
-export function canMarkTaskAsCompleted(task) {
-   const now = new Date();
-   const taskDate = parseDate(task.date);
-   
-   // Check that task is today or in the past
-   const today = new Date();
-   today.setHours(0, 0, 0, 0);
-   const taskDateOnly = new Date(taskDate);
-   taskDateOnly.setHours(0, 0, 0, 0);
-   
-   if (taskDateOnly > today) {
-      return { canMark: false, reason: 'future' };
-   }
-   
-   if (task.timeDilation && task.fromTime && task.toTime) {
-      const fromTime = parseTime(task.fromTime, taskDate);
-      const toTime = parseTime(task.toTime, taskDate);
-      
-      // Can be marked from start to 30 minutes after end
-      const deadline = new Date(toTime);
-      deadline.setMinutes(deadline.getMinutes() + 30);
-      
-      if (now < fromTime) {
-         return { canMark: false, reason: 'too_early', timeLeft: fromTime - now };
-      }
-      
-      if (now > deadline) {
-         return { canMark: false, reason: 'expired' };
-      }
-      
-      return { canMark: true };
-   } else if (task.time) {
-      const taskTime = parseTime(task.time, taskDate);
-      // Count one hour for execution
-      const taskEndTime = new Date(taskTime);
-      taskEndTime.setHours(taskEndTime.getHours() + 1);
-      const deadline = new Date(taskEndTime);
-      deadline.setMinutes(deadline.getMinutes() + 30);
-      
-      // Can be marked from start to 30 minutes after end
-      if (now < taskTime) {
-         return { canMark: false, reason: 'too_early', timeLeft: taskTime - now };
-      }
-      
-      if (now > deadline) {
-         return { canMark: false, reason: 'expired' };
-      }
-      
-      return { canMark: true };
-   }
-   
-   // If no time, can be marked any moment on task day or later
-   return { canMark: true };
-}
-
-/**
  * Marks task as completed
  */
 export async function markTaskAsCompleted(taskId) {
@@ -1140,83 +976,3 @@ export async function autoMarkUncompletedTasks() {
    }
 }
 
-/**
- * Вспомогательная функция для определения, нужно ли отметить задачу как невыполненную
- */
-function shouldMarkTaskAsUncompleted(task, now) {
-   const taskDate = parseDate(task.date);
-   const today = new Date();
-   today.setHours(0, 0, 0, 0);
-   const taskDateOnly = new Date(taskDate);
-   taskDateOnly.setHours(0, 0, 0, 0);
-   
-   // Пропускаем будущие задачи
-   if (taskDateOnly > today) {
-      return false;
-   }
-   
-   // Проверяем время
-   let deadline;
-   if (task.timeDilation && task.fromTime && task.toTime) {
-      const toTime = parseTime(task.toTime, taskDate);
-      deadline = new Date(toTime);
-      deadline.setMinutes(deadline.getMinutes() + 30);
-   } else if (task.time) {
-      const taskTime = parseTime(task.time, taskDate);
-      const taskEndTime = new Date(taskTime);
-      taskEndTime.setHours(taskEndTime.getHours() + 1);
-      deadline = new Date(taskEndTime);
-      deadline.setMinutes(deadline.getMinutes() + 30);
-   } else {
-      // Если нет времени, отмечаем как невыполненную в конце дня
-      const endOfDay = new Date(taskDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      deadline = endOfDay;
-   }
-   
-   // Если прошло более 30 минут после окончания
-   return now > deadline;
-}
-
-/**
- * Проверяет, можно ли присоединиться к глобальному событию
- * Можно присоединиться до окончания события (до 30 минут после окончания)
- */
-export function canJoinEvent(task) {
-   const now = new Date();
-   const taskDate = parseDate(task.date);
-   
-   // Проверяем, что задача на сегодня или в прошлом
-   const today = new Date();
-   today.setHours(0, 0, 0, 0);
-   const taskDateOnly = new Date(taskDate);
-   taskDateOnly.setHours(0, 0, 0, 0);
-   
-   if (taskDateOnly > today) {
-      return { canJoin: true }; // Будущие задачи - можно присоединиться
-   }
-   
-   // Проверяем время
-   let deadline;
-   if (task.timeDilation && task.fromTime && task.toTime) {
-      const toTime = parseTime(task.toTime, taskDate);
-      deadline = new Date(toTime);
-      deadline.setMinutes(deadline.getMinutes() + 30);
-   } else if (task.time) {
-      const taskTime = parseTime(task.time, taskDate);
-      const taskEndTime = new Date(taskTime);
-      taskEndTime.setHours(taskEndTime.getHours() + 1);
-      deadline = new Date(taskEndTime);
-      deadline.setMinutes(deadline.getMinutes() + 30);
-   } else {
-      // Если нет времени, можно присоединиться в любой момент в день задачи
-      return { canJoin: true };
-   }
-   
-   // Если прошло более 30 минут после окончания - нельзя присоединиться
-   if (now > deadline) {
-      return { canJoin: false, reason: 'expired' };
-   }
-   
-   return { canJoin: true };
-}
