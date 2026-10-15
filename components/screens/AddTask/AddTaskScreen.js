@@ -17,7 +17,7 @@ import ColorPickerModal from './ColorPickerModal';
 import TagPickerModal from './TagPickerModal';
 import { auth } from '../../../FireBaseConfig';
 import { addTask, updateTask, subscribeToUserTasks, isAdmin } from '../../../services/tasksService';
-import { compareDateStrings } from '../../../services/taskRules';
+import { compareDateStrings, isValidTime, isValidDateString } from '../../../services/taskRules';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { styles } from './AddTaskScreen.styles';
@@ -218,6 +218,17 @@ export default function AddTaskScreen({ navigation, route }) {
 
       if (timeDilation && (!fromTime.trim() || !toTime.trim())) {
          Alert.alert(t('task.alert.error'), t('task.alert.fromToRequired'));
+         return;
+      }
+
+      // Typed times must be real times, and a range must end after it starts
+      if (timeDilation ? !isValidTime(fromTime.trim()) || !isValidTime(toTime.trim()) : !isValidTime(taskTime.trim())) {
+         Alert.alert(t('task.alert.error'), t('task.alert.invalidTime'));
+         return;
+      }
+
+      if (timeDilation && fromTime.trim() >= toTime.trim()) {
+         Alert.alert(t('task.alert.error'), t('task.alert.timeRangeOrder'));
          return;
       }
 
@@ -674,7 +685,11 @@ export default function AddTaskScreen({ navigation, route }) {
                               style={[styles.addDateBtn, { backgroundColor: colors.primary }]}
                               onPress={() => {
                                  const dateToAdd = customDateInput.trim() || formatDate(selectedDate);
-                                 if (dateToAdd && !customDates.includes(dateToAdd)) {
+                                 if (!isValidDateString(dateToAdd)) {
+                                    Alert.alert(t('task.alert.error'), t('task.alert.invalidDate'));
+                                    return;
+                                 }
+                                 if (!customDates.includes(dateToAdd)) {
                                     setCustomDates([...customDates, dateToAdd].sort(compareDateStrings));
                                     setCustomDateInput('');
                                  }

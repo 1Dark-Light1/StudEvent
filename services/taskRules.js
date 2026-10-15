@@ -120,6 +120,20 @@ export function applyTaskFilters(tasks, searchQuery, selectedTags) {
    return filteredTasks;
 }
 
+/** 'HH:MM' with a real time of day (00:00-23:59). */
+export function isValidTime(value) {
+   const m = /^(\d{2}):(\d{2})$/.exec(value || '');
+   return !!m && Number(m[1]) < 24 && Number(m[2]) < 60;
+}
+
+/** 'DD.MM.YYYY' that is a real calendar date (no 31.02). */
+export function isValidDateString(value) {
+   const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value || '');
+   if (!m) return false;
+   const date = parseDate(value);
+   return date.getDate() === Number(m[1]) && date.getMonth() === Number(m[2]) - 1;
+}
+
 /** Task day in ms: dateTimestamp, or the date string for tasks saved without it. */
 export function taskDateMillis(task) {
    if (task.dateTimestamp?.toMillis) return task.dateTimestamp.toMillis();

@@ -12,6 +12,8 @@ import {
    canJoinEvent,
    compareTasksByDateTime,
    compareDateStrings,
+   isValidTime,
+   isValidDateString,
 } from '../services/taskRules.js';
 
 // "Now" is Thursday 15.10.2026 12:00 local time in every test
@@ -99,4 +101,11 @@ test('dates and times are shown in the app language', async () => {
    assert.equal(formatDisplayTime('13:05', 'en'), '1:05 PM');
    assert.equal(formatDisplayTime('13:00-14:30', 'pl'), '13:00 - 14:30');
    assert.equal(formatDisplayTime('', 'uk'), '');
+});
+
+test('time and date inputs are validated', () => {
+   for (const ok of ['00:00', '09:05', '23:59']) assert.equal(isValidTime(ok), true, ok);
+   for (const bad of ['9', '9:05', '24:00', '12:60', '', undefined]) assert.equal(isValidTime(bad), false, String(bad));
+   for (const ok of ['15.10.2026', '29.02.2028']) assert.equal(isValidDateString(ok), true, ok);
+   for (const bad of ['31.02.2026', '29.02.2027', '15/10/2026', '1.1.2026', 'abc', '']) assert.equal(isValidDateString(bad), false, bad);
 });
