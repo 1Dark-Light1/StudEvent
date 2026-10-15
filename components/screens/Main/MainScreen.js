@@ -399,20 +399,18 @@ export default function Main({ navigation, route }) {
          <ScrollView 
             contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]} 
             showsVerticalScrollIndicator={false}
-            style={[styles.scrollView, { backgroundColor: colors.background }]}
-            bounces={true}
-            alwaysBounceVertical={false}
+            style={[styles.scrollView, { backgroundColor: colors.heroGradient[0] }]}
+            alwaysBounceVertical
             refreshControl={
                <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
                   colors={[colors.primary]}
-                  tintColor={colors.primary}
+                  tintColor="#fff"
                   progressViewOffset={Platform.OS === 'ios' ? 100 : 0}
                />
             }
          >
-            <View style={[styles.topBounceBackground, { backgroundColor: colors.heroGradient[0] }]} />
             <LinearGradient colors={colors.heroGradient} style={styles.hero}>
                <View style={styles.headerRow}>
 
@@ -645,13 +643,6 @@ const styles = StyleSheet.create({
    },
    scrollView: {
       flex: 1,
-   },
-   topBounceBackground: {
-      position: 'absolute',
-      top: -1000,
-      left: 0,
-      right: 0,
-      height: 1000,
    },
    hero: {
       borderBottomLeftRadius: 38,

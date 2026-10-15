@@ -166,7 +166,7 @@ export default function UserCalendar({ navigation, route }) {
    const isToday = activeDay.dateString === todayDateString;
    const headerLabel = isToday ? t('calendar.today') : activeDay.label;
 
-   // Горизонтальный свайп по всему экрану календаря для переключения недель
+   // Horizontal swipe on the day strip switches weeks
    const panResponder = useRef(
       PanResponder.create({
          onMoveShouldSetPanResponder: (_evt, gestureState) => {
@@ -376,7 +376,7 @@ export default function UserCalendar({ navigation, route }) {
    };
 
    return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]} {...panResponder.panHandlers}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
          <ScrollView 
             contentContainerStyle={styles.scroll} 
             showsVerticalScrollIndicator={false}
@@ -407,7 +407,7 @@ export default function UserCalendar({ navigation, route }) {
 
             </View>
 
-            <View style={[styles.dayStrip, { backgroundColor: colors.cardBackground }]}>
+            <View style={[styles.dayStrip, { backgroundColor: colors.cardBackground }]} {...panResponder.panHandlers}>
                {stripDays.map((day) => {
                   const isActive = day.dateString === activeDate;
                   const isTodayDate = day.dateString === todayDateString;
