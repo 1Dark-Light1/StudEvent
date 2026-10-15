@@ -65,12 +65,8 @@ export default function Login({ navigation }) {
 		try {
 			await signInWithEmailAndPassword(auth, email.trim(), password);
 			await setRememberLogin(remember);
-			Alert.alert(t('auth.login.alert.successTitle'), t('auth.login.alert.successBody'), [
-				{
-					text: t('common.ok'),
-					onPress: () => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }),
-				},
-			]);
+			// straight to Home; Login is replaced so it is not kept behind it
+			navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
 		} catch (error) {
 			console.log('Login error:', error);
 			Alert.alert(
