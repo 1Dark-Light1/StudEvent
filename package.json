@@ -12,7 +12,8 @@
     "build:apk:production": "eas build --platform android --profile production",
     "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project demo-studevent \"node --test tests/firestore.rules.test.mjs\"",
     "lint": "eslint .",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/taskRules.test.mjs"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/taskRules.test.mjs",
+    "cleanup:db": "node scripts/cleanup-db.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
     "eslint": "^9.39.5",
-    "eslint-config-expo": "~57.0.2"
+    "eslint-config-expo": "~57.0.2",
+    "firebase-admin": "^14.5.0"
   }
 }
