@@ -8,6 +8,7 @@
  *   Dry run (only reports):  node scripts/cleanup-db.mjs <path-to-key.json>
  *   Delete:                  node scripts/cleanup-db.mjs <path-to-key.json> --apply
  *   Also all past tasks:     add --past-tasks (tasks and events dated before today)
+ *   Keep only some accounts: add --keep-only=a@x.com,b@y.com (deletes the other accounts and their data)
  */
 import { readFileSync } from 'node:fs';
 import { initializeApp, cert } from 'firebase-admin/app';
@@ -16,11 +17,13 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 const [keyPath, ...flags] = process.argv.slice(2);
 if (!keyPath) {
-   console.error('Usage: node scripts/cleanup-db.mjs <service-account-key.json> [--apply] [--past-tasks]');
+   console.error('Usage: node scripts/cleanup-db.mjs <service-account-key.json> [--apply] [--past-tasks] [--keep-only=emails]');
    process.exit(1);
 }
 const apply = flags.includes('--apply');
 const pastTasks = flags.includes('--past-tasks');
+// --keep-only=a@x.com,b@y.com: delete every other Auth account (and then all its data)
+const keepOnly = flags.find((f) => f.startsWith('--keep-only='))?.slice('--keep-only='.length).split(',').map((e) => e.trim().toLowerCase());
 
 // 'DD.MM.YYYY' before today (local time)
 const startOfToday = new Date();
@@ -33,14 +36,28 @@ const isPast = (dateString) => {
 initializeApp({ credential: cert(JSON.parse(readFileSync(keyPath, 'utf8'))) });
 const db = getFirestore();
 
-// ---- existing accounts
+// ---- existing accounts (accounts to remove with --keep-only count as already deleted)
 const existingUids = new Set();
+const accountsToDelete = [];
 let pageToken;
 do {
    const page = await getAuth().listUsers(1000, pageToken);
-   page.users.forEach((user) => existingUids.add(user.uid));
+   for (const user of page.users) {
+      if (keepOnly && !keepOnly.includes((user.email || '').toLowerCase())) accountsToDelete.push(user);
+      else existingUids.add(user.uid);
+   }
    pageToken = page.pageToken;
 } while (pageToken);
+
+if (keepOnly) {
+   // every listed email must exist, otherwise a typo would delete an account that should stay
+   if (existingUids.size !== keepOnly.length) {
+      console.error(`--keep-only matched ${existingUids.size} of ${keepOnly.length} emails; check the addresses.`);
+      process.exit(1);
+   }
+   console.log(`Accounts to delete from Auth: ${accountsToDelete.length}`);
+   for (const user of accountsToDelete) console.log(`  - ${user.email || user.uid}`);
+}
 
 const deletes = []; // { ref, reason }
 const updates = []; // { ref, data, reason }
@@ -114,4 +131,7 @@ for (let i = 0; i < writes.length; i += 500) {
    writes.slice(i, i + 500).forEach((write) => write(batch));
    await batch.commit();
 }
-console.log(`\nDone: deleted ${deletes.length}, updated ${updates.length} documents.`);
+if (accountsToDelete.length) {
+   await getAuth().deleteUsers(accountsToDelete.map((user) => user.uid));
+}
+console.log(`\nDone: deleted ${deletes.length}, updated ${updates.length} documents, ${accountsToDelete.length} accounts.`);
