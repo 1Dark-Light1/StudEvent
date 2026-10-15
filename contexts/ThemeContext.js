@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'studevent.theme';
@@ -84,6 +85,11 @@ export function ThemeProvider({ children }) {
       // storage failures shouldn't block theme changes
     }
   }, []);
+
+  // Native UI (date pickers, alerts, keyboard) follows the app theme, not the system one
+  useEffect(() => {
+    Appearance.setColorScheme?.(theme);
+  }, [theme]);
 
   const isDark = theme === 'dark';
   const colors = isDark ? darkColors : lightColors;

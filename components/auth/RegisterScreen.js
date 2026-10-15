@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '../ui/Header';
 import { auth } from '../../FireBaseConfig';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -192,17 +192,6 @@ export default function Register({ navigation }) {
 					</Text>
 				</View>
 
-				<View style={styles.socialRow}>
-					<SocialIcon bg="#FFFFFF" onPress={() => { }}>
-						<FontAwesome name="google" size={22} color="#DB4437" />
-					</SocialIcon>
-					<SocialIcon bg="#FFFFFF" onPress={() => { }}>
-						<FontAwesome name="facebook" size={22} color="#1877F2" />
-					</SocialIcon>
-					<SocialIcon bg="#FFFFFF" onPress={() => { }}>
-						<FontAwesome name="apple" size={24} color="#111" />
-					</SocialIcon>
-				</View>
 			</View>
 		</LinearGradient>
 	);
@@ -261,18 +250,6 @@ function CheckboxRow({ checked, onToggle, label }) {
 	);
 }
 
-/**
- * Placeholder for future single-sign-on providers. Keeps layout predictable today
- * and makes adding Google/Facebook flows trivial later.
- */
-function SocialIcon({ children, bg = '#fff', onPress }) {
-	return (
-		<Pressable style={({ pressed }) => [styles.socialBtn, { backgroundColor: bg }, pressed && { opacity: 0.9 }]} onPress={onPress}>
-			{children}
-		</Pressable>
-	);
-}
-
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
@@ -283,7 +260,7 @@ const styles = StyleSheet.create({
 	header: { marginBottom: 16 },
 	card: {
 		width: '100%',
-		height: '100%',
+		flex: 1,
 		backgroundColor: '#F2F7FB',
 		borderRadius: 25,
 		paddingVertical: 23,
@@ -384,19 +361,6 @@ const styles = StyleSheet.create({
 	link: {
 		color: '#2F7BFF',
 		fontWeight: '600',
-	},
-	socialRow: {
-		flexDirection: 'row',
-		gap: 28,
-		justifyContent: 'center',
-		marginBottom: 170,
-	},
-	socialBtn: {
-		width: 52,
-		height: 52,
-		borderRadius: 26,
-		alignItems: 'center',
-		justifyContent: 'center',
 	},
 });
 
