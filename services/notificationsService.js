@@ -8,7 +8,8 @@ import { saveMessage } from './messagesService';
 // Notification handler configuration
 Notifications.setNotificationHandler({
    handleNotification: async () => ({
-      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
    }),
