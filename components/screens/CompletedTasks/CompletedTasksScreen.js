@@ -29,8 +29,7 @@ function TaskToggle({ activeTab, onTabChange, t, colors }) {
             <Text 
                style={[
                   styles.toggleText,
-                  { color: activeTab === 'completed' ? colors.text : '#fff' },
-                  activeTab === 'completed' && styles.toggleTextActive
+                  { color: activeTab === 'completed' ? colors.text : '#fff' }
                ]}
                numberOfLines={1}
                adjustsFontSizeToFit={true}
@@ -46,8 +45,7 @@ function TaskToggle({ activeTab, onTabChange, t, colors }) {
             <Text 
                style={[
                   styles.toggleText,
-                  { color: activeTab === 'uncompleted' ? colors.text : '#fff' },
-                  activeTab === 'uncompleted' && styles.toggleTextActive
+                  { color: activeTab === 'uncompleted' ? colors.text : '#fff' }
                ]}
                numberOfLines={1}
                adjustsFontSizeToFit={true}
@@ -242,7 +240,7 @@ export default function CompletedTasks({ navigation, route }) {
                      const dateTasks = tasksByDate[dateKey];
                      return (
                         <View key={dateKey} style={styles.dateGroup}>
-                           <Text style={styles.dateLabel}>
+                           <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
                               {dateKey === 'no-date' 
                                  ? t('completed.noDate') 
                                  : formatDateForDisplay(dateKey, t)}
@@ -362,9 +360,6 @@ const styles = StyleSheet.create({
       fontSize: 15,
       color: '#FFFFFF',
       fontWeight: '600',
-   },
-   toggleTextActive: {
-      color: '#000000',
    },
    loadingContainer: {
       alignItems: 'center',

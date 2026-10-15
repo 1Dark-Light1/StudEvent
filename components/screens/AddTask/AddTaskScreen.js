@@ -22,7 +22,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function AddTaskScreen({ navigation, route }) {
    const { t } = useI18n();
-   const { colors } = useTheme();
+   const { colors, isDark } = useTheme();
    const [mode, setMode] = useState('build'); // 'build' or 'change'
    const [name, setName] = useState('');
    const [description, setDescription] = useState('');
@@ -635,8 +635,8 @@ export default function AddTaskScreen({ navigation, route }) {
                      <Pressable
                         style={[
                            styles.frequencyBtn,
-                           { backgroundColor: colors.iconBg },
-                           frequency === 'once' && [styles.frequencyBtnActive, { backgroundColor: colors.primary }]
+                           { backgroundColor: colors.iconBg, borderColor: colors.border },
+                           frequency === 'once' && [styles.frequencyBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]
                         ]}
                         onPress={() => setFrequency('once')}
                      >
@@ -653,8 +653,8 @@ export default function AddTaskScreen({ navigation, route }) {
                      <Pressable
                         style={[
                            styles.frequencyBtn,
-                           { backgroundColor: colors.iconBg },
-                           frequency === 'weekly' && [styles.frequencyBtnActive, { backgroundColor: colors.primary }]
+                           { backgroundColor: colors.iconBg, borderColor: colors.border },
+                           frequency === 'weekly' && [styles.frequencyBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]
                         ]}
                         onPress={() => setFrequency('weekly')}
                      >
@@ -671,8 +671,8 @@ export default function AddTaskScreen({ navigation, route }) {
                      <Pressable
                         style={[
                            styles.frequencyBtn,
-                           { backgroundColor: colors.iconBg },
-                           frequency === 'custom' && [styles.frequencyBtnActive, { backgroundColor: colors.primary }]
+                           { backgroundColor: colors.iconBg, borderColor: colors.border },
+                           frequency === 'custom' && [styles.frequencyBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]
                         ]}
                         onPress={() => setFrequency('custom')}
                      >
@@ -757,8 +757,8 @@ export default function AddTaskScreen({ navigation, route }) {
          {/* Action buttons - fixed above bottom nav */}
          {(mode === 'build' || (mode === 'change' && selectedTaskId)) && (
             <View style={styles.fixedActionRow}>
-               <Pressable style={styles.clearBtn} onPress={handleClear}>
-                  <Text style={styles.clearText}>{t('task.clear')}</Text>
+               <Pressable style={[styles.clearBtn, { backgroundColor: colors.iconBg }]} onPress={handleClear}>
+                  <Text style={[styles.clearText, { color: colors.textSecondary }]}>{t('task.clear')}</Text>
                </Pressable>
                <Pressable 
                   style={[styles.addBtn, { backgroundColor: colors.primary }, isLoading && styles.addBtnDisabled]} 
@@ -783,12 +783,12 @@ export default function AddTaskScreen({ navigation, route }) {
                onRequestClose={() => setShowDatePicker(false)}
             >
                <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
-                     <View style={styles.modalHeader}>
+                  <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                     <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
                         <Pressable onPress={() => setShowDatePicker(false)}>
-                           <Text style={styles.modalCancel}>{t('task.cancel')}</Text>
+                           <Text style={[styles.modalCancel, { color: colors.textSecondary }]}>{t('task.cancel')}</Text>
                         </Pressable>
-                        <Text style={styles.modalTitle}>{t('task.selectDate')}</Text>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('task.selectDate')}</Text>
                         <Pressable
                            onPress={() => {
                               setTaskDate(formatDate(selectedDate));
@@ -802,6 +802,7 @@ export default function AddTaskScreen({ navigation, route }) {
                         value={selectedDate}
                         mode="date"
                         display="spinner"
+                        themeVariant={isDark ? 'dark' : 'light'}
                         onChange={onDateChange}
                         style={styles.datePicker}
                      />
@@ -829,12 +830,12 @@ export default function AddTaskScreen({ navigation, route }) {
                onRequestClose={() => setShowCustomDatePicker(false)}
             >
                <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
-                     <View style={styles.modalHeader}>
+                  <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                     <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
                         <Pressable onPress={() => setShowCustomDatePicker(false)}>
-                           <Text style={styles.modalCancel}>{t('task.cancel')}</Text>
+                           <Text style={[styles.modalCancel, { color: colors.textSecondary }]}>{t('task.cancel')}</Text>
                         </Pressable>
-                        <Text style={styles.modalTitle}>{t('task.selectDate')}</Text>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('task.selectDate')}</Text>
                         <Pressable
                            onPress={() => {
                               setCustomDateInput(formatDate(selectedDate));
@@ -848,6 +849,7 @@ export default function AddTaskScreen({ navigation, route }) {
                         value={selectedDate}
                         mode="date"
                         display="spinner"
+                        themeVariant={isDark ? 'dark' : 'light'}
                         onChange={(event, date) => {
                            if (Platform.OS === 'android') {
                               setShowCustomDatePicker(false);

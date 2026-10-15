@@ -44,14 +44,14 @@ const darkColors = {
   textSecondary: '#a0a8b8',
   textMuted: '#6b7280',
   border: '#2a2f3e',
-  cardBackground: 'rgba(31, 36, 50, 0.6)', // Semi-transparent for Liquid Glass effect
+  cardBackground: '#1f2432',
   heroGradient: ['#2d4a6b', '#1a2f4a'],
   heroGradientSettings: ['#1a2332', '#0f1419'],
   shadow: '#000',
   error: '#ff5252',
   success: '#66bb6a',
   avatarBg: '#2a3441',
-  iconBg: 'rgba(37, 42, 56, 0.8)', // Slightly more transparent
+  iconBg: '#252a38',
   todayHighlight: '#1e3a5f',
 };
 
