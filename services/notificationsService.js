@@ -299,7 +299,16 @@ const syncedTasks = new Map();
 // the last full task list, to reschedule after a settings change
 let lastSyncedTasks = [];
 
-export async function syncTaskNotifications(tasks) {
+let syncQueue = Promise.resolve();
+
+export function syncTaskNotifications(tasks) {
+   // several screens subscribe at once; one sync at a time, so they do not race
+   // (e.g. two of them announcing the same new event)
+   syncQueue = syncQueue.then(() => runSync(tasks)).catch((error) => console.error('Error syncing notifications:', error));
+   return syncQueue;
+}
+
+async function runSync(tasks) {
    const user = auth.currentUser;
    if (!user) return;
    lastSyncedTasks = tasks;
@@ -394,7 +403,8 @@ async function cancelNotificationsOfMissingTasks(tasks) {
  * The first check on a device only remembers the existing events.
  */
 async function announceNewGlobalTasks(tasks, uid) {
-   const key = `@seen_global_tasks_${uid}`;
+   // v2: v1 was emptied by partial task lists, which re-announced every event
+   const key = `@seen_global_tasks_v2_${uid}`;
    try {
       const globals = tasks.filter((task) => task.isGlobal);
       const seenJson = await AsyncStorage.getItem(key);

@@ -161,10 +161,13 @@ export async function addTask(taskData) {
  * Listens to the user's own tasks and to global tasks, and calls back with both
  * lists merged (no duplicates) and sorted, as soon as either query has loaded.
  * A failing query counts as empty, so the other one is still shown.
+ * The second callback argument says whether the list is complete: both queries
+ * loaded without an error (a partial list must not be treated as "everything").
  */
 function subscribeToOwnAndGlobal(ownQuery, globalQuery, { ownWithoutGlobal }, callback) {
    let own = null;
    let global = null;
+   let failed = false;
    const toTasks = (snapshot) => snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
    const emit = () => {
@@ -173,7 +176,7 @@ function subscribeToOwnAndGlobal(ownQuery, globalQuery, { ownWithoutGlobal }, ca
       for (const task of global || []) {
          if (!ids.has(task.id)) tasks.push(task);
       }
-      callback(tasks.sort(compareTasksByDateTime));
+      callback(tasks.sort(compareTasksByDateTime), { complete: own !== null && global !== null && !failed });
    };
 
    const unsubscribeOwn = onSnapshot(ownQuery, (snapshot) => {
@@ -181,6 +184,7 @@ function subscribeToOwnAndGlobal(ownQuery, globalQuery, { ownWithoutGlobal }, ca
       emit();
    }, (error) => {
       console.error('Error subscribing to own tasks:', error);
+      failed = true;
       own = [];
       emit();
    });
@@ -190,6 +194,7 @@ function subscribeToOwnAndGlobal(ownQuery, globalQuery, { ownWithoutGlobal }, ca
       emit();
    }, (error) => {
       console.error('Error subscribing to global tasks:', error);
+      failed = true;
       global = [];
       emit();
    });
@@ -215,9 +220,10 @@ export function subscribeToUserTasks(callback) {
       query(collection(db, 'tasks'), where('userId', '==', user.uid)),
       query(collection(db, 'tasks'), where('isGlobal', '==', true)),
       { ownWithoutGlobal: false },
-      (tasks) => {
-         // Reminders are synced in the background; the list is shown right away
-         syncTaskNotifications(tasks).catch((error) => console.error('Error syncing notifications:', error));
+      (tasks, { complete }) => {
+         // Reminders are synced in the background, and only for the complete list:
+         // with a partial one, the missing tasks would look deleted or new
+         if (complete) syncTaskNotifications(tasks).catch((error) => console.error('Error syncing notifications:', error));
          callback(tasks);
       }
    );
