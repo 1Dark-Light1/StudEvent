@@ -42,3 +42,4 @@ yarn-error.*
 
 # firebase emulator
 firestore-debug.log
+.claude/
