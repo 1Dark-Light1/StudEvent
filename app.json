@@ -43,7 +43,8 @@
           "icon": "./assets/logo.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }
