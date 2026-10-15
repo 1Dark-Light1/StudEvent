@@ -23,7 +23,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { styles } from './AddTaskScreen.styles';
 
 export default function AddTaskScreen({ navigation, route }) {
-   const { t, tagLabel } = useI18n();
+   const { t, tagLabel, errorText } = useI18n();
    const { colors, isDark } = useTheme();
    const [mode, setMode] = useState('build'); // 'build' or 'change'
    const [name, setName] = useState('');
@@ -282,7 +282,7 @@ export default function AddTaskScreen({ navigation, route }) {
          }
       } catch (error) {
          console.error('Error with task:', error);
-         Alert.alert(t('task.alert.error'), error.message || t('task.alert.failed'));
+         Alert.alert(t('task.alert.error'), errorText(error, 'task.alert.failed'));
       } finally {
          setIsLoading(false);
       }

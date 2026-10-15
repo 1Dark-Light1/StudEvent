@@ -49,7 +49,7 @@ function formatDateForDisplay(dateString, t) {
 }
 
 export default function EventDetailsModal({ visible, event, onClose, onDelete }) {
-   const { t, tagLabel } = useI18n();
+   const { t, tagLabel, errorText } = useI18n();
    const { colors, isDark } = useTheme();
    // Light styles plus their dark-theme override, if any
    const st = (name) => (isDark && darkStyles[name] ? [styles[name], darkStyles[name]] : styles[name]);
@@ -217,16 +217,16 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
             if (result.success) {
                setIsJoined(false);
                setParticipantsCount(prev => Math.max(0, prev - 1));
-               Alert.alert(t('event.success'), result.message);
+               Alert.alert(t('event.success'), t(result.messageKey));
             }
          } else {
             const result = await joinEvent(event.id);
             if (result.success) {
                setIsJoined(true);
                setParticipantsCount(prev => prev + 1);
-               Alert.alert(t('event.success'), result.message);
+               Alert.alert(t('event.success'), t(result.messageKey));
             } else {
-               Alert.alert(t('event.info'), result.message);
+               Alert.alert(t('event.info'), t(result.messageKey));
             }
          }
       } catch {
@@ -318,7 +318,7 @@ export default function EventDetailsModal({ visible, event, onClose, onDelete })
          await loadTaskCompletionStatus();
       } catch (error) {
          console.error('Error marking task:', error);
-         Alert.alert(t('event.error'), error.message || t('event.errorMessage'));
+         Alert.alert(t('event.error'), errorText(error, 'event.errorMessage'));
       } finally {
          setIsMarkingTask(false);
       }

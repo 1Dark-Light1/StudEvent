@@ -69,6 +69,13 @@ onAuthStateChanged(auth, async (user) => {
    }
 });
 
+/** Error whose code the UI translates (see errors.* keys in translations). */
+function appError(code, message) {
+   const error = new Error(message);
+   error.code = code;
+   return error;
+}
+
 /**
  * Checks if the current user is an admin
  */
@@ -84,7 +91,7 @@ export async function addTask(taskData) {
    try {
       const user = auth.currentUser;
       if (!user) {
-         throw new Error('User not authenticated');
+         throw appError('not-signed-in', 'User not authenticated');
       }
 
       const datesToAdd = [];
@@ -416,7 +423,7 @@ export async function deleteTask(taskId) {
    try {
       const user = auth.currentUser;
       if (!user) {
-         throw new Error('User not authenticated');
+         throw appError('not-signed-in', 'User not authenticated');
       }
 
       // Delete notifications before deleting task
@@ -443,7 +450,7 @@ export async function joinEvent(taskId) {
    try {
       const user = auth.currentUser;
       if (!user) {
-         throw new Error('User not authenticated');
+         throw appError('not-signed-in', 'User not authenticated');
       }
 
       const taskRef = doc(db, 'tasks', taskId);
@@ -451,7 +458,7 @@ export async function joinEvent(taskId) {
       // Get event data
       const taskSnap = await getDoc(taskRef);
       if (!taskSnap.exists()) {
-         throw new Error('Event not found');
+         throw appError('not-found', 'Event not found');
       }
 
       const taskData = taskSnap.data();
@@ -459,7 +466,7 @@ export async function joinEvent(taskId) {
       
       // Check if user is already joined
       if (participants.includes(user.uid)) {
-         return { success: false, message: 'Już dołączyłeś do tego wydarzenia' };
+         return { success: false, messageKey: 'event.alreadyJoined' };
       }
 
       // Add user to participants
@@ -483,7 +490,7 @@ export async function joinEvent(taskId) {
          );
       }
 
-      return { success: true, message: 'Pomyślnie dołączono do wydarzenia!' };
+      return { success: true, messageKey: 'event.joined' };
    } catch (error) {
       console.error('Error joining event:', error);
       throw error;
@@ -498,14 +505,14 @@ export async function leaveEvent(taskId) {
    try {
       const user = auth.currentUser;
       if (!user) {
-         throw new Error('User not authenticated');
+         throw appError('not-signed-in', 'User not authenticated');
       }
 
       const taskRef = doc(db, 'tasks', taskId);
       const taskSnap = await getDoc(taskRef);
       
       if (!taskSnap.exists()) {
-         throw new Error('Event not found');
+         throw appError('not-found', 'Event not found');
       }
 
       const taskData = taskSnap.data();
@@ -545,7 +552,7 @@ export async function leaveEvent(taskId) {
          }
       }
 
-      return { success: true, message: 'Opuściłeś wydarzenie' };
+      return { success: true, messageKey: 'event.left' };
    } catch (error) {
       console.error('Error leaving event:', error);
       throw error;
@@ -608,7 +615,7 @@ export async function updateTask(taskId, taskData) {
    try {
       const user = auth.currentUser;
       if (!user) {
-         throw new Error('User not authenticated');
+         throw appError('not-signed-in', 'User not authenticated');
       }
 
       const taskRef = doc(db, 'tasks', taskId);
@@ -616,7 +623,7 @@ export async function updateTask(taskId, taskData) {
       // Check task existence
       const taskSnap = await getDoc(taskRef);
       if (!taskSnap.exists()) {
-         throw new Error('Task not found');
+         throw appError('not-found', 'Task not found');
       }
 
       const taskDataFromDb = taskSnap.data();
@@ -625,12 +632,12 @@ export async function updateTask(taskId, taskData) {
 
       // If task is admin's, only admin can edit it
       if (isTaskGlobal && !userIsAdmin) {
-         throw new Error('Only admin can edit global tasks');
+         throw appError('admin-only', 'Only admin can edit global tasks');
       }
 
       // If task is not admin's, check that user is the owner
       if (!isTaskGlobal && taskDataFromDb.userId !== user.uid) {
-         throw new Error('You can only edit your own tasks');
+         throw appError('not-owner', 'You can only edit your own tasks');
       }
 
       // Update data
@@ -677,14 +684,14 @@ export async function markTaskAsCompleted(taskId) {
    try {
       const user = auth.currentUser;
       if (!user) {
-         throw new Error('User not authenticated');
+         throw appError('not-signed-in', 'User not authenticated');
       }
 
       const taskRef = doc(db, 'tasks', taskId);
       const taskSnap = await getDoc(taskRef);
       
       if (!taskSnap.exists()) {
-         throw new Error('Task not found');
+         throw appError('not-found', 'Task not found');
       }
 
       const taskData = taskSnap.data();
@@ -695,12 +702,12 @@ export async function markTaskAsCompleted(taskId) {
          // Для глобальных задач проверяем, присоединен ли пользователь
          const participants = taskData.participants || [];
          if (!participants.includes(user.uid)) {
-            throw new Error('You must join the event first');
+            throw appError('join-first', 'You must join the event first');
          }
       } else {
          // For regular tasks, check the owner
          if (taskData.userId !== user.uid) {
-            throw new Error('You can only mark your own tasks');
+            throw appError('not-owner', 'You can only mark your own tasks');
          }
       }
       
@@ -750,14 +757,14 @@ export async function markTaskAsUncompleted(taskId) {
    try {
       const user = auth.currentUser;
       if (!user) {
-         throw new Error('User not authenticated');
+         throw appError('not-signed-in', 'User not authenticated');
       }
 
       const taskRef = doc(db, 'tasks', taskId);
       const taskSnap = await getDoc(taskRef);
       
       if (!taskSnap.exists()) {
-         throw new Error('Task not found');
+         throw appError('not-found', 'Task not found');
       }
 
       const taskData = taskSnap.data();
@@ -768,7 +775,7 @@ export async function markTaskAsUncompleted(taskId) {
          // Для глобальных задач проверяем, присоединен ли пользователь
          const participants = taskData.participants || [];
          if (!participants.includes(user.uid)) {
-            throw new Error('You must join the event first');
+            throw appError('join-first', 'You must join the event first');
          }
          // Update status for current user
          await updateDoc(taskRef, {
@@ -781,7 +788,7 @@ export async function markTaskAsUncompleted(taskId) {
       } else {
          // For regular tasks, check the owner
          if (taskData.userId !== user.uid) {
-            throw new Error('You can only mark your own tasks');
+            throw appError('not-owner', 'You can only mark your own tasks');
          }
          await updateDoc(taskRef, {
             isCompleted: false,

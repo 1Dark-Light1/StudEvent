@@ -4,7 +4,7 @@
  * validation, consent gating and profile enrichment (display name) in one place.
  */
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert, Image, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../ui/Header';
@@ -22,7 +22,7 @@ const closedEyesIconReg = require('../../assets/closed-eyes.png');
 
 export default function Register({ navigation }) {
 	const { isDark } = useTheme();
-	const { t } = useI18n();
+	const { t, errorText } = useI18n();
 	const [firstName, setFirstName] = useState('');
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
@@ -119,7 +119,7 @@ export default function Register({ navigation }) {
 			console.log('Register error:', error);
 			Alert.alert(
 				t('auth.register.alert.errorTitle'),
-				error.message || t('auth.register.alert.errorFallback')
+				errorText(error, 'auth.register.alert.errorFallback')
 			);
 		}
 	};
@@ -129,7 +129,12 @@ export default function Register({ navigation }) {
 			<Header />
 
 			<View style={themed('card', isDark)}>
-				<View style={styles.cardContent}>
+				<ScrollView
+					style={styles.cardContent}
+					showsVerticalScrollIndicator={false}
+					keyboardShouldPersistTaps="handled"
+					automaticallyAdjustKeyboardInsets
+				>
 					<Text style={themed('cardTitle', isDark)}>{t('auth.register.title')}</Text>
 
 					<IconInput
@@ -192,8 +197,7 @@ export default function Register({ navigation }) {
 							{t('auth.register.login')}
 						</Text>
 					</Text>
-				</View>
-
+				</ScrollView>
 			</View>
 		</LinearGradient>
 	);

@@ -74,9 +74,20 @@ export function I18nProvider({ children }) {
     [locale]
   );
 
+  // App and Firebase errors have a code (e.g. 'admin-only', 'auth/invalid-credential');
+  // show its translation, or the fallback for unknown errors
+  const errorText = useCallback(
+    (error, fallbackKey) => {
+      const key = `errors.${error?.code}`;
+      const text = resolveString(locale, key);
+      return text === key ? resolveString(locale, fallbackKey) : text;
+    },
+    [locale]
+  );
+
   const value = useMemo(
-    () => ({ locale, setLocale, t, tagLabel, isReady }),
-    [locale, setLocale, t, tagLabel, isReady]
+    () => ({ locale, setLocale, t, tagLabel, errorText, isReady }),
+    [locale, setLocale, t, tagLabel, errorText, isReady]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

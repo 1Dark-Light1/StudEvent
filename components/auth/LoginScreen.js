@@ -4,7 +4,7 @@
  * input validation, Firebase Auth login and feedback banners.
  */
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert, Image, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../ui/Header';
@@ -22,7 +22,7 @@ const closedEyesIcon = require('../../assets/closed-eyes.png');
 
 export default function Login({ navigation }) {
 	const { isDark } = useTheme();
-	const { t } = useI18n();
+	const { t, errorText } = useI18n();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [remember, setRemember] = useState(true);
@@ -75,7 +75,7 @@ export default function Login({ navigation }) {
 			console.log('Login error:', error);
 			Alert.alert(
 				t('auth.login.alert.errorTitle'),
-				error.message || t('auth.login.alert.errorFallback')
+				errorText(error, 'auth.login.alert.errorFallback')
 			);
 		}
 	};
@@ -85,7 +85,12 @@ export default function Login({ navigation }) {
 			<Header />
 
 			<View style={themed('card', isDark)}>
-				<View style={styles.cardContent}>
+				<ScrollView
+					style={styles.cardContent}
+					showsVerticalScrollIndicator={false}
+					keyboardShouldPersistTaps="handled"
+					automaticallyAdjustKeyboardInsets
+				>
 					<Text style={themed('cardTitle', isDark)}>{t('auth.login.title')}</Text>
 
 					<IconInput
@@ -129,8 +134,7 @@ export default function Login({ navigation }) {
 							{t('auth.login.signup')}
 						</Text>
 					</Text>
-				</View>
-
+				</ScrollView>
 			</View>
 		</LinearGradient>
 	);
