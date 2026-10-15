@@ -7,18 +7,28 @@
  *
  *   Dry run (only reports):  node scripts/cleanup-db.mjs <path-to-key.json>
  *   Delete:                  node scripts/cleanup-db.mjs <path-to-key.json> --apply
+ *   Also all past tasks:     add --past-tasks (tasks and events dated before today)
  */
 import { readFileSync } from 'node:fs';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
-const [keyPath, flag] = process.argv.slice(2);
+const [keyPath, ...flags] = process.argv.slice(2);
 if (!keyPath) {
-   console.error('Usage: node scripts/cleanup-db.mjs <service-account-key.json> [--apply]');
+   console.error('Usage: node scripts/cleanup-db.mjs <service-account-key.json> [--apply] [--past-tasks]');
    process.exit(1);
 }
-const apply = flag === '--apply';
+const apply = flags.includes('--apply');
+const pastTasks = flags.includes('--past-tasks');
+
+// 'DD.MM.YYYY' before today (local time)
+const startOfToday = new Date();
+startOfToday.setHours(0, 0, 0, 0);
+const isPast = (dateString) => {
+   const [day, month, year] = String(dateString || '').split('.').map(Number);
+   return !!year && new Date(year, month - 1, day) < startOfToday;
+};
 
 initializeApp({ credential: cert(JSON.parse(readFileSync(keyPath, 'utf8'))) });
 const db = getFirestore();
@@ -51,6 +61,10 @@ for (const doc of (await db.collection('tasks').get()).docs) {
    const task = doc.data();
    if (gone(task.userId)) {
       deletes.push({ ref: doc.ref, reason: `${task.isGlobal ? 'global event' : 'task'} "${task.name}" of a deleted account` });
+      continue;
+   }
+   if (pastTasks && isPast(task.date)) {
+      deletes.push({ ref: doc.ref, reason: `past ${task.isGlobal ? 'global event' : 'task'} "${task.name}" (${task.date})` });
       continue;
    }
    taskIds.add(doc.id);
