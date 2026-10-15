@@ -8,8 +8,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Avatar from './Avatar';
 
+/** Mixes a #rrggbb color with white (0 = unchanged, 1 = white). */
+function lighten(hex, amount) {
+   const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+   if (!m) return hex;
+   const value = parseInt(m[1], 16);
+   const mix = (shift) => Math.round(((value >> shift) & 255) * (1 - amount) + 255 * amount);
+   return `rgb(${mix(16)}, ${mix(8)}, ${mix(0)})`;
+}
+
+/**
+ * Tag color fading to a lighter shade downwards. Opaque colors, so it looks the same
+ * on light and dark backgrounds (transparency made it darker in the dark theme).
+ */
+export function globalGradient(color) {
+   return [color, lighten(color, 0.12), lighten(color, 0.24), lighten(color, 0.36)];
+}
+
 export default function GlobalEventCard({ title, subtitle, color = '#2f7cff', participants = [], isJoined, large = false }) {
-   const gradient = [color, `${color}E6`, `${color}CC`, `${color}99`];
+   const gradient = globalGradient(color);
    const inset = large ? 18 : 14;
 
    return (

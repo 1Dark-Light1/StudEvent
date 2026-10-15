@@ -4,8 +4,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Animated, PanResponder } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
+import EmptyState from '../../ui/EmptyState';
+import { globalGradient } from '../../ui/GlobalEventCard';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getScheduledNotifications } from '../../../services/notificationsService';
@@ -197,11 +198,7 @@ export default function Alerts({ navigation, route }) {
                   <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('alerts.loading')}</Text>
                </View>
             ) : allMessages.sortedDates.length === 0 ? (
-               <View style={styles.emptyContainer}>
-                  <Ionicons name="notifications-off-outline" size={64} color={colors.textMuted} />
-                  <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('alerts.noNotifications')}</Text>
-                  <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>{t('alerts.noNotificationsDesc')}</Text>
-               </View>
+               <EmptyState icon="notifications-off-outline" title={t('alerts.noNotifications')} subtitle={t('alerts.noNotificationsDesc')} />
             ) : (
                <View style={styles.messagesContainer}>
                   {allMessages.sortedDates.map((dateKey) => {
@@ -288,7 +285,7 @@ function SwipeableMessageCard({ message, onHide, getNotificationTypeLabel, t }) 
    // Global tasks use the same gradient as on Home
    const adminTagColor = isGlobal ? (task.taskColor || colors.primary) : colors.primary;
    const adminGradientColors = isGlobal
-      ? [adminTagColor, `${adminTagColor}E6`, `${adminTagColor}CC`, `${adminTagColor}99`]
+      ? globalGradient(adminTagColor)
       : null;
 
    return (
@@ -371,21 +368,6 @@ const styles = StyleSheet.create({
    loadingText: {
       marginTop: 16,
       fontSize: 15,
-   },
-   emptyContainer: {
-      alignItems: 'center',
-      paddingVertical: 80,
-   },
-   emptyTitle: {
-      marginTop: 24,
-      fontSize: 20,
-      fontWeight: '600',
-      marginBottom: 8,
-   },
-   emptySubtitle: {
-      fontSize: 15,
-      textAlign: 'center',
-      paddingHorizontal: 40,
    },
    messagesContainer: {
       gap: 24,

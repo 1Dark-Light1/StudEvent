@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
    },
    filterSection: {
       marginTop: -12,
-      marginBottom: 16,
+      marginBottom: 0,
    },
    loadingContainer: {
       alignItems: 'center',

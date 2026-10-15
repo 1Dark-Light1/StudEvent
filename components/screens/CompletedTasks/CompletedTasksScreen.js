@@ -6,6 +6,7 @@ import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, Refre
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../navigation/BottomNav';
 import SegmentedToggle from '../../ui/SegmentedToggle';
+import EmptyState from '../../ui/EmptyState';
 import { subscribeToUserTasks, autoMarkUncompletedTasks } from '../../../services/tasksService';
 import { compareDateStrings } from '../../../services/taskRules';
 import { auth } from '../../../FireBaseConfig';
@@ -134,18 +135,11 @@ export default function CompletedTasks({ navigation, route }) {
                   <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('completed.loading')}</Text>
                </View>
             ) : sortedDates.length === 0 ? (
-               <View style={styles.emptyContainer}>
-                  <Ionicons 
-                     name={activeTab === 'completed' ? 'checkmark-circle-outline' : 'close-circle-outline'} 
-                     size={48} 
-                     color={colors.textMuted} 
-                  />
-                  <Text style={[styles.emptyText, { color: colors.text }]}>
-                     {activeTab === 'completed' 
-                        ? t('completed.noCompletedTasks') 
-                        : t('completed.noUncompletedTasks')}
-                  </Text>
-               </View>
+               <EmptyState
+                  icon={activeTab === 'completed' ? 'checkmark-circle-outline' : 'close-circle-outline'}
+                  title={t(activeTab === 'completed' ? 'completed.noCompletedTasks' : 'completed.noUncompletedTasks')}
+                  subtitle={t(activeTab === 'completed' ? 'completed.noCompletedTasksDesc' : 'completed.noUncompletedTasksDesc')}
+               />
             ) : (
                <View style={styles.tasksContainer}>
                   {sortedDates.map(dateKey => {
@@ -256,16 +250,6 @@ const styles = StyleSheet.create({
       marginTop: 12,
       color: '#9aa7bd',
       fontSize: 14,
-   },
-   emptyContainer: {
-      alignItems: 'center',
-      paddingVertical: 60,
-   },
-   emptyText: {
-      marginTop: 16,
-      fontSize: 16,
-      color: '#9aa7bd',
-      textAlign: 'center',
    },
    tasksContainer: {
       gap: 24,

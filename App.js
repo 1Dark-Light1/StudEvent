@@ -47,7 +47,7 @@ function AppContent() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack.Navigator
         initialRouteName={initialRoute}
-        screenOptions={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+        screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 150, gestureEnabled: false }}
       >
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Register" component={Register} />
