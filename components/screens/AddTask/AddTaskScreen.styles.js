@@ -132,6 +132,11 @@ export const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 44,
+      shadowColor: '#2f7cff',
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
    },
    frequencyBtnActive: {
       backgroundColor: '#F0F4F8',
@@ -168,6 +173,11 @@ export const styles = StyleSheet.create({
       borderRadius: 40,
       backgroundColor: '#F1F6FF',
       alignItems: 'center',
+      shadowColor: '#2f7cff',
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
    },
    clearText: {
       fontSize: 16,
@@ -184,6 +194,7 @@ export const styles = StyleSheet.create({
       shadowOpacity: 0.3,
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
    },
    addText: {
       fontSize: 16,
