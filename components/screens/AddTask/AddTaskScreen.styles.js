@@ -40,6 +40,12 @@ export const styles = StyleSheet.create({
       paddingVertical: Platform.OS === 'ios' ? 12 : 10,
       minHeight: 48,
       borderWidth: 1,
+      // the same soft shadow as the search field on other screens
+      shadowColor: '#2f7cff',
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
    },
    input: {
       flex: 1,
