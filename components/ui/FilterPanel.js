@@ -4,7 +4,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -55,23 +54,14 @@ export default function FilterPanel({ selectedTags, onTagToggle, onClearFilters 
                return (
                   <Pressable
                      key={tag}
-                     style={({ pressed }) => [
-                        styles.tag,
-                        isSelected && styles.tagSelected,
-                        pressed && styles.tagPressed
-                     ]}
+                     style={({ pressed }) => [styles.tag, pressed && styles.tagPressed]}
                      onPress={() => onTagToggle(tag)}
                   >
                      {isSelected ? (
-                        <LinearGradient
-                           colors={['#2f7cff', '#1a5fd9']}
-                           style={styles.tagGradient}
-                           start={{ x: 0, y: 0 }}
-                           end={{ x: 1, y: 1 }}
-                        >
+                        <View style={[styles.tagContent, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                            <Ionicons name="checkmark-circle" size={18} color="#fff" />
                            <Text style={styles.tagTextSelected}>{t(tagKey)}</Text>
-                        </LinearGradient>
+                        </View>
                      ) : (
                         <View style={[styles.tagContent, { backgroundColor: colors.iconBg, borderColor: colors.border }]}>
                            <Ionicons name="pricetag-outline" size={16} color={colors.textSecondary} />
@@ -144,31 +134,14 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       gap: 10,
       paddingRight: 16,
-      paddingVertical: 4,
+      paddingVertical: 6,
    },
    tag: {
       borderRadius: 24,
-      overflow: 'hidden',
-      shadowColor: '#2f7cff',
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 2,
-   },
-   tagSelected: {
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
    },
    tagPressed: {
       opacity: 0.7,
       transform: [{ scale: 0.95 }],
-   },
-   tagGradient: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      gap: 6,
    },
    tagContent: {
       flexDirection: 'row',
