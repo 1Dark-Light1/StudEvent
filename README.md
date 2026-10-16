@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="120" alt="StudEvent logo" />
+  <img src="assets/Load.png" width="120" alt="StudEvent logo" />
 </p>
 
 <h1 align="center">StudEvent</h1>
@@ -190,7 +190,3 @@ It needs a service account key (Firebase console → Project settings → Servic
 npm run cleanup:db -- path/to/key.json            # dry run: only reports
 npm run cleanup:db -- path/to/key.json --apply    # applies the changes
 ```
-
-## License
-
-0BSD, as declared in [`package.json`](package.json).
